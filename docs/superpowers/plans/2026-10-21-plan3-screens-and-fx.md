@@ -12,6 +12,8 @@
 
 **この計画のあと：** 計画4＝iPhone アプリ化（Capacitor・TestFlight）
 
+**実装後に変えたこと（実装中・最終点検で決定）：** 画面の登録の仕組み（`registerScreen`・`showScreen`・幕）は `src/app/screens.ts` に分け、`main.ts` は起動だけにした（画面のファイルからの循環 import を避けるため）。`Presenter.present` は決して reject しない決まりにし、演出役（`src/fx/player.ts`）が段取りごとに失敗を握って console.error し、最後に必ずカメラを戻す→重ね板を消す→`sync` する。演出役には `cancel()` を足し、投了・画面の片付けで流している演出を打ち切る（次の画面の盤とカメラに触れない）。演出の待ち（`wait`）は描画の時計（`stage.tween`）で数え、`FxCtx` には `tween`・`before`・`after` と、打ち切りを見る `ctx.sync()`・`animateEl`・`later()` を足した（演出の中から舞台を直接さわらないことを `tests/fx/cancel-guard.test.ts` が見張る）。動きを減らす設定の光の頭打ちは `kit.ts` の `lightCap` にまとめた（罠の紅い光も 0.4 まで）。演出は共有の材質を書き換えず複製を使い、`sync` は駒ごとに位置・回転・拡大・visible・字の材質を必ず戻す。開発用の局面づくり（`?fx=` の試し口・`?auto=` の自動対局）は境界の決まりを守るため `src/app/dev.ts` に置いた。自動対局は演出を保存された設定を書き換えずに「短め」にし（`createPresenter` の `fx` 指定）、戦績に数えない。カード選びは0枚でも「対局へ」を押せる（設計書に最低枚数の決まりがないため）。点検で出た「韋駄天の2回目で駒・王を取ると演出が崩れる」という指摘は、2回目は空きマスにしか動けない（`game.ts` の `secondMoves`）ので起こりえないと判断し、直していない。
+
 ## Global Constraints
 
 - 色は設計書の7色だけを `src/app/style.css` の `:root` に置き、ほかの場所で色の値を直に書かない（3D 側は `src/view/palette.ts` に同じ値を数値で置く）：榧 `#E2B65B`・夜の藍 `#14213D`・藍 `#2B59C3`・隈取の紅 `#D7263D`・金箔 `#C9A227`・胡粉 `#EEE8DC`・墨 `#1d1a17`。試作にある濃淡（`#22386a`・`#0d1730`・`#7a0f1c`・`#F2D594` など）はこの7色の明暗として同じファイルに名前を付けて置く

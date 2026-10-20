@@ -3,6 +3,9 @@ import type { Action, CardId, GameState, Square } from '../rules/types';
 import { CARDS } from '../cards';
 import { LEVELS, type Level } from '../ai/levels';
 import type { Match } from './match';
+import type { CpuClient } from '../ai/client';
+import { makeRng } from '../ai/random';
+import { autoDeck } from './deck';
 import { applyAction, createGame } from '../rules/game';
 import { viewFor } from '../rules/view';
 
@@ -193,4 +196,73 @@ export function installFxKey(match: Match, submit: (a: Action) => void): () => v
   };
   window.addEventListener('keydown', onKey);
   return () => window.removeEventListener('keydown', onKey);
+}
+
+// ---------- 自動対局（?auto=weak|normal|strong。開発中だけ） ----------
+//
+// 人間側（先手）も2つ目の Worker の CPU がその強さで指し、演出は「短め」で流れ続ける。
+// 先手の持ち込みは「おまかせ」で組む（カードの演出も通しで流すため）。結果画面まで行ったら止まる。
+// 戦績には数えない。保存された設定（演出の長さ）は書き換えない
+
+/** URL の ?auto= から自動対局の強さを読む。開発中でなければ、または無ければ null */
+export function autoLevel(): Level | null {
+  if (!import.meta.env.DEV) return null;
+  const v = new URLSearchParams(location.search).get('auto');
+  return v === 'weak' || v === 'normal' || v === 'strong' ? v : null;
+}
+
+/** 自動対局で対局画面を開くための引数。ふだんは null */
+export function autoMatchParams(): { level: Level; deck: CardId[]; auto: true } | null {
+  if (!import.meta.env.DEV) return null;
+  const level = autoLevel();
+  if (!level) return null;
+  return { level, deck: autoDeck(makeRng(Date.now())), auto: true };
+}
+
+/** 形がまったく同じか（行動を合法手の要素に対応づけるため。キーの並びには頼らない） */
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a).filter((k) => (a as Record<string, unknown>)[k] !== undefined);
+  const kb = Object.keys(b).filter((k) => (b as Record<string, unknown>)[k] !== undefined);
+  if (ka.length !== kb.length) return false;
+  return ka.every((k) => deepEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+}
+
+/**
+ * 人間の手番になるたびに、2つ目の CPU に先手として考えさせ、その手を指す。
+ * CPU の答えは合法手の配列の要素そのものに置き換えてから渡す（画面で行動を組み立てない決まりのため）。
+ * 答えられないとき・合法手に無い答えのときは、合法手の先頭を指す。戻り値で止める
+ */
+export function installAutoPlay(
+  match: Match, cpu: CpuClient, level: Level, submit: (a: Action) => Promise<void>,
+): () => void {
+  if (!import.meta.env.DEV) return () => {};
+  let stopped = false;
+  let moves = 0;
+  const rng = makeRng(Date.now() ^ 0x5eed);
+  const loop = async (): Promise<void> => {
+    while (!stopped && match.phase() === 'human') {
+      const legal = match.legal();
+      if (legal.length === 0) return;
+      let pick: Action | undefined;
+      try {
+        const a = await cpu.think(match.view(), 'sente', level, Math.floor(rng() * 0x100000000));
+        if (stopped) return;
+        pick = legal.find((x) => deepEqual(x, a));
+        if (!pick) console.warn('自動対局：CPU の答えが合法手に無いので、合法手の先頭を指します', a);
+      } catch (e) {
+        if (stopped) return;
+        console.warn('自動対局：CPU が答えないので、合法手の先頭を指します', e);
+      }
+      // 考えている間に局面が変わっていないか（念のため）
+      if (match.phase() !== 'human') return;
+      moves++;
+      await submit(pick ?? match.legal()[0]!);
+    }
+    if (!stopped) console.info(`自動対局：先手が ${moves} 手指したところで止まりました（${match.phase()}）`);
+  };
+  void loop();
+  return () => { stopped = true; };
 }

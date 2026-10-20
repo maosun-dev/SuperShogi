@@ -11,7 +11,7 @@ import { sync } from '../../view/pieces3d';
 import { createHud } from '../../view/hud';
 import { createPresenter } from '../../fx/player';
 import { showScreen, type Screen } from '../screens';
-import { installFxKey } from '../dev';
+import { installAutoPlay, installFxKey } from '../dev';
 import { recordResult, safeStore } from '../storage';
 import { outcomeOf, type Outcome } from '../outcome';
 import { button, el } from './ui';
@@ -21,6 +21,7 @@ export interface MatchParams {
   deck: CardId[];
   initial?: GameState; // 開発用：本当の局面を差し込む（演出の試し口 ?fx=）。通常は使わない
   fxKey?: boolean;     // 開発用：Space キーでカードを使う
+  auto?: boolean;      // 開発用：人間側も CPU が指す自動対局（?auto=）。演出は短め・戦績に数えない
 }
 
 const TAP_SLOP = 10; // これ以上指が動いたらタップとみなさない（px）
@@ -35,7 +36,7 @@ function paramsOf(p: unknown): MatchParams {
     return { level, deck: [] };
   }
   // 開発用の口は開発中だけ通す
-  if (import.meta.env.DEV) return { level, deck, initial: q.initial, fxKey: q.fxKey };
+  if (import.meta.env.DEV) return { level, deck, initial: q.initial, fxKey: q.fxKey, auto: q.auto };
   return { level, deck };
 }
 
@@ -49,9 +50,10 @@ function lastSquare(events: GameEvent[]): Square | null {
 }
 
 export function matchScreen(params: unknown): Screen {
-  const { level, deck, initial, fxKey } = paramsOf(params);
+  const { level, deck, initial, fxKey, auto } = paramsOf(params);
   let match: Match | null = null;
   let cpu: ReturnType<typeof createBrowserCpu> | null = null;
+  let autoCpu: ReturnType<typeof createBrowserCpu> | null = null; // 自動対局で先手を指す2つ目の CPU
   let cleanup: (() => void)[] = [];
   let disposed = false; // unmount 済みなら true
   let recorded = false; // 戦績は1局につき1回だけ記録する
@@ -60,6 +62,7 @@ export function matchScreen(params: unknown): Screen {
   const record = (o: Outcome): void => {
     if (recorded) return;
     recorded = true;
+    if (auto) return; // 自動対局は戦績に数えない
     recordResult(safeStore(), level, o);
   };
 
@@ -81,7 +84,8 @@ export function matchScreen(params: unknown): Screen {
       let lastMove: Square[] = [];
       let thinking = false;
 
-      const fx = createPresenter(stage, hud, 'sente');
+      // 自動対局は、保存された設定を書き換えずに演出を「短め」にする
+      const fx = createPresenter(stage, hud, 'sente', auto ? { fx: 'short' } : undefined);
       stopFx = () => fx.cancel();
       // 演出のあと、最後に動いたマスと帯を更新する。
       // 決まり：present は決して reject しない（失敗は握って console.error）。
@@ -196,6 +200,10 @@ export function matchScreen(params: unknown): Screen {
         () => setHighlights(stage, [], []),
       ];
       if (import.meta.env.DEV && fxKey) cleanup.push(installFxKey(m, (a) => { void submit(a); }));
+      if (import.meta.env.DEV && auto) {
+        autoCpu = createBrowserCpu();
+        cleanup.push(installAutoPlay(m, autoCpu, level, submit));
+      }
 
       // ---- 左上の「戻る」と、投了の確かめ ----
       const ask = el('div', 'resign');
@@ -250,7 +258,9 @@ export function matchScreen(params: unknown): Screen {
       cpu?.dispose();
       match = null;
       cpu = null;
-      for (const f of cleanup) f();
+      for (const f of cleanup) f(); // 自動対局の指し手もここで止める
+      autoCpu?.dispose();
+      autoCpu = null;
       cleanup = [];
     },
   };

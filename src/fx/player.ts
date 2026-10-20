@@ -23,10 +23,14 @@ const HOP = 0.18;      // 動くときに少し浮かせる高さ
 const DROP_FROM = 0.7; // 打つ駒が降りてくる高さ
 const SETTLE_MS = 400; // 途中で止まったとき、カメラを普段の視点へ戻す時間
 
-/** 今の設定（短め／長め）と OS の「視差効果を減らす」から、演出の強さを決める（毎回読み直す） */
-function currentTiming(): FxTiming {
+/**
+ * 今の設定（短め／長め）と OS の「視差効果を減らす」から、演出の強さを決める（毎回読み直す）。
+ * fx を渡すと、保存された設定を書き換えずに長さだけ差し替える（開発用の自動対局で「短め」にする）
+ */
+function currentTiming(fx?: 'short' | 'long'): FxTiming {
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return fxTiming(loadSettings(safeStore()), reduced);
+  const s = loadSettings(safeStore());
+  return fxTiming(fx ? { ...s, fx } : s, reduced);
 }
 
 async function slide(ctx: FxCtx, pieceId: number, from: Parameters<typeof squarePos>[0], to: Parameters<typeof squarePos>[0]): Promise<void> {
@@ -100,7 +104,7 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
 /** 演出役。cancel() で打ち切ると、流している演出は残りを流さず、共有の舞台（カメラ・盤）にも触れずに終わる */
 export interface FxPresenter extends Presenter { cancel(): void }
 
-export function createPresenter(stage: Stage, hud: Hud, me: Side): FxPresenter {
+export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 'short' | 'long' }): FxPresenter {
   prepareMagic(stage);
   let cancelled = false;
   const alive = (): boolean => !cancelled;
@@ -116,7 +120,7 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side): FxPresenter {
       if (cancelled) return;
       let ctx: FxCtx | null = null;
       try {
-        ctx = makeCtx(stage, hud, currentTiming(), me, step.before, step.after, alive);
+        ctx = makeCtx(stage, hud, currentTiming(opts?.fx), me, step.before, step.after, alive);
         const kingAt = capturedKingAt(step.before, step.events);
         for (const cue of planFx(step.events, step.actor)) {
           if (cancelled) break;

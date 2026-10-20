@@ -14,7 +14,7 @@ import { levelScreen } from './screens/level';
 import { deckScreen } from './screens/deck';
 import { revealScreen } from './screens/reveal';
 import { settingsScreen } from './screens/settings';
-import { fxMatchParams } from './dev';
+import { autoMatchParams, fxMatchParams } from './dev';
 
 function start(): void {
   const root = document.getElementById('app');
@@ -39,9 +39,9 @@ function start(): void {
   registerScreen('deck', (p) => deckScreen(p));
   registerScreen('reveal', (p) => revealScreen(p));
   registerScreen('settings', () => settingsScreen());
-  // 開発中に ?fx=<カード> が付いていれば、演出の試し口として対局画面から始める
-  const fx = fxMatchParams();
-  void (fx ? showScreen('match', fx) : showScreen('title'));
+  // 開発中に ?fx=<カード> が付いていれば演出の試し口として、?auto=<強さ> なら自動対局として、対局画面から始める
+  const dev = fxMatchParams() ?? autoMatchParams();
+  void (dev ? showScreen('match', dev) : showScreen('title'));
 }
 
 start();
