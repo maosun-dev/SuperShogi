@@ -52,11 +52,19 @@ export function legalActions(s: GameState): Action[] {
     const p = s.board[i];
     if (!p || p.side !== side) continue;
     const from = sqOf(i);
+    const double = hasEquip(p, 'doubleMove');
     for (const to of pieceTargets(s, from)) {
+      const target = s.board[idx(to)];
       // 凍てつく盤：この手番は相手の駒のマスへ動けない
-      if (frozen && s.board[idx(to)]) continue;
+      if (frozen && target) continue;
       for (const promote of promoteOptions(p, from, to)) {
         out.push({ type: 'move', from, to, promote });
+        // 韋駄天：取らない2回目。1手目で王を取るなら2回目はない
+        if (double && target?.kind !== 'OU') {
+          for (const second of secondMoves(s, p, from, to, promote)) {
+            out.push({ type: 'move', from, to, promote, second });
+          }
+        }
       }
     }
   }
@@ -74,6 +82,25 @@ export function legalActions(s: GameState): Action[] {
         out.push({ type: 'card', uid: c.uid, targets });
       }
     }
+  }
+  return out;
+}
+
+function hasEquip(p: Piece, flag: 'armor' | 'doubleMove'): boolean {
+  return !!p.equip && !!CARDS[p.equip.cardId].equip?.[flag];
+}
+
+// 韋駄天の2回目：1手目のあとの盤で、駒を取らずに動ける先
+function secondMoves(s: GameState, p: Piece, from: Square, to: Square, promote: boolean): { to: Square; promote: boolean }[] {
+  const moved: Piece = { ...p, promoted: p.promoted || promote };
+  const board = [...s.board];
+  board[idx(from)] = null;
+  board[idx(to)] = moved;
+  const after: GameState = { ...s, board };
+  const out: { to: Square; promote: boolean }[] = [];
+  for (const to2 of pieceTargets(after, to)) {
+    if (board[idx(to2)]) continue;
+    for (const promote2 of promoteOptions(moved, to, to2)) out.push({ to: to2, promote: promote2 });
   }
   return out;
 }
@@ -101,19 +128,15 @@ export function applyAction(s0: GameState, a: Action): { state: GameState; event
 
   if (a.type === 'move') {
     const p = s.board[idx(a.from)]!;
-    const target = s.board[idx(a.to)];
-    if (target) {
-      // 取る：成りを戻して取った側の持ち駒へ
-      events.push({ type: 'captured', pieceId: target.id, at: a.to, by: side });
-      if (target.kind !== 'OU') s.players[side].hand[target.kind as HandKind]++;
-    }
-    s.board[idx(a.from)] = null;
-    s.board[idx(a.to)] = p;
-    if (a.promote) p.promoted = true;
-    events.push({ type: 'moved', pieceId: p.id, from: a.from, to: a.to, promoted: a.promote });
-    if (target?.kind === 'OU') {
-      finish(s, events, { winner: side, reason: 'king-captured' });
-      return { state: s, events };
+    const first = stepMove(s, events, a.from, a.to, a.promote);
+    if (s.result) return { state: s, events };
+    if (a.second) {
+      // 1手目で止められた・駒が消えたときは2回目を飛ばす
+      if (first === 'moved' && s.board[idx(a.to)]?.id === p.id) {
+        stepMove(s, events, a.to, a.second.to, a.second.promote);
+      } else {
+        events.push({ type: 'secondMoveSkipped', pieceId: p.id });
+      }
     }
   } else if (a.type === 'drop') {
     const p: Piece = { id: s.nextId++, kind: a.kind, side, promoted: false, equip: null };
@@ -127,6 +150,30 @@ export function applyAction(s0: GameState, a: Action): { state: GameState; event
 
   endTurn(s, events);
   return { state: s, events };
+}
+
+// 駒を1回動かす。鋼の鎧に止められたら 'blocked'
+function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, promote: boolean): 'moved' | 'blocked' {
+  const p = s.board[idx(from)]!;
+  const side = p.side;
+  const target = s.board[idx(to)];
+  if (target && hasEquip(target, 'armor')) {
+    // 鋼の鎧：取らずに守り、鎧は外れる。攻めた駒は元のマスのまま
+    target.equip = null;
+    events.push({ type: 'armorBlocked', defenderId: target.id, attackerId: p.id, at: to });
+    return 'blocked';
+  }
+  if (target) {
+    // 取る：成りを戻して取った側の持ち駒へ（装備は付いてこない）
+    events.push({ type: 'captured', pieceId: target.id, at: to, by: side });
+    if (target.kind !== 'OU') s.players[side].hand[target.kind as HandKind]++;
+  }
+  s.board[idx(from)] = null;
+  s.board[idx(to)] = p;
+  if (promote) p.promoted = true;
+  events.push({ type: 'moved', pieceId: p.id, from, to, promoted: promote });
+  if (target?.kind === 'OU') finish(s, events, { winner: side, reason: 'king-captured' });
+  return 'moved';
 }
 
 function cardContext(s: GameState, events: GameEvent[], side: Side): CardContext {
