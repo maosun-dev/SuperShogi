@@ -122,6 +122,12 @@ function sameAction(a: Action, b: Action): boolean {
 export function applyAction(s0: GameState, a: Action): { state: GameState; events: GameEvent[] } {
   if (s0.result) throw new IllegalActionError('対局はもう終わっています');
   if (!legalActions(s0).some(b => sameAction(a, b))) throw new IllegalActionError('反則の行動です');
+  return applyActionUnchecked(s0, a);
+}
+
+// 合法かどうかの確認をしない適用（CPU の読み用）。legalActions から選んだ行動だけを渡すこと
+export function applyActionUnchecked(s0: GameState, a: Action): { state: GameState; events: GameEvent[] } {
+  if (s0.result) throw new IllegalActionError('対局はもう終わっています');
   const s = cloneState(s0);
   const events: GameEvent[] = [];
   const side = s.turn;

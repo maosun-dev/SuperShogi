@@ -1,21 +1,10 @@
 import { test, expect } from 'vitest';
+import { makeRng } from '../../src/ai/random';
 import { applyAction, createGame, legalActions } from '../../src/rules/game';
 import { filterEventsFor, viewFor } from '../../src/rules/view';
 import { CARDS, validateDeck } from '../../src/cards';
 import { HAND_KINDS, opponent, positionKey } from '../../src/rules/board';
 import type { Action, CardId, GameState, Side } from '../../src/rules/types';
-
-// 種（シード）付きの乱数
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const ALL_IDS = Object.keys(CARDS) as CardId[];
 
@@ -48,7 +37,7 @@ function countPieces(s: GameState): number {
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 
 test.each(range(200))('でたらめ対局 %i は例外なく決着か引き分けで終わる', seed => {
-  const rand = rng(seed + 1);
+  const rand = makeRng(seed + 1);
   let s = createGame({ sente: randomDeck(rand), gote: randomDeck(rand) });
   let destroyed = 0;
   for (let i = 0; i < 400 && !s.result; i++) {
