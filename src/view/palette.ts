@@ -37,6 +37,10 @@ export const PAL = {
   sumiBurn: 0x140e0a, // 焦げ跡の芯
   sumiBurnEdge: 0x28180a, // 焦げ跡のふち
   yoruNight: 0x060d22, // 暗くなる空
+  // 罠・装備・決着の演出（金箔・胡粉・夜の藍・墨の明暗）
+  soubiPale: 0xfff1bf, // 光の柱の芯（金箔をいちばん明るくしたもの）
+  haganeSteel: 0xb7c0cf, // 鋼の鎧の鉄色（胡粉を夜の藍へ寄せたもの）
+  sumiHole: 0x050403, // 落とし穴の穴の底
 } as const;
 
 export type PalName = keyof typeof PAL;

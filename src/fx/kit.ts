@@ -115,17 +115,21 @@ function inkSvg(): string {
   return s;
 }
 
-/** 墨しぶき＋筆文字のカットイン。ms だけ見せて消す */
-export async function cutIn(ctx: FxCtx, word: string, sub: string, band: 'mahou' | 'wana' | 'soubi', ms = 1000): Promise<void> {
+/** 墨しぶき＋筆文字のカットイン。ms だけ見せて消す。sub が空なら下の札は出さない。ink:false で墨しぶきなし（王手の短い帯） */
+export async function cutIn(
+  ctx: FxCtx, word: string, sub: string, band: 'mahou' | 'wana' | 'soubi', ms = 1000, ink = true,
+): Promise<void> {
   const el = layers(ctx).cutin;
-  el.querySelector('.ink')!.innerHTML = inkSvg();
+  el.querySelector('.ink')!.innerHTML = ink ? inkSvg() : '';
   const w = el.querySelector<HTMLElement>('.word')!;
   w.textContent = word;
   // 字数が多いほど小さくして、画面の幅に収める（2字までは試作の大きさ）
   const n = Math.max(2, [...word].length);
   w.style.fontSize = `min(${(Math.min(30, 88 / n)).toFixed(1)}vw, ${Math.round(Math.min(128, 380 / n))}px)`;
   w.classList.toggle('long', n >= 4);
-  el.querySelector<HTMLElement>('.sub')!.textContent = sub;
+  const subEl = el.querySelector<HTMLElement>('.sub')!;
+  subEl.textContent = sub;
+  subEl.hidden = sub === '';
   el.style.setProperty('--band', `var(--${band})`);
   el.classList.remove('on', 'off');
   void el.offsetWidth; // 前の動きを外してから付け直す（毎回はじめから動かす）
@@ -143,8 +147,13 @@ export function dim(ctx: FxCtx, opacity: number): void {
   layers(ctx).dim.style.opacity = String(opacity);
 }
 
+/** 札や駒札を飛ばす重ね板（罠・装備の演出で HTML の物を置くところ） */
+export function overlay(ctx: FxCtx): HTMLElement {
+  return layers(ctx).fly;
+}
+
 /** root の中での位置（重ね板に置くため） */
-function localRect(ctx: FxCtx, el: Element): { x: number; y: number; w: number; h: number } {
+export function localRect(ctx: FxCtx, el: Element): { x: number; y: number; w: number; h: number } {
   const r = el.getBoundingClientRect(), o = ctx.hud.root.getBoundingClientRect();
   return { x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height };
 }

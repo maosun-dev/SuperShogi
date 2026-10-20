@@ -1,7 +1,8 @@
 // 演出役（Presenter の本体）。出来事の記録を planFx で段取りにし、順に流して、最後に必ず sync する。
-// 魔法は magic.ts、普段の駒の移動・打つ動きはここ（静かに 160ms）。罠・装備・決着はタスク11で足す。
+// 魔法は magic.ts、罠は trap.ts、装備・鋼の鎧・韋駄天の2回目は equip.ts、王手・決着は finale.ts。
+// 普段の駒の移動・打つ動きはここ（静かに 160ms）。王を取る手の移動だけは、決着の演出がゆっくり流す。
 // 決まり：present は決して reject しない。失敗は段取りごとに握って console.error し、最後に必ず sync して resolve する。
-import type { Side } from '../rules/types';
+import type { GameState, Side, Square } from '../rules/types';
 import type { Presenter, Step } from '../app/match';
 import type { Stage } from '../view/stage';
 import type { Hud } from '../view/hud';
@@ -12,6 +13,9 @@ import { loadSettings, safeStore } from '../app/storage';
 import { fxTiming, planFx, type Cue, type FxTiming } from './plan';
 import { atHome, cameraHome, clearLayers, makeCtx, type FxCtx } from './kit';
 import { playMagic, prepareMagic } from './magic';
+import { playTrapFire, playTrapSet } from './trap';
+import { playArmor, playEquip, playSecond } from './equip';
+import { playCheck, playGameOver } from './finale';
 
 const MOVE_MS = 160;   // 普段の駒の移動（演出の長さの設定に関係なく、いつも静かで速く）
 const HOP = 0.18;      // 動くときに少し浮かせる高さ
@@ -33,11 +37,26 @@ async function slide(ctx: FxCtx, pieceId: number, from: Parameters<typeof square
   }, easeOut);
 }
 
-async function playCue(ctx: FxCtx, cue: Cue, step: Step): Promise<void> {
+/** 取られた王のマス：前の局面で、動いた先に（動かした側でない）王がいたマス。なければ null */
+export function capturedKingAt(before: GameState, events: Step['events']): Square | null {
+  for (const e of events) {
+    if (e.type !== 'moved') continue;
+    const p = before.board[e.to.r * 9 + e.to.c];
+    const mover = before.board[e.from.r * 9 + e.from.c];
+    if (p?.kind === 'OU' && p.side !== mover?.side) return e.to;
+  }
+  return null;
+}
+
+async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null): Promise<void> {
   switch (cue.kind) {
     case 'move':
-    case 'second':
+      // 王を取る手は、決着の演出（playGameOver）がゆっくり動かす
+      if (kingAt && step.after.result && cue.to.c === kingAt.c && cue.to.r === kingAt.r) return;
       await slide(ctx, cue.pieceId, cue.from, cue.to);
+      return;
+    case 'second':
+      await playSecond(ctx, cue);
       return;
     case 'drop': {
       // 打った駒は局面を揃えてから、上から降ろす
@@ -51,8 +70,26 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step): Promise<void> {
     case 'magic':
       await playMagic(ctx, cue);
       return;
+    case 'trapSet':
+      await playTrapSet(ctx, cue);
+      return;
+    case 'trapFire':
+      await playTrapFire(ctx, cue);
+      return;
+    case 'equip':
+      await playEquip(ctx, cue);
+      return;
+    case 'armor':
+      await playArmor(ctx, cue);
+      return;
+    case 'check':
+      await playCheck(ctx, cue);
+      return;
+    case 'gameOver':
+      await playGameOver(ctx, cue, kingAt);
+      return;
     default:
-      // 罠・装備・王手・決着などはタスク11で足す
+      // 小さな知らせ（notice）は今は出さない
       return;
   }
 }
@@ -64,9 +101,10 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side): Presenter {
       let ctx: FxCtx | null = null;
       try {
         ctx = makeCtx(stage, hud, currentTiming(), me, step.before, step.after);
+        const kingAt = capturedKingAt(step.before, step.events);
         for (const cue of planFx(step.events, step.actor)) {
           try {
-            await playCue(ctx, cue, step);
+            await playCue(ctx, cue, step, kingAt);
           } catch (e) {
             console.error(`演出に失敗しました（${cue.kind}）`, e);
           }
@@ -78,7 +116,9 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side): Presenter {
         // 盤を局面どおりに揃える。1つの失敗がほかを止めないよう、それぞれ別に包む
         if (ctx) {
           try {
-            if (!atHome(ctx)) await cameraHome(ctx, SETTLE_MS);
+            // 王が取られて決着したときは、見得を切ったまま結果画面へ（カメラは戻さない）
+            const finale = step.after.result?.winner != null;
+            if (!finale && !atHome(ctx)) await cameraHome(ctx, SETTLE_MS);
           } catch (e) { console.error('カメラを戻せませんでした', e); }
           try { clearLayers(ctx); } catch (e) { console.error('重ね板を消せませんでした', e); }
         }
