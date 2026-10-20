@@ -89,6 +89,14 @@ export function flash(ctx: FxCtx, color: string, peak: number, ms: number): void
   f.style.opacity = '0';
 }
 
+/**
+ * 白っぽい光（加算の光・白い芯など）の濃さ。動きを減らす設定（flashMax が 0.4）では flashMax で頭打ちにする。
+ * ふだんの設定では値をそのまま返す
+ */
+export function lightCap(ctx: FxCtx, a: number): number {
+  return ctx.timing.flashMax < 0.9 ? Math.min(a, ctx.timing.flashMax) : a;
+}
+
 /** 集中線（試作の buildSpeedLines） */
 export function speedLines(ctx: FxCtx, on: boolean): void {
   const el = layers(ctx).lines;

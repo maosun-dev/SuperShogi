@@ -10,7 +10,7 @@ import type { Cue } from './plan';
 import { PAL, PALS } from '../view/palette';
 import { squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
-import { atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, shakeBy, transient, type FxCtx } from './kit';
+import { atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, lightCap, shakeBy, transient, type FxCtx } from './kit';
 import { squareOf } from './trap';
 
 type CheckCue = Extract<Cue, { kind: 'check' }>;
@@ -43,7 +43,8 @@ function trail(ctx: FxCtx, obj: THREE.Object3D, ms: number): void {
   const N = 90, geo = new THREE.BufferGeometry(), arr = new Float32Array(N * 3);
   for (let i = 0; i < N; i++) arr.set([obj.position.x, obj.position.y, obj.position.z], i * 3);
   geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const pm = new THREE.PointsMaterial({ color: PAL.soubiPale, size: 0.12, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+  const peak = lightCap(ctx, 0.9);
+  const pm = new THREE.PointsMaterial({ color: PAL.soubiPale, size: 0.12, transparent: true, opacity: peak, blending: THREE.AdditiveBlending, depthWrite: false });
   let k = 0;
   transient(ctx, new THREE.Points(geo, pm), ms + 900, (_dt, age) => {
     const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -53,7 +54,7 @@ function trail(ctx: FxCtx, obj: THREE.Object3D, ms: number): void {
       k++;
       pos.needsUpdate = true;
     }
-    pm.opacity = 0.9 * Math.max(0, Math.min(1, (ms + 900 - age) / 900));
+    pm.opacity = peak * Math.max(0, Math.min(1, (ms + 900 - age) / 900));
   });
 }
 

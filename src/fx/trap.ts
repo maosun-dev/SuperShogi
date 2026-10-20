@@ -11,7 +11,7 @@ import { CD, CW, decal, ring, squarePos } from '../view/board3d';
 import { pieceMesh, sync } from '../view/pieces3d';
 import { cardHtml } from '../view/cardArt';
 import {
-  atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, localRect, overlay, puff, shakeBy, transient,
+  atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, lightCap, localRect, overlay, puff, shakeBy, transient,
   type FxCtx,
 } from './kit';
 
@@ -91,11 +91,14 @@ export async function playTrapSet(ctx: FxCtx, cue: TrapSetCue): Promise<void> {
     back.remove();
   }
   // 枠を埋めた見た目にしておく（このあとの描き直しで正しく描き直される）
+  // aria-label も帯の描き直し（hud.ts）と同じ言い方にそろえる
   if (mine && cue.cardId) {
     slot.className = 'slot mine';
     slot.textContent = CARDS[cue.cardId].name[0];
+    slot.setAttribute('aria-label', `伏せた${CARDS[cue.cardId].name}`);
   } else {
     slot.className = 'slot back';
+    slot.setAttribute('aria-label', '伏せ札');
   }
   // 自分の落とし穴：マスに罠の印を出し、紅い輪が小さく広がって知らせる
   if (mine && cue.at) {
@@ -130,6 +133,7 @@ async function flipSlot(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
   // 表に替えて、残りの 90° を回り切る（表の字が裏返しにならないよう -90° から戻す）
   slot.className = 'slot mine';
   slot.textContent = CARDS[cue.cardId].name[0];
+  slot.setAttribute('aria-label', `発動した${CARDS[cue.cardId].name}`);
   slot.style.boxShadow = `0 0 10px 2px ${rgba(PAL.wana, 0.9)}`;
   await run(slot, [
     { transform: 'perspective(90px) rotateY(-90deg) scale(1.9)' },
@@ -141,7 +145,8 @@ async function flipSlot(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
 /** 紅い光が画面を横に走る */
 async function redSweep(ctx: FxCtx): Promise<void> {
   const el = document.createElement('div');
-  const peak = Math.min(1, ctx.timing.flashMax + 0.3);
+  // 帯の芯は胡粉の白。動きを減らす設定では帯全体の濃さを flashMax までにする（芯は 0.95×0.4 ≒ 0.38）
+  const peak = lightCap(ctx, 1);
   Object.assign(el.style, {
     left: '0', top: '34%', width: '70%', height: '30%',
     background: `linear-gradient(90deg, ${rgba(PAL.wana, 0)} 0%, ${rgba(PAL.wana, 0.75)} 55%, ${rgba(PAL.gofun, 0.95)} 78%, ${rgba(PAL.wana, 0.6)} 88%, ${rgba(PAL.wana, 0)} 100%)`,
@@ -326,7 +331,7 @@ async function kagami(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
     card.remove();
     flash(ctx, PALS.hakkou, 0.75, 160);
     shakeBy(ctx, 0.28);
-    void run(mirror, [{ filter: 'brightness(1.9)' }, { filter: 'brightness(1)' }], 260 * S, 'ease-out');
+    void run(mirror, [{ filter: `brightness(${1 + lightCap(ctx, 0.9)})` }, { filter: 'brightness(1)' }], 260 * S, 'ease-out');
     const ripple = document.createElement('div');
     Object.assign(ripple.style, {
       left: `${cx - size * 0.4}px`, top: `${cy - size * 0.4}px`, width: `${size * 0.8}px`, height: `${size * 0.8}px`,
@@ -334,7 +339,7 @@ async function kagami(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
     });
     fly.append(ripple);
     els.push(ripple);
-    void run(ripple, [{ transform: 'scale(.4)', opacity: 1 }, { transform: 'scale(1.5)', opacity: 0 }], 420 * S, 'ease-out');
+    void run(ripple, [{ transform: 'scale(.4)', opacity: lightCap(ctx, 1) }, { transform: 'scale(1.5)', opacity: 0 }], 420 * S, 'ease-out');
     const shards: Promise<void>[] = [];
     const N = 8;
     for (let i = 0; i < N; i++) {

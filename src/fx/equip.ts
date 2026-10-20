@@ -8,7 +8,7 @@ import type { Cue } from './plan';
 import { PAL, PALS, rgba } from '../view/palette';
 import { ring, squarePos } from '../view/board3d';
 import { pieceMesh, sync } from '../view/pieces3d';
-import { cameraHome, cameraTo, cardFly, cutIn, easeInOut, easeOut, flash, puff, shakeBy, transient, type FxCtx } from './kit';
+import { cameraHome, cameraTo, cardFly, cutIn, easeInOut, easeOut, flash, lightCap, puff, shakeBy, transient, type FxCtx } from './kit';
 import { squareOf } from './trap';
 
 type EquipCue = Extract<Cue, { kind: 'equip' }>;
@@ -44,8 +44,10 @@ async function pillar(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
     grp.add(m);
     return mat;
   };
-  const outer = mk(0.62, 0.45, PAL.soubiLight);
-  const core = mk(0.24, 0.75, PAL.soubiPale);
+  // 光の濃さ（動きを減らす設定では flashMax まで）
+  const OUTER = lightCap(ctx, 0.45), CORE = lightCap(ctx, 0.75), GLOW = lightCap(ctx, 0.6);
+  const outer = mk(0.62, OUTER, PAL.soubiLight);
+  const core = mk(0.24, CORE, PAL.soubiPale);
   // 足元の光だまり
   const glow = ring(0.05, 0.9, PAL.soubiLight, 48);
   glow.position.y = 0.02;
@@ -64,9 +66,9 @@ async function pillar(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
       const thin = t < 0.6 ? 1 : 1 - 0.85 * ((t - 0.6) / 0.4);
       grp.children[0].scale.set(thin, 1, thin);
       grp.children[1].scale.set(thin, 1, thin);
-      outer.opacity = 0.45 * fade;
-      core.opacity = 0.75 * fade;
-      glow.material.opacity = 0.6 * Math.sin(Math.PI * Math.min(1, t * 1.3));
+      outer.opacity = OUTER * fade;
+      core.opacity = CORE * fade;
+      glow.material.opacity = GLOW * Math.sin(Math.PI * Math.min(1, t * 1.3));
     });
   } finally {
     kill();
@@ -84,7 +86,7 @@ function hexBurst(ctx: FxCtx, at: THREE.Vector3): void {
     const s = 1 + easeOut(t) * 1.4;
     r.scale.set(s, s, s);
     r.rotation.z = t * 0.6;
-    r.material.opacity = 0.95 * (1 - t);
+    r.material.opacity = lightCap(ctx, 0.95) * (1 - t);
   });
 }
 
@@ -147,8 +149,8 @@ async function hagane(ctx: FxCtx, _at: THREE.Vector3, pieceId: number): Promise<
   try {
     await ctx.tween(520, (t) => {
       bar.position.x = (-0.5 + t) * 0.9 * s;
-      bar.material.opacity = Math.sin(Math.PI * t) * 0.95;
-      mat.emissiveIntensity = Math.sin(Math.PI * t) * 1.2;
+      bar.material.opacity = Math.sin(Math.PI * t) * lightCap(ctx, 0.95);
+      mat.emissiveIntensity = Math.sin(Math.PI * t) * 1.2 * (lightCap(ctx, 0.9) / 0.9);
     }, easeInOut);
   } finally {
     m.remove(bar);
@@ -176,14 +178,14 @@ async function tate(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
     await ctx.tween(200, (t) => {
       grp.scale.setScalar(0.3 + 0.7 * t);
       (shell.material as THREE.MeshBasicMaterial).opacity = 0.32 * t;
-      (wire.material as THREE.MeshBasicMaterial).opacity = 0.7 * t;
-      base.material.opacity = 0.9 * t;
+      (wire.material as THREE.MeshBasicMaterial).opacity = lightCap(ctx, 0.7) * t;
+      base.material.opacity = lightCap(ctx, 0.9) * t;
     }, easeOut);
     await ctx.wait(160);
     await ctx.tween(320, (t) => {
       (shell.material as THREE.MeshBasicMaterial).opacity = 0.32 * (1 - t);
-      (wire.material as THREE.MeshBasicMaterial).opacity = 0.7 * (1 - t);
-      base.material.opacity = 0.9 * (1 - t);
+      (wire.material as THREE.MeshBasicMaterial).opacity = lightCap(ctx, 0.7) * (1 - t);
+      base.material.opacity = lightCap(ctx, 0.9) * (1 - t);
     });
   } finally {
     kill();
@@ -218,7 +220,7 @@ async function idaten(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
         const a = s.a + u * Math.PI * 3;
         s.m.position.set(Math.cos(a) * s.r * (1 - u * 0.3), 0.3 + u * 1.9, Math.sin(a) * s.r * (1 - u * 0.3));
         s.m.rotation.set(0, -a, 0.5);
-        (s.m.material as THREE.MeshBasicMaterial).opacity = Math.sin(Math.PI * u) * 0.9;
+        (s.m.material as THREE.MeshBasicMaterial).opacity = Math.sin(Math.PI * u) * lightCap(ctx, 0.9);
       }
     });
   } finally {
@@ -301,7 +303,7 @@ function sparks(ctx: FxCtx, at: THREE.Vector3, back: THREE.Vector3): void {
     v.push(d.normalize().multiplyScalar(3 + Math.random() * 6));
   }
   geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const pm = new THREE.PointsMaterial({ color: PAL.soubiPale, size: 0.1, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
+  const pm = new THREE.PointsMaterial({ color: PAL.soubiPale, size: 0.1, transparent: true, opacity: lightCap(ctx, 1), blending: THREE.AdditiveBlending, depthWrite: false });
   transient(ctx, new THREE.Points(geo, pm), 800, (dt) => {
     const pos = geo.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < N; i++) {
