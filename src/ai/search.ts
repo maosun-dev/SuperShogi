@@ -19,7 +19,7 @@ export interface SearchResult { action: Action; score: number; depth: number; no
 
 export const WIN = 1_000_000;
 
-const CHECK_EVERY = 256;          // 何局面ごとに時計を見るか
+const CHECK_EVERY = 16;           // 何局面ごとに時計を見るか
 const KING_VICTIM = 100_000;      // 並べ替え用：王を取る手は最優先（取れば勝ち）
 
 // 時間切れで読みを打ち切るための合図
@@ -37,6 +37,8 @@ function sameAction(a: Action, b: Action): boolean {
 }
 
 export function search(view: GameState, opts: SearchOptions): SearchResult {
+  const now = opts.now ?? Date.now;
+  const start = now();
   if (view.result) throw new Error('対局はもう終わっています');
   const root: GameState = { ...view, seen: {} }; // 読みの中では千日手を考えない
   const rootActions = legalActions(root);
@@ -45,11 +47,9 @@ export function search(view: GameState, opts: SearchOptions): SearchResult {
     return { action: rootActions[0], score: evaluate(root, root.turn), depth: 0, nodes: 0 };
   }
 
-  const now = opts.now ?? Date.now;
-  const start = now();
   const rng = makeRng(opts.seed);
   let nodes = 0;
-  let canStop = false; // 深さ1を読み終えるまでは打ち切らない
+  let canStop = false; // 根の候補を1つも読み終えるまでは打ち切らない（必ず手を返すため）
 
   // 局面を1つ数え、256局面ごとに時計を見る
   function tick(): void {
@@ -159,6 +159,8 @@ export function search(view: GameState, opts: SearchOptions): SearchResult {
     return best;
   }
 
+  let partial = null as { action: Action; score: number } | null; // 深さ1の途中結果
+
   // 根：前の深さで一番だった手を先頭にして、すべての候補を読む
   function rootSearch(depth: number, prevBest: Action | null): { action: Action; score: number } {
     tick();
@@ -170,6 +172,7 @@ export function search(view: GameState, opts: SearchOptions): SearchResult {
     let alpha = -Infinity;
     let bestAction = cands[0].a;
     let bestScore = -Infinity;
+    partial = null;
     for (const c of cands) {
       const child = c.child ?? applyActionUnchecked(root, c.a).state;
       const v = childScore(root, child, alpha, Infinity, (n, al, be) => negamax(n, depth - 1, al, be, 1));
@@ -178,6 +181,13 @@ export function search(view: GameState, opts: SearchOptions): SearchResult {
         bestAction = c.a;
       }
       if (v > alpha) alpha = v;
+      // 深さ1は、読み終えた候補までの結果を、時間切れのときの答えにする
+      if (depth === 1) {
+        partial = { action: bestAction, score: bestScore };
+        canStop = true;
+        // 局面数が少なくても、候補を1つ読むごとに時計を見る
+        if (now() - start >= opts.timeLimitMs) throw new TimeUp();
+      }
     }
     return { action: bestAction, score: bestScore };
   }
@@ -189,7 +199,12 @@ export function search(view: GameState, opts: SearchOptions): SearchResult {
       const r = rootSearch(depth, result?.action ?? null);
       result = { action: r.action, score: r.score, depth, nodes };
     } catch (e) {
-      if (e instanceof TimeUp) break;
+      if (e instanceof TimeUp) {
+        // 深さ1の途中で止まったら、読み終えた候補の中でいちばんよい手を返す。深さ2以上は前の深さの結果を使う
+        const p = partial as { action: Action; score: number } | null;
+        if (depth === 1 && p) result = { action: p.action, score: p.score, depth: 1, nodes };
+        break;
+      }
       throw e;
     }
     canStop = true;

@@ -109,3 +109,12 @@ test('終わった対局・指せる手がないときは例外', () => {
   const empty = emptyState('sente');
   expect(() => search(empty, BASE)).toThrow('指せる行動がありません');
 });
+
+test('深さ1の途中でも時間切れなら、読み終えた手を返す', () => {
+  const s = createGame({ sente: ['tenma'], gote: ['tenma'] });
+  let calls = 0;
+  const now = () => (++calls <= 2 ? 0 : 1e9);
+  const r = search(s, { ...BASE, maxDepth: 3, timeLimitMs: 100, now });
+  expect(legalActions(s).some(a => JSON.stringify(a) === JSON.stringify(r.action))).toBe(true);
+  expect(r.depth).toBe(1);
+});
