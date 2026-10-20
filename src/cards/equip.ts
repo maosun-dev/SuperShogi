@@ -23,6 +23,7 @@ function attach(cardId: CardId) {
 export const tenma: CardDef = {
   id: 'tenma', name: '天馬の蹄', kind: 'equip', cost: 2, fx: 'tenma',
   text: '付けた駒が、桂馬の動きも使えるようになる',
+  prompt: '装備を付ける自分の駒を選んでください',
   targetSets: bareOwnPieces,
   resolve: attach('tenma'),
   equip: { knight: true },
@@ -31,6 +32,7 @@ export const tenma: CardDef = {
 export const hagane: CardDef = {
   id: 'hagane', name: '鋼の鎧', kind: 'equip', cost: 3, fx: 'hagane',
   text: '付けた駒が取られそうになったとき、1回だけ守る。取ろうとした駒は元のマスに戻り、相手の手番は終わる。魔法や罠からは守らない',
+  prompt: '装備を付ける自分の駒を選んでください',
   targetSets: bareOwnPieces,
   resolve: attach('hagane'),
   equip: { armor: true },
@@ -39,6 +41,7 @@ export const hagane: CardDef = {
 export const tate: CardDef = {
   id: 'tate', name: '王の盾', kind: 'equip', cost: 4, fx: 'tate',
   text: '付けた駒と、その周り8マスの味方の駒は、相手の魔法を受けない',
+  prompt: '装備を付ける自分の駒を選んでください',
   targetSets: bareOwnPieces,
   resolve: attach('tate'),
   equip: { magicShield: true },
@@ -47,6 +50,7 @@ export const tate: CardDef = {
 export const idaten: CardDef = {
   id: 'idaten', name: '韋駄天', kind: 'equip', cost: 5, fx: 'idaten',
   text: '付けた駒は、1手で2回動ける。2回目の移動はしなくてもよい。2回目の移動では駒を取れない',
+  prompt: '装備を付ける自分の駒を選んでください',
   targetSets: bareOwnPieces,
   resolve: attach('idaten'),
   equip: { doubleMove: true },

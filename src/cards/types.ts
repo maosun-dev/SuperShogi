@@ -19,6 +19,7 @@ export interface CardDef {
   cost: number;
   text: string;
   fx: string;                                         // 演出の名前（計画3で使う）
+  prompt?: string;                                    // 対象を選ぶときに案内の帯へ出す文（対象を取るカードだけ）
   targetSets(s: GameState, side: Side): Square[][];   // 使える対象の組。対象なしは [[]]。空配列なら使えない
   choices?(s: GameState, side: Side): HandKind[];     // 対象のほかに選ぶ駒の種類（呼び戻し）
   resolve?(ctx: CardContext, targets: Square[], pick?: HandKind): void;   // 魔法・装備の効果

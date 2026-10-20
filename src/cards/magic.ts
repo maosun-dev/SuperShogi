@@ -38,6 +38,7 @@ function swapIsSound(s: GameState, side: Side, a: Square, b: Square): boolean {
 export const oshikaeshi: CardDef = {
   id: 'oshikaeshi', name: '押し返しの風', kind: 'magic', cost: 1, fx: 'oshikaeshi',
   text: '相手の駒1つを、相手側へ1マス押し戻す。押し戻す先が空いているときだけ使える。王も対象にできる',
+  prompt: '押し戻す相手の駒を選んでください',
   targetSets(s, side) {
     return piecesOf(s, opponent(side))
       .filter(({ sq, p }) => {
@@ -57,6 +58,7 @@ export const oshikaeshi: CardDef = {
 export const irekae: CardDef = {
   id: 'irekae', name: '入れ替えの術', kind: 'magic', cost: 2, fx: 'irekae',
   text: '自分の駒2つの位置を入れ替える。王も対象にできる。行き所のない駒や二歩ができるなら使えない',
+  prompt: '入れ替える自分の駒を2つ選んでください',
   targetSets(s, side) {
     const mine = piecesOf(s, side);
     const out: Square[][] = [];
@@ -76,6 +78,7 @@ export const irekae: CardDef = {
 export const rakurai: CardDef = {
   id: 'rakurai', name: '落雷', kind: 'magic', cost: 4, fx: 'rakurai',
   text: '相手の駒1つを破壊する。王・飛車・角（竜・馬も）は選べない。壊れた駒は誰の持ち駒にもならない',
+  prompt: '壊す相手の駒を選んでください',
   targetSets(s, side) {
     return piecesOf(s, opponent(side))
       .filter(({ sq, p }) => p.kind !== 'OU' && p.kind !== 'HI' && p.kind !== 'KA' && !isShielded(s, sq))
@@ -108,6 +111,7 @@ function foeHandKinds(s: GameState, side: Side): HandKind[] {
 export const yobimodoshi: CardDef = {
   id: 'yobimodoshi', name: '呼び戻し', kind: 'magic', cost: 2, fx: 'yobimodoshi',
   text: '相手の持ち駒を1枚、自分の持ち駒に移す。相手に持ち駒がないときは使えない',
+  prompt: '呼び戻す駒の種類を選んでください',
   targetSets(s, side) {
     return foeHandKinds(s, side).length > 0 ? [[]] : [];
   },

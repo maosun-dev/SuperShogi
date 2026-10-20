@@ -29,6 +29,7 @@ function slotTargets(s: GameState, side: Side): Square[][] {
 export const otoshiana: CardDef = {
   id: 'otoshiana', name: '落とし穴', kind: 'trap', cost: 2, fx: 'otoshiana',
   text: 'このマスに入った相手の駒を破壊する。王が入ったときは発動せず、罠は残る',
+  prompt: '落とし穴を仕掛けるマスを選んでください',
   targetSets: squareTargets,
   trap: { placement: 'square', trigger: 'enter' },
 };
