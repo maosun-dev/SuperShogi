@@ -85,6 +85,18 @@ button:focus-visible {
   font-size: 14px;
 }
 
+/* 3D の舞台を置く場所（画面いっぱい、文字やボタンの後ろ） */
+.stage-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+/* タイトル（仮）：盤の上下に名前と行き先 */
+.screen.title { justify-content: space-between; }
+.screen.title > .name,
+.screen.title > .nav { position: relative; z-index: 1; }
+.screen.title > .nav button { background: var(--yoru); }
+
 /* 画面の切り替えの幕：墨・紅・藍の縦縞（定式幕を3色で描き直したもの） */
 #curtain {
   position: fixed;

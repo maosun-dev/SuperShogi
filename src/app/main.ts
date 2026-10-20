@@ -8,6 +8,7 @@ import {
   type Screen, type ScreenName,
 } from './screens';
 import { zukanScreen } from './screens/zukan';
+import { titleScreen } from './screens/title';
 
 // ---- 仮の画面（のちの作業で本物に置き換える） ----
 function placeholder(name: ScreenName): Screen {
@@ -40,6 +41,7 @@ function start(): void {
   const root = document.getElementById('app');
   if (!root) throw new Error('#app がありません');
   initScreens(root);
+  registerScreen('title', () => titleScreen());
   registerScreen('zukan', () => zukanScreen());
   for (const n of ALL_SCREENS) {
     if (!hasScreen(n)) registerScreen(n, () => placeholder(n));

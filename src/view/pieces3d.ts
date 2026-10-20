@@ -1,0 +1,280 @@
+// 駒の形と字・sync(局面) で駒・装備の六角形・自分の落とし穴の印・王手の輪・凍った側の青みを揃える。
+// 駒の形・字の貼り方は試作（docs/mockups/look-mockup.html）の値をそのまま使う。
+import * as THREE from 'three';
+import type { CardId, GameState, Piece, PieceKind, Side } from '../rules/types';
+import { isInCheck } from '../rules/moves';
+import type { Stage } from './stage';
+import { PAL, PALS, rgba } from './palette';
+import { CW, CD, addPulse, decal, disposeTree, ring, squarePos } from './board3d';
+import { CARD_ART } from './cardArt';
+
+const PIECE_Y = 0.02;
+
+// 駒の大きさ（試作の SIZE を種類ごとに）
+const SIZE: Record<PieceKind, number> = { OU: 1, HI: 0.95, KA: 0.95, KI: 0.93, GI: 0.93, KE: 0.88, KY: 0.86, FU: 0.82 };
+const LABEL: Record<PieceKind, string> = { OU: '玉', HI: '飛', KA: '角', KI: '金', GI: '銀', KE: '桂', KY: '香', FU: '歩' };
+// 成り駒は1文字にする（成香・成桂・成銀は 杏・圭・全）
+const PROMOTED: Partial<Record<PieceKind, string>> = { FU: 'と', KY: '杏', KE: '圭', GI: '全', KA: '馬', HI: '竜' };
+
+/** 駒に書く字と、その色（成り駒は紅） */
+function labelOf(p: Piece): { ch: string; color: string } {
+  if (p.kind === 'OU') return { ch: p.side === 'sente' ? '玉' : '王', color: PALS.sumi };
+  if (p.promoted && PROMOTED[p.kind]) return { ch: PROMOTED[p.kind]!, color: PALS.wana };
+  return { ch: LABEL[p.kind], color: PALS.sumi };
+}
+
+// ---------- 形と材質（使い回す） ----------
+const pieceMat = new THREE.MeshStandardMaterial({ color: PAL.kayaLight, roughness: 0.45 });
+const frozenMat = new THREE.MeshStandardMaterial({ color: PAL.mahouPale, roughness: 0.4 });
+const geoCache = new Map<number, THREE.ExtrudeGeometry>();
+function pieceGeo(s: number): THREE.ExtrudeGeometry {
+  const hit = geoCache.get(s);
+  if (hit) return hit;
+  const sh = new THREE.Shape();
+  sh.moveTo(-0.36 * s, -0.42 * s); sh.lineTo(0.36 * s, -0.42 * s); sh.lineTo(0.29 * s, 0.28 * s);
+  sh.lineTo(0, 0.44 * s); sh.lineTo(-0.29 * s, 0.28 * s); sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, { depth: 0.16 * s, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 });
+  g.rotateX(-Math.PI / 2);   // 先端が奥（相手側）を向く
+  geoCache.set(s, g);
+  return g;
+}
+
+// 字の模様。文字の読み込みが終わったら描き直す
+interface Label { ch: string; color: string; canvas: HTMLCanvasElement; mat: THREE.MeshStandardMaterial }
+const labels = new Map<string, Label>();
+const LABEL_FONT = '800 104px "Shippori Mincho B1", serif';
+
+function drawLabel(l: Label): void {
+  const g = l.canvas.getContext('2d')!;
+  g.clearRect(0, 0, l.canvas.width, l.canvas.height);
+  g.fillStyle = l.color;
+  g.font = LABEL_FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(l.ch, 64, 90);
+  if (l.mat.map) l.mat.map.needsUpdate = true;
+}
+
+function labelMat(ch: string, color: string): THREE.MeshStandardMaterial {
+  const key = `${ch}|${color}`;
+  const hit = labels.get(key);
+  if (hit) return hit.mat;
+  const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 160;
+  const t = new THREE.CanvasTexture(canvas); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const mat = new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.6 });
+  const l: Label = { ch, color, canvas, mat };
+  drawLabel(l);
+  labels.set(key, l);
+  return mat;
+}
+
+let fontWatch = false;
+function watchFont(): void {
+  if (fontWatch || typeof document === 'undefined' || !document.fonts) return;
+  fontWatch = true;
+  document.fonts.load(LABEL_FONT).then(() => { for (const l of labels.values()) drawLabel(l); }, () => {});
+}
+
+const labelGeoCache = new Map<number, THREE.PlaneGeometry>();
+function labelGeo(s: number): THREE.PlaneGeometry {
+  let g = labelGeoCache.get(s);
+  if (!g) { g = new THREE.PlaneGeometry(0.5 * s, 0.625 * s); labelGeoCache.set(s, g); }
+  return g;
+}
+
+// 装備の札の絵（SVG → 画像 → キャンバスの模様）
+const artCache = new Map<CardId, THREE.CanvasTexture>();
+function artTexture(id: CardId): THREE.CanvasTexture {
+  const hit = artCache.get(id);
+  if (hit) return hit;
+  const c = document.createElement('canvas'); c.width = 92; c.height = 124;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const g = c.getContext('2d')!;
+  // 読み込みまでは紙の色の札だけ見せる
+  g.fillStyle = PALS.gofun; g.fillRect(0, 0, c.width, c.height);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 62" width="92" height="124">`
+    + `<rect width="46" height="62" rx="3" fill="${PALS.gofun}" stroke="${PALS.soubi}" stroke-width="3"/>${CARD_ART[id]}</svg>`;
+  const img = new Image();
+  img.onload = () => { g.clearRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); t.needsUpdate = true; };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  artCache.set(id, t);
+  return t;
+}
+
+// ---------- 駒1つぶんの物 ----------
+interface PieceObj {
+  grp: THREE.Group;
+  body: THREE.Mesh;
+  label: THREE.Mesh;
+  kind: PieceKind;
+  side: Side;
+  labelKey: string;
+  equip: { id: CardId; obj: THREE.Group; stop: () => void } | null;
+  check: { obj: THREE.Mesh; stop: () => void } | null;
+}
+
+const objs = new Map<number, PieceObj>();
+let spinOff: (() => void) | null = null;
+const spinning = new Set<THREE.Object3D>();
+
+function makePiece(p: Piece): PieceObj {
+  const s = SIZE[p.kind], grp = new THREE.Group();
+  const body = new THREE.Mesh(pieceGeo(s), pieceMat); body.castShadow = true; body.receiveShadow = true; grp.add(body);
+  const lb = labelOf(p);
+  const label = new THREE.Mesh(labelGeo(s), labelMat(lb.ch, lb.color));
+  label.rotation.x = -Math.PI / 2; label.position.set(0, 0.16 * s + 0.026, 0.03 * s);
+  grp.add(label);
+  grp.userData = { pieceId: p.id, s };
+  return { grp, body, label, kind: p.kind, side: p.side, labelKey: `${lb.ch}|${lb.color}`, equip: null, check: null };
+}
+
+/** 装備の六角形（試作の金の輪）と、その札の絵の小さな板 */
+function makeEquip(id: CardId, side: Side): { obj: THREE.Group; stop: () => void } {
+  const g = new THREE.Group();
+  const hex = ring(0.5, 0.68, PAL.soubiLight, 6);
+  hex.position.y = 0.014 - PIECE_Y;
+  g.add(hex);
+  spinning.add(hex);
+  const stopPulse = addPulse(hex.material, 0.55, 0.95, 2.5);
+  // 札の絵：駒に隠れないよう、六角形の手前右の角に寝かせて置く（見る側から見て正しい向き）
+  const art = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.48),
+    new THREE.MeshBasicMaterial({ map: artTexture(id), transparent: true, depthWrite: false }));
+  art.rotation.x = -Math.PI / 2;
+  const flip = side === 'gote' ? -1 : 1;  // 後手の駒は π 回っているので、置き場所と向きを打ち消す
+  art.position.set(0.4 * flip, 0.03 - PIECE_Y, 0.4 * flip);
+  if (side === 'gote') art.rotation.z = Math.PI;
+  g.add(art);
+  return {
+    obj: g,
+    stop: () => { stopPulse(); spinning.delete(hex); },
+  };
+}
+
+function removeEquip(o: PieceObj): void {
+  if (!o.equip) return;
+  o.equip.stop();
+  o.grp.remove(o.equip.obj);
+  // 札の絵の模様は使い回すので捨てない
+  o.equip.obj.traverse((x) => {
+    const m = x as THREE.Mesh;
+    if (!m.isMesh) return;
+    m.geometry.dispose();
+    (m.material as THREE.Material).dispose();
+  });
+  o.equip = null;
+}
+
+function removeCheck(o: PieceObj): void {
+  if (!o.check) return;
+  o.check.stop();
+  o.grp.remove(o.check.obj);
+  disposeTree(o.check.obj);
+  o.check = null;
+}
+
+function removePiece(stage: Stage, id: number, o: PieceObj): void {
+  removeEquip(o);
+  removeCheck(o);
+  stage.scene.remove(o.grp);
+  o.grp.parent?.remove(o.grp);
+  objs.delete(id);
+}
+
+// ---------- 自分の落とし穴の印 ----------
+const pits = new Map<number, { obj: THREE.Mesh; key: string; stop: () => void }>();
+
+function makePit(): THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> {
+  return decal((g) => {
+    g.strokeStyle = rgba(PAL.wana, 0.95); g.lineWidth = 10; g.setLineDash([22, 14]); g.strokeRect(18, 18, 220, 220);
+    g.fillStyle = rgba(PAL.wana, 0.9); g.font = '800 92px "Shippori Mincho B1", serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('罠', 128, 134);
+  }, CW * 0.92, CD * 0.92);
+}
+
+/** 駒の物（演出で動かすため）。盤にない駒は undefined */
+export function pieceMesh(id: number): THREE.Object3D | undefined {
+  return objs.get(id)?.grp;
+}
+
+/**
+ * 盤の物を局面どおりに揃える。演出のあとの安全網なので、位置・向き・大きさ・見え方もすべて戻す。
+ * view は viewFor 済みの局面、me は画面を見ている側。
+ */
+export function sync(stage: Stage, view: GameState, me: Side): void {
+  watchFont();
+  if (!spinOff) {
+    spinOff = stage.onFrame((dt) => { for (const o of spinning) o.rotation.z += dt * 0.6; });
+  }
+  const checked: Record<Side, boolean> = { sente: isInCheck(view, 'sente'), gote: isInCheck(view, 'gote') };
+  const seen = new Set<number>();
+
+  for (let i = 0; i < 81; i++) {
+    const p = view.board[i];
+    if (!p) continue;
+    seen.add(p.id);
+    let o = objs.get(p.id);
+    // 種類や持ち主が変わったら作り直す（形の大きさが変わるため）
+    if (o && (o.kind !== p.kind || o.side !== p.side)) { removePiece(stage, p.id, o); o = undefined; }
+    if (!o) { o = makePiece(p); objs.set(p.id, o); }
+    if (o.grp.parent !== stage.scene) stage.scene.add(o.grp);
+
+    // 位置・向き・大きさ・見え方
+    const pos = squarePos({ c: i % 9, r: Math.floor(i / 9) });
+    o.grp.position.set(pos.x, PIECE_Y, pos.z);
+    o.grp.rotation.set(0, p.side === 'gote' ? Math.PI : 0, 0);
+    o.grp.scale.set(1, 1, 1);
+    o.grp.visible = true;
+    o.body.position.set(0, 0, 0); o.body.rotation.set(0, 0, 0); o.body.scale.set(1, 1, 1); o.body.visible = true;
+    o.label.visible = true;
+
+    // 字（成り）
+    const lb = labelOf(p);
+    const key = `${lb.ch}|${lb.color}`;
+    if (o.labelKey !== key) { o.label.material = labelMat(lb.ch, lb.color); o.labelKey = key; }
+
+    // 凍った側の青み
+    o.body.material = view.frozen === p.side ? frozenMat : pieceMat;
+
+    // 装備の六角形
+    const eq = p.equip?.cardId ?? null;
+    if (o.equip && o.equip.id !== eq) removeEquip(o);
+    if (eq && !o.equip) {
+      const e = makeEquip(eq, p.side);
+      o.grp.add(e.obj);
+      o.equip = { id: eq, ...e };
+    }
+
+    // 王手の輪
+    const inCheck = p.kind === 'OU' && checked[p.side];
+    if (inCheck && !o.check) {
+      const r = ring(0.52, 0.64, PAL.wana);
+      r.position.y = 0.012 - PIECE_Y;
+      o.grp.add(r);
+      o.check = { obj: r, stop: addPulse(r.material, 0.45, 0.95, 4) };
+    } else if (!inCheck) removeCheck(o);
+  }
+  for (const [id, o] of [...objs]) if (!seen.has(id)) removePiece(stage, id, o);
+
+  // 自分の落とし穴（隠れていない、自分の罠で場所があるもの）
+  const pitSeen = new Set<number>();
+  for (const t of view.traps) {
+    if (t.owner !== me || t.at === null) continue;
+    pitSeen.add(t.uid);
+    const key = `${t.at.c},${t.at.r}`;
+    let pit = pits.get(t.uid);
+    if (pit && pit.key !== key) { pit.obj.position.copy(squarePos(t.at)).setY(0.01); pit.key = key; }
+    if (!pit) {
+      const m = makePit();
+      m.position.copy(squarePos(t.at)).setY(0.01);
+      pit = { obj: m, key, stop: addPulse(m.material, 0.25, 0.6, 2) };
+      pits.set(t.uid, pit);
+    }
+    if (pit.obj.parent !== stage.scene) stage.scene.add(pit.obj);
+    pit.obj.visible = true;
+  }
+  for (const [uid, pit] of [...pits]) {
+    if (pitSeen.has(uid)) continue;
+    pit.stop();
+    stage.scene.remove(pit.obj);
+    disposeTree(pit.obj);
+    pits.delete(uid);
+  }
+}

@@ -16,6 +16,16 @@ export const PAL = {
   yoruDeep: 0x0d1730,
   wanaDeep: 0x7a0f1c,
   kayaLight: 0xf2d594,
+  // 3D の盤と駒（試作の値）
+  kayaSide: 0xc99a45, // 盤の側面
+  kayaLeg: 0x8a5a22, // 盤の脚
+  kayaGrain: 0x784614, // 盤の上面の木目
+  kayaGrainDeep: 0x5a320a, // 側面の木目
+  skyLight: 0xfff1d6, // 空からの光
+  yoruGround: 0x1a2a50, // 床からの照り返し
+  sunLight: 0xfff0d0, // 日の光
+  soubiLight: 0xf2c230, // 装備の金の輪
+  mahouPale: 0xaec4ef, // 凍った駒の青み
 } as const;
 
 export type PalName = keyof typeof PAL;
@@ -28,3 +38,8 @@ function hex(n: number): string {
 export const PALS = Object.fromEntries(
   Object.entries(PAL).map(([k, v]) => [k, hex(v)]),
 ) as { [K in PalName]: string };
+
+/** 'rgba(r,g,b,a)' 形（キャンバスの半透明の線・塗り用） */
+export function rgba(n: number, a: number): string {
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
