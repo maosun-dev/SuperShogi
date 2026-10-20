@@ -44,6 +44,7 @@ export function matchScreen(params: unknown): Screen {
   let match: Match | null = null;
   let cpu: ReturnType<typeof createBrowserCpu> | null = null;
   let cleanup: (() => void)[] = [];
+  let disposed = false; // unmount 済みなら true
 
   return {
     mount(root) {
@@ -64,15 +65,23 @@ export function matchScreen(params: unknown): Screen {
       let thinking = false;
 
       const fx = createPresenter(stage, hud, 'sente');
-      // 演出のあと、最後に動いたマスと帯を更新する
+      // 演出のあと、最後に動いたマスと帯を更新する。
+      // 決まり：present は決して reject しない（失敗は握って console.error）。
+      // 片付け済みの対局は、共有の舞台に描かないよう何もしない
       const presenter: Presenter = {
         async present(step) {
-          await fx.present(step);
-          const at = lastSquare(step.events);
-          if (at) lastMove = [at];
-          setHighlights(stage, [], lastMove);
-          thinking = step.actor === 'sente' && !step.after.result;
-          hud.render(step.after, 'sente', { thinking, level });
+          if (disposed) return;
+          await fx.present(step); // fx.present は reject しない
+          if (disposed) return;
+          try {
+            const at = lastSquare(step.events);
+            if (at) lastMove = [at];
+            setHighlights(stage, [], lastMove);
+            thinking = step.actor === 'sente' && !step.after.result;
+            hud.render(step.after, 'sente', { thinking, level });
+          } catch (e) {
+            console.error('演出のあとの画面の更新に失敗しました', e);
+          }
         },
       };
 
@@ -172,6 +181,7 @@ export function matchScreen(params: unknown): Screen {
       void m.start();
     },
     unmount() {
+      disposed = true;
       match?.dispose();
       cpu?.dispose();
       match = null;
