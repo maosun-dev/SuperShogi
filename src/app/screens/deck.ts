@@ -76,7 +76,7 @@ export function deckScreen(params: unknown): Screen {
         render();
       });
       const go = button('primary', '対局へ', () => {
-        if (deck.length === 0 || validateDeck(deck) !== null) return;
+        if (validateDeck(deck) !== null) return; // カードなしでも始められる
         saveDeck(store, deck);
         void showScreen('reveal', { level, deck: [...deck] });
       });
@@ -112,14 +112,14 @@ export function deckScreen(params: unknown): Screen {
           b.classList.toggle('full', addReason(deck, id) !== null);
         }
         strip.replaceChildren();
-        if (deck.length === 0) strip.append(el('p', 'none', '上の札を押して足してください'));
+        if (deck.length === 0) strip.append(el('p', 'none', '札なしでも対局できます。上の札を押すと足せます'));
         deck.forEach((id, i) => {
           const b = button('chosen', '', () => remove(i));
           b.innerHTML = cardHtml(id, { size: 'small' }); // 定数だけでできた文字列
           b.setAttribute('aria-label', `${CARDS[id].name}を外す`);
           strip.append(b);
         });
-        go.disabled = deck.length === 0 || validateDeck(deck) !== null;
+        go.disabled = validateDeck(deck) !== null;
       }
 
       render();

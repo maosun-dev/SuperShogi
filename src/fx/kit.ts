@@ -23,17 +23,36 @@ export interface FxCtx {
   me: Side;
   wait(ms: number): Promise<void>;          // ms × timing.scale だけ待つ
   tween(ms: number, fn: (t: number) => void, ease?: (t: number) => number): Promise<void>; // 同じく時間を縮める
+  /** 長さの設定で縮めない動き（普段の駒の移動など）。打ち切りは wait・tween と同じく効く */
+  tweenRaw(ms: number, fn: (t: number) => void, ease?: (t: number) => number): Promise<void>;
+  /** 打ち切られていなければ true（投了・画面の片付けで false になる） */
+  alive(): boolean;
   before: GameState;                        // この行動の前の局面（画面側から見た形）
   after: GameState;                         // この行動の後の局面
 }
 
-export function makeCtx(stage: Stage, hud: Hud, timing: FxTiming, me: Side, before: GameState, after: GameState): FxCtx {
+/** 演出が打ち切られたしるし。wait・tween がこれで reject し、残りの段取りを流さない */
+export class FxCancelled extends Error {
+  constructor() { super('演出は打ち切られました'); this.name = 'FxCancelled'; }
+}
+
+export function makeCtx(
+  stage: Stage, hud: Hud, timing: FxTiming, me: Side, before: GameState, after: GameState,
+  alive: () => boolean = () => true,
+): FxCtx {
   const scaled = (ms: number): number => Math.max(0, ms * timing.scale);
+  // 打ち切られたら、動きは共有の舞台に触れず、終わったところで FxCancelled で止める
+  const run = async (ms: number, fn: (t: number) => void, ease?: (t: number) => number): Promise<void> => {
+    if (!alive()) throw new FxCancelled();
+    await stage.tween(ms, (t) => { if (alive()) fn(t); }, ease);
+    if (!alive()) throw new FxCancelled();
+  };
   return {
-    stage, hud, timing, me, before, after,
+    stage, hud, timing, me, before, after, alive,
     // 待ちも描画の時計（tween）で数える。タブが裏に回って描画が止まっても、ほかの動きと順番がずれない
-    wait: (ms) => stage.tween(scaled(ms), () => {}),
-    tween: (ms, fn, ease) => stage.tween(scaled(ms), fn, ease),
+    wait: (ms) => run(scaled(ms), () => {}),
+    tween: (ms, fn, ease) => run(scaled(ms), fn, ease),
+    tweenRaw: (ms, fn, ease) => run(ms, fn, ease),
   };
 }
 
@@ -219,6 +238,7 @@ export async function cardFly(ctx: FxCtx, cardId: CardId, from: 'me' | 'foe'): P
 
 async function moveCam(ctx: FxCtx, pos: THREE.Vector3, look: THREE.Vector3, ms: number, ease: (t: number) => number): Promise<void> {
   const s = ctx.stage;
+  if (!ctx.alive()) throw new FxCancelled(); // 打ち切り後は次の画面のカメラに触れない
   if (!ctx.timing.camera) { s.cam.pos.copy(pos); s.cam.look.copy(look); return; }
   const p0 = s.cam.pos.clone(), l0 = s.cam.look.clone();
   await ctx.tween(ms, (t) => { s.cam.pos.lerpVectors(p0, pos, t); s.cam.look.lerpVectors(l0, look, t); }, ease);
@@ -273,6 +293,11 @@ function disposeAll(o: THREE.Object3D): void {
   });
 }
 let liveOff: (() => void) | null = null;
+
+/** 舞台に残っている演出の物をすべて、次のフレームで片付ける（演出の打ち切り用） */
+export function clearTransients(): void {
+  for (const l of lives) { l.obj.visible = false; l.age = l.life; }
+}
 
 /**
  * 物を舞台に置き、毎フレーム step を呼ぶ。life ミリ秒たったら外して形・材質・模様を捨てる。

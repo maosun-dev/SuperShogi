@@ -55,6 +55,7 @@ export function matchScreen(params: unknown): Screen {
   let cleanup: (() => void)[] = [];
   let disposed = false; // unmount 済みなら true
   let recorded = false; // 戦績は1局につき1回だけ記録する
+  let stopFx: (() => void) | null = null; // 流している演出を打ち切る（投了・片付けのとき）
 
   const record = (o: Outcome): void => {
     if (recorded) return;
@@ -81,6 +82,7 @@ export function matchScreen(params: unknown): Screen {
       let thinking = false;
 
       const fx = createPresenter(stage, hud, 'sente');
+      stopFx = () => fx.cancel();
       // 演出のあと、最後に動いたマスと帯を更新する。
       // 決まり：present は決して reject しない（失敗は握って console.error）。
       // 片付け済みの対局は、共有の舞台に描かないよう何もしない
@@ -228,6 +230,7 @@ export function matchScreen(params: unknown): Screen {
         const r = m.result();
         record(r ? outcomeOf(r) : 'loss');
         m.dispose();
+        fx.cancel(); // 演出の続きをタイトルの盤に描かない
         void showScreen('title');
       });
       const onAskKey = (e: KeyboardEvent): void => { if (e.key === 'Escape' && !ask.hidden) closeAsk(); };
@@ -241,6 +244,8 @@ export function matchScreen(params: unknown): Screen {
     },
     unmount() {
       disposed = true;
+      stopFx?.();
+      stopFx = null;
       match?.dispose();
       cpu?.dispose();
       match = null;

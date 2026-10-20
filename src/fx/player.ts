@@ -11,7 +11,7 @@ import { squarePos } from '../view/board3d';
 import { pieceMesh, sync } from '../view/pieces3d';
 import { loadSettings, safeStore } from '../app/storage';
 import { fxTiming, planFx, type Cue, type FxTiming } from './plan';
-import { atHome, cameraHome, clearLayers, makeCtx, type FxCtx } from './kit';
+import { FxCancelled, atHome, cameraHome, clearLayers, clearTransients, makeCtx, type FxCtx } from './kit';
 import { playMagic, prepareMagic } from './magic';
 import { playTrapFire, playTrapSet } from './trap';
 import { playArmor, playEquip, playSecond } from './equip';
@@ -33,7 +33,7 @@ async function slide(ctx: FxCtx, pieceId: number, from: Parameters<typeof square
   const m = pieceMesh(pieceId);
   if (!m) return;
   const a = squarePos(from), b = squarePos(to), y0 = m.position.y;
-  await ctx.stage.tween(MOVE_MS, (t) => {
+  await ctx.tweenRaw(MOVE_MS, (t) => {
     m.position.set(a.x + (b.x - a.x) * t, y0 + Math.sin(Math.PI * t) * HOP, a.z + (b.z - a.z) * t);
   }, easeOut);
   getSound().play('tick');
@@ -66,7 +66,7 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
       const m = pieceMesh(cue.pieceId);
       if (!m) return;
       const y0 = m.position.y;
-      await ctx.stage.tween(MOVE_MS, (t) => { m.position.y = y0 + (1 - t) * DROP_FROM; }, easeOut);
+      await ctx.tweenRaw(MOVE_MS, (t) => { m.position.y = y0 + (1 - t) * DROP_FROM; }, easeOut);
       getSound().play('tick');
       return;
     }
@@ -97,35 +97,67 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
   }
 }
 
-export function createPresenter(stage: Stage, hud: Hud, me: Side): Presenter {
+// 打ち切りで止めた待ちが、並べて走らせていた別の動き（await していない Promise）から漏れても、
+// 失敗としてコンソールに出さない
+let quietCancel = false;
+function installQuietCancel(): void {
+  if (quietCancel || typeof window === 'undefined') return;
+  quietCancel = true;
+  window.addEventListener('unhandledrejection', (e) => { if (e.reason instanceof FxCancelled) e.preventDefault(); });
+}
+
+/** 演出役。cancel() で打ち切ると、流している演出は残りを流さず、共有の舞台（カメラ・盤）にも触れずに終わる */
+export interface FxPresenter extends Presenter { cancel(): void }
+
+export function createPresenter(stage: Stage, hud: Hud, me: Side): FxPresenter {
   prepareMagic(stage);
+  installQuietCancel();
+  let cancelled = false;
+  const alive = (): boolean => !cancelled;
   return {
+    cancel() {
+      if (cancelled) return;
+      cancelled = true;
+      // 舞台に残した演出の物と揺れは、次の画面に持ち越さない
+      try { clearTransients(); } catch (e) { console.error('演出の物を片付けられませんでした', e); }
+      stage.shake = 0;
+    },
     async present(step) {
+      if (cancelled) return;
       let ctx: FxCtx | null = null;
       try {
-        ctx = makeCtx(stage, hud, currentTiming(), me, step.before, step.after);
+        ctx = makeCtx(stage, hud, currentTiming(), me, step.before, step.after, alive);
         const kingAt = capturedKingAt(step.before, step.events);
         for (const cue of planFx(step.events, step.actor)) {
+          if (cancelled) break;
           try {
             await playCue(ctx, cue, step, kingAt);
           } catch (e) {
-            console.error(`演出に失敗しました（${cue.kind}）`, e);
+            if (!cancelled && !(e instanceof FxCancelled)) console.error(`演出に失敗しました（${cue.kind}）`, e);
           }
         }
       } catch (e) {
-        console.error('演出の段取りを作れませんでした', e);
+        if (!cancelled) console.error('演出の段取りを作れませんでした', e);
       } finally {
         // 後始末：カメラが寄ったままなら戻し（鏡で無効にされた魔法など）、重ね板を消して隠した手札を戻し、
         // 盤を局面どおりに揃える。1つの失敗がほかを止めないよう、それぞれ別に包む
+        if (cancelled) {
+          // 打ち切られた：重ね板（対局画面の中）だけ片付け、カメラと盤は次の画面に任せる
+          if (ctx) { try { clearLayers(ctx); } catch { /* 片付けの失敗は無視 */ } }
+          return;
+        }
         if (ctx) {
           try {
             // 王が取られて決着したときは、見得を切ったまま結果画面へ（カメラは戻さない）
             const finale = step.after.result?.winner != null;
             if (!finale && !atHome(ctx)) await cameraHome(ctx, SETTLE_MS);
-          } catch (e) { console.error('カメラを戻せませんでした', e); }
+          } catch (e) { if (!cancelled) console.error('カメラを戻せませんでした', e); }
           try { clearLayers(ctx); } catch (e) { console.error('重ね板を消せませんでした', e); }
         }
-        try { sync(stage, step.after, me); } catch (e) { console.error('盤を揃えられませんでした', e); }
+        // カメラを戻している間に打ち切られたら、盤は次の画面に任せる
+        if (!cancelled) {
+          try { sync(stage, step.after, me); } catch (e) { console.error('盤を揃えられませんでした', e); }
+        }
       }
     },
   };

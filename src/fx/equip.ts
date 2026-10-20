@@ -376,7 +376,7 @@ export async function playSecond(ctx: FxCtx, cue: SecondCue): Promise<void> {
     const LIFE = 380 * Math.max(0.5, ctx.timing.scale);
     transient(ctx, g, LIFE, (_dt, age) => { mat.opacity = 0.55 * Math.max(0, 1 - age / LIFE); });
   };
-  await ctx.stage.tween(120, (t) => {
+  await ctx.tweenRaw(120, (t) => {
     m.position.set(a.x + (b.x - a.x) * t, y0, a.z + (b.z - a.z) * t);
     while (next < marks.length && t >= marks[next]) { ghost(); next++; }
   }, easeOut);
