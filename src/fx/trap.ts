@@ -8,10 +8,10 @@ import { CARDS } from '../cards';
 import type { Cue } from './plan';
 import { PAL, PALS, rgba } from '../view/palette';
 import { CD, CW, decal, ring, squarePos } from '../view/board3d';
-import { pieceMesh, sync } from '../view/pieces3d';
+import { pieceMesh } from '../view/pieces3d';
 import { cardHtml } from '../view/cardArt';
 import {
-  atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, lightCap, localRect, overlay, puff, shakeBy, transient,
+  animateEl, atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, later, lightCap, localRect, overlay, puff, shakeBy, transient,
   type FxCtx,
 } from './kit';
 import { getSound } from './sound';
@@ -46,11 +46,9 @@ function firedIndex(ctx: FxCtx, owner: Side): number {
   return i >= 0 ? i : Math.max(0, mine.length - 1);
 }
 
-/** Web Animations を待つ（途中で消されても例外を出さない） */
-async function run(el: HTMLElement, kf: Keyframe[], ms: number, easing: string): Promise<void> {
-  try {
-    await el.animate(kf, { duration: Math.max(1, ms), easing, fill: 'forwards' }).finished;
-  } catch { /* 途中で消されたときは何もしない */ }
+/** Web Animations を待つ（途中で消されても例外を出さない。打ち切られたら FxCancelled で止める） */
+function run(ctx: FxCtx, el: HTMLElement, kf: Keyframe[], ms: number, easing: string): Promise<void> {
+  return animateEl(ctx, el, kf, { duration: Math.max(1, ms), easing });
 }
 
 /** 罠を伏せる：静かに。裏向きの札が伏せ札の枠へ滑り込む（300ms）。自分の落とし穴ならマスに罠の印 */
@@ -83,7 +81,7 @@ export async function playTrapSet(ctx: FxCtx, cue: TrapSetCue): Promise<void> {
   Object.assign(back.style, { left: `${to.x}px`, top: `${to.y}px`, width: `${to.w}px`, height: `${to.h}px`, boxSizing: 'border-box' });
   overlay(ctx).append(back);
   try {
-    await run(back, [
+    await run(ctx, back, [
       { transform: `translate(${dx}px, ${dy}px) scale(${k}) rotate(-14deg)`, opacity: src ? 1 : 0 },
       { offset: 0.35, opacity: 1 },
       { transform: 'none', opacity: 1 },
@@ -103,7 +101,7 @@ export async function playTrapSet(ctx: FxCtx, cue: TrapSetCue): Promise<void> {
   }
   // 自分の落とし穴：マスに罠の印を出し、紅い輪が小さく広がって知らせる
   if (mine && cue.at) {
-    sync(ctx.stage, ctx.after, ctx.me);
+    ctx.sync();
     const r = ring(0.42, 0.5, PAL.wana, 4);
     r.rotation.z = Math.PI / 4;
     r.position.copy(squarePos(cue.at)).setY(0.02);
@@ -128,7 +126,7 @@ async function flipSlot(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
   slot.style.position = 'relative';
   slot.style.zIndex = '3';
   // 前半：裏のまま 90° まで回りながら大きくなる
-  await run(slot, [
+  await run(ctx, slot, [
     { transform: 'perspective(90px) rotateY(0deg) scale(1)' },
     { transform: 'perspective(90px) rotateY(90deg) scale(1.9)' },
   ], half, 'cubic-bezier(.5,0,1,.6)');
@@ -137,7 +135,7 @@ async function flipSlot(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
   slot.textContent = CARDS[cue.cardId].name[0];
   slot.setAttribute('aria-label', `発動した${CARDS[cue.cardId].name}`);
   slot.style.boxShadow = `0 0 10px 2px ${rgba(PAL.wana, 0.9)}`;
-  await run(slot, [
+  await run(ctx, slot, [
     { transform: 'perspective(90px) rotateY(-90deg) scale(1.9)' },
     { offset: 0.6, transform: 'perspective(90px) rotateY(10deg) scale(1.6)' },
     { transform: 'perspective(90px) rotateY(0deg) scale(1.45)' },
@@ -159,7 +157,7 @@ async function redSweep(ctx: FxCtx): Promise<void> {
   overlay(ctx).append(el);
   flash(ctx, PALS.wana, 0.3, 260);
   try {
-    await run(el, [
+    await run(ctx, el, [
       { transform: 'translateX(-110%) skewX(-24deg)' },
       { transform: 'translateX(170%) skewX(-24deg)' },
     ], 280 * ctx.timing.scale, 'cubic-bezier(.6,0,.4,1)');
@@ -306,7 +304,7 @@ async function kagami(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
   const S = ctx.timing.scale;
   try {
     // 鏡が画面の前に現れる
-    await run(mirror, [
+    await run(ctx, mirror, [
       { transform: 'scale(.2) rotate(-30deg)', opacity: 0 },
       { offset: 0.7, transform: 'scale(1.06) rotate(4deg)', opacity: 1 },
       { transform: 'scale(1) rotate(0deg)', opacity: 1 },
@@ -324,7 +322,7 @@ async function kagami(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
     fly.append(card);
     els.push(card);
     const fromY = neg.side === ctx.me ? box.height * 0.5 : -box.height * 0.5;
-    await run(card, [
+    await run(ctx, card, [
       { transform: `translateY(${fromY}px) scale(1.6) rotate(-10deg)`, opacity: 0 },
       { offset: 0.2, opacity: 1 },
       { transform: 'translateY(0) scale(1.15) rotate(3deg)', opacity: 1 },
@@ -333,7 +331,7 @@ async function kagami(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
     card.remove();
     flash(ctx, PALS.hakkou, 0.75, 160);
     shakeBy(ctx, 0.28);
-    void run(mirror, [{ filter: `brightness(${1 + lightCap(ctx, 0.9)})` }, { filter: 'brightness(1)' }], 260 * S, 'ease-out');
+    void later(run(ctx, mirror, [{ filter: `brightness(${1 + lightCap(ctx, 0.9)})` }, { filter: 'brightness(1)' }], 260 * S, 'ease-out'));
     const ripple = document.createElement('div');
     Object.assign(ripple.style, {
       left: `${cx - size * 0.4}px`, top: `${cy - size * 0.4}px`, width: `${size * 0.8}px`, height: `${size * 0.8}px`,
@@ -341,7 +339,7 @@ async function kagami(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
     });
     fly.append(ripple);
     els.push(ripple);
-    void run(ripple, [{ transform: 'scale(.4)', opacity: lightCap(ctx, 1) }, { transform: 'scale(1.5)', opacity: 0 }], 420 * S, 'ease-out');
+    void later(run(ctx, ripple, [{ transform: 'scale(.4)', opacity: lightCap(ctx, 1) }, { transform: 'scale(1.5)', opacity: 0 }], 420 * S, 'ease-out'));
     const shards: Promise<void>[] = [];
     const N = 8;
     for (let i = 0; i < N; i++) {
@@ -359,15 +357,15 @@ async function kagami(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
       const mid = (a0 + a1) / 2, dist = 120 + Math.random() * 90;
       const dx = Math.cos(mid) * dist, dy = Math.sin(mid) * dist + 60;
       const rot = (Math.random() - 0.5) * 300;
-      shards.push(run(sh, [
+      shards.push(later(run(ctx, sh, [
         { transform: 'scale(1.15) rotate(3deg)', opacity: 1 },
         { transform: `translate(${dx}px, ${dy}px) scale(.9) rotate(${rot}deg)`, opacity: 0 },
-      ], 620 * S, 'cubic-bezier(.1,.7,.3,1)'));
+      ], 620 * S, 'cubic-bezier(.1,.7,.3,1)')));
     }
     await Promise.all(shards);
     await ctx.wait(200);
     // 鏡は静かに消える
-    await run(mirror, [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.1)', opacity: 0 }], 300 * S, 'ease-in');
+    await run(ctx, mirror, [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.1)', opacity: 0 }], 300 * S, 'ease-in');
   } finally {
     for (const el of els) el.remove();
     dim(ctx, 0);

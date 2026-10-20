@@ -4,6 +4,9 @@
 // - 時間はすべて timing.scale を掛ける（ctx.wait・ctx.tween を通す）
 // - 動きを減らす設定：camera:false ならカメラは瞬時に移る、shake:false なら揺らさない、白い光は flashMax まで
 // - 駒・字・木の材質は全駒で共有なので、色や透明度を変えるときは必ず複製して使う
+// - 打ち切り（投了・画面の片付け）のあとは共有の舞台に触れない。そのため演出のファイルは舞台を直接さわらず、
+//   ここの道具（ctx.wait・ctx.tween・ctx.tweenRaw・ctx.sync・transient・shakeBy・flash・dim・カメラ）を通す。
+//   道具は打ち切り後は何もしない（待ちは FxCancelled で止める）。tests/fx/cancel-guard.test.ts が直の呼び出しを見張る
 import * as THREE from 'three';
 import type { CardId, GameState, Side } from '../rules/types';
 import type { Stage } from '../view/stage';
@@ -12,7 +15,7 @@ import type { Hud } from '../view/hud';
 import type { FxTiming } from './plan';
 import { PAL, PALS, rgba } from '../view/palette';
 import { decal, ring } from '../view/board3d';
-import { pieceMesh } from '../view/pieces3d';
+import { pieceMesh, sync } from '../view/pieces3d';
 import { cardHtml } from '../view/cardArt';
 import { getSound } from './sound';
 
@@ -27,8 +30,19 @@ export interface FxCtx {
   tweenRaw(ms: number, fn: (t: number) => void, ease?: (t: number) => number): Promise<void>;
   /** 打ち切られていなければ true（投了・画面の片付けで false になる） */
   alive(): boolean;
+  /** 盤を後の局面に揃える。打ち切り後は何もしない（次の画面の盤を上書きしない） */
+  sync(): void;
   before: GameState;                        // この行動の前の局面（画面側から見た形）
   after: GameState;                         // この行動の後の局面
+}
+
+/**
+ * 並べて走らせ、あとで await する Promise に付ける。先に別の待ちが打ち切りで止まっても、
+ * この Promise の reject が「受け手のない失敗」としてコンソールに出ないようにする（await すれば reject はそのまま届く）
+ */
+export function later<T>(p: Promise<T>): Promise<T> {
+  p.catch(() => {});
+  return p;
 }
 
 /** 演出が打ち切られたしるし。wait・tween がこれで reject し、残りの段取りを流さない */
@@ -49,6 +63,7 @@ export function makeCtx(
   };
   return {
     stage, hud, timing, me, before, after, alive,
+    sync: () => { if (alive()) sync(stage, after, me); },
     // 待ちも描画の時計（tween）で数える。タブが裏に回って描画が止まっても、ほかの動きと順番がずれない
     wait: (ms) => run(scaled(ms), () => {}),
     tween: (ms, fn, ease) => run(scaled(ms), fn, ease),
@@ -100,6 +115,7 @@ export function clearLayers(ctx: FxCtx): void {
 
 /** 画面全体が一瞬光る。peak は flashMax で頭打ち */
 export function flash(ctx: FxCtx, color: string, peak: number, ms: number): void {
+  if (!ctx.alive()) return;
   const f = layers(ctx).flash;
   f.style.background = color;
   f.style.transition = 'none';
@@ -173,6 +189,7 @@ export async function cutIn(
 
 /** 画面を暗くする（0 で戻す） */
 export function dim(ctx: FxCtx, opacity: number): void {
+  if (!ctx.alive() && opacity > 0) return; // 打ち切り後は暗くしない（戻すのはよい）
   layers(ctx).dim.style.opacity = String(opacity);
 }
 
@@ -232,6 +249,19 @@ export async function cardFly(ctx: FxCtx, cardId: CardId, from: 'me' | 'foe'): P
   } catch { /* 途中で消されたときは何もしない */ } finally {
     card.remove();
   }
+  if (!ctx.alive()) throw new FxCancelled();
+}
+
+/**
+ * 重ね板の HTML の動き（Web Animations）を待つ。途中で消されても例外にしないが、
+ * 待っている間に打ち切られたら FxCancelled で止める（このあとの舞台への手出しを流さない）
+ */
+export async function animateEl(ctx: FxCtx, el: HTMLElement, kf: Keyframe[], opts: KeyframeAnimationOptions): Promise<void> {
+  if (!ctx.alive()) throw new FxCancelled();
+  try {
+    await el.animate(kf, { fill: 'forwards', ...opts }).finished;
+  } catch { /* 途中で消されたときは何もしない */ }
+  if (!ctx.alive()) throw new FxCancelled();
 }
 
 // ---------- カメラと揺れ ----------
@@ -271,7 +301,7 @@ export function atHome(ctx: FxCtx): boolean {
 
 /** 画面を揺らす。shake:false なら何もしない */
 export function shakeBy(ctx: FxCtx, amount: number): void {
-  if (!ctx.timing.shake) return;
+  if (!ctx.timing.shake || !ctx.alive()) return;
   ctx.stage.shake = Math.max(ctx.stage.shake, amount);
 }
 
@@ -308,6 +338,7 @@ export function transient(
   ctx: FxCtx, obj: THREE.Object3D, life: number, step: (dt: number, age: number) => void = () => {},
 ): () => void {
   const stage = ctx.stage;
+  if (!ctx.alive()) { disposeAll(obj); return () => {}; } // 打ち切り後は舞台に置かない
   if (!liveOff) {
     liveOff = stage.onFrame((dt) => {
       for (const l of [...lives]) {

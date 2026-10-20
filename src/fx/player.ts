@@ -62,7 +62,7 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
       return;
     case 'drop': {
       // 打った駒は局面を揃えてから、上から降ろす
-      sync(ctx.stage, step.after, ctx.me);
+      ctx.sync();
       const m = pieceMesh(cue.pieceId);
       if (!m) return;
       const y0 = m.position.y;
@@ -97,21 +97,11 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
   }
 }
 
-// 打ち切りで止めた待ちが、並べて走らせていた別の動き（await していない Promise）から漏れても、
-// 失敗としてコンソールに出さない
-let quietCancel = false;
-function installQuietCancel(): void {
-  if (quietCancel || typeof window === 'undefined') return;
-  quietCancel = true;
-  window.addEventListener('unhandledrejection', (e) => { if (e.reason instanceof FxCancelled) e.preventDefault(); });
-}
-
 /** 演出役。cancel() で打ち切ると、流している演出は残りを流さず、共有の舞台（カメラ・盤）にも触れずに終わる */
 export interface FxPresenter extends Presenter { cancel(): void }
 
 export function createPresenter(stage: Stage, hud: Hud, me: Side): FxPresenter {
   prepareMagic(stage);
-  installQuietCancel();
   let cancelled = false;
   const alive = (): boolean => !cancelled;
   return {

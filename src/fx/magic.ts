@@ -7,10 +7,10 @@ import type { Cue } from './plan';
 import type { Stage } from '../view/stage';
 import { PAL, PALS, rgba } from '../view/palette';
 import { BD, BW, squarePos } from '../view/board3d';
-import { pieceMesh, sync } from '../view/pieces3d';
+import { pieceMesh } from '../view/pieces3d';
 import { HAND_LABEL } from '../view/hud';
 import {
-  cameraHome, cameraPush, cameraTo, cardFly, cutIn, dim, easeInOut, easeOut, flash, puff, shakeBy, shatter,
+  animateEl, cameraHome, cameraPush, cameraTo, cardFly, cutIn, dim, easeInOut, easeOut, flash, later, puff, shakeBy, shatter,
   smokeRing, speedLines, transient, type FxCtx,
 } from './kit';
 import { getSound } from './sound';
@@ -75,11 +75,11 @@ async function oshikaeshi(ctx: FxCtx, cue: MagicCue): Promise<void> {
     const LIFE = 2000;
     transient(ctx, m, LIFE);
     m.position.set(x, y, a.z - dir * 4);
-    winds.push(ctx.wait(i * 110).then(() => ctx.tween(480, (t) => {
+    winds.push(later(ctx.wait(i * 110).then(() => ctx.tween(480, (t) => {
       m.position.z = a.z + dir * (-4 + 8 * t);
       m.position.x = x + Math.sin(t * Math.PI * 2 + i) * 0.12;
       mat.opacity = Math.sin(Math.PI * t);
-    }, (t) => t)).then(() => { mat.opacity = 0; }));
+    }, (t) => t)).then(() => { mat.opacity = 0; })));
   }
   // 最初の帯が駒に届くころ、駒が1マス滑る（風下へ少し傾いて、戻る）
   await ctx.wait(220);
@@ -285,7 +285,7 @@ async function itetsuku(ctx: FxCtx, cue: MagicCue): Promise<void> {
   } finally {
     kill();
     // 青みは sync が view.frozen を見て付け直す。複製した材質はここで捨てる
-    sync(ctx.stage, ctx.after, ctx.me);
+    ctx.sync();
     for (const x of tinted) x.mat.dispose();
   }
 }
@@ -350,11 +350,10 @@ async function yobimodoshi(ctx: FxCtx, cue: MagicCue): Promise<void> {
     const k = make(gI);
     fly.append(k);
     els.push(k);
-    const a = k.animate(kf, {
+    anims.push(later(animateEl(ctx, k, kf, {
       duration: Math.max(1, DUR * ctx.timing.scale), delay: gI * 34 * ctx.timing.scale,
       easing: 'cubic-bezier(.45,0,.35,1)', fill: 'both',
-    });
-    anims.push(a.finished.catch(() => {}));
+    })));
   }
   try {
     await Promise.all(anims);
@@ -383,7 +382,7 @@ function focusOf(cue: MagicCue): THREE.Vector3 | null {
  */
 export async function playMagic(ctx: FxCtx, cue: MagicCue): Promise<void> {
   const def = CARDS[cue.cardId];
-  const fly = cardFly(ctx, cue.cardId, cue.side === ctx.me ? 'me' : 'foe');
+  const fly = later(cardFly(ctx, cue.cardId, cue.side === ctx.me ? 'me' : 'foe'));
   try {
     // 拍子木の「間」：白く光って一瞬止まる
     await ctx.wait(260);

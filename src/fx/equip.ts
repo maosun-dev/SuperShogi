@@ -7,8 +7,8 @@ import { CARDS } from '../cards';
 import type { Cue } from './plan';
 import { PAL, PALS, rgba } from '../view/palette';
 import { ring, squarePos } from '../view/board3d';
-import { pieceMesh, sync } from '../view/pieces3d';
-import { cameraHome, cameraTo, cardFly, cutIn, easeInOut, easeOut, flash, lightCap, puff, shakeBy, transient, type FxCtx } from './kit';
+import { pieceMesh } from '../view/pieces3d';
+import { cameraHome, cameraTo, cardFly, cutIn, easeInOut, easeOut, flash, later, lightCap, puff, shakeBy, transient, type FxCtx } from './kit';
 import { getSound } from './sound';
 import { squareOf } from './trap';
 
@@ -244,12 +244,12 @@ function withAt(ctx: FxCtx, cue: EquipCue, fn: (at: THREE.Vector3) => Promise<vo
 /** 装備の共通の流れ */
 export async function playEquip(ctx: FxCtx, cue: EquipCue): Promise<void> {
   const def = CARDS[cue.cardId];
-  const fly = cardFly(ctx, cue.cardId, cue.side === ctx.me ? 'me' : 'foe');
+  const fly = later(cardFly(ctx, cue.cardId, cue.side === ctx.me ? 'me' : 'foe'));
   try {
     const sq = squareOf(ctx.after, cue.pieceId);
     await ctx.wait(220);
     flash(ctx, PALS.soubiPale, 0.5, 180);
-    const cam = sq ? cameraTo(ctx, squarePos(sq), 520) : Promise.resolve();
+    const cam = sq ? later(cameraTo(ctx, squarePos(sq), 520)) : Promise.resolve();
     await cutIn(ctx, def.name, `装備・コスト${def.cost}`, 'soubi', 600);
     await cam;
     if (!sq) return;
@@ -257,7 +257,7 @@ export async function playEquip(ctx: FxCtx, cue: EquipCue): Promise<void> {
     const extra = EQUIP_FX[def.fx as EquipName];
     await Promise.all([pillar(ctx, at), extra ? extra(ctx, cue) : Promise.resolve()]);
     // 足元に六角形が現れる（ここから先は sync が出し続ける）
-    sync(ctx.stage, ctx.after, ctx.me);
+    ctx.sync();
     hexBurst(ctx, at);
     getSound().play('chime');
     await ctx.wait(600);

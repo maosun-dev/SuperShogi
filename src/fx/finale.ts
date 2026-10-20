@@ -10,7 +10,7 @@ import type { Cue } from './plan';
 import { PAL, PALS } from '../view/palette';
 import { squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
-import { atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, lightCap, shakeBy, transient, type FxCtx } from './kit';
+import { atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, later, lightCap, shakeBy, transient, type FxCtx } from './kit';
 import { getSound } from './sound';
 import { squareOf } from './trap';
 
@@ -85,7 +85,7 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
     await cameraTo(ctx, at, 700);
     // 2. 時間がゆっくりになる。camera:false なら一周は省き、短く間を取るだけ
     dim(ctx, 0.3);
-    const round = ctx.timing.camera ? orbit(ctx, at, ORBIT_MS) : ctx.wait(MOVE_MS * SLOW + 500);
+    const round = later(ctx.timing.camera ? orbit(ctx, at, ORBIT_MS) : ctx.wait(MOVE_MS * SLOW + 500));
     // 取る駒がじわりと入る
     if (am && from) {
       const a = squarePos(from), y0 = am.position.y;
@@ -102,10 +102,10 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
       // 王手の輪・装備の六角形は王と一緒に浮かせず消す（取られた王は sync が片付ける）
       for (const c of km.children.slice(2)) c.visible = false;
       const ky = km.position.y, rx = km.rotation.x;
-      lift = ctx.tween(700, (t) => {
+      lift = later(ctx.tween(700, (t) => {
         km.position.y = ky + 0.6 * t;
         km.rotation.x = rx - 0.5 * t;
-      }, easeOut);
+      }, easeOut));
     }
     await Promise.all([round, lift]);
     // 3. 時間が戻り、取られた王が回りながら天高く飛ぶ（カメラが動けるなら見上げて追う）
