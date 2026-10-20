@@ -1,0 +1,103 @@
+/* 色は設計書の7色だけをここに置く。ほかの場所では var(--名前) で使う */
+:root {
+  --kaya: #E2B65B;   /* 榧 */
+  --yoru: #14213D;   /* 夜の藍 */
+  --mahou: #2B59C3;  /* 藍 */
+  --wana: #D7263D;   /* 隈取の紅 */
+  --soubi: #C9A227;  /* 金箔 */
+  --gofun: #EEE8DC;  /* 胡粉 */
+  --sumi: #1d1a17;   /* 墨 */
+  /* 7色の明暗 */
+  --yoru-light: #22386a;
+  --yoru-deep: #0d1730;
+  --wana-deep: #7a0f1c;
+  --kaya-light: #F2D594;
+
+  --font-body: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-display: "Yuji Boku", "Shippori Mincho B1", serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--gofun);
+  background: radial-gradient(120% 70% at 50% 42%, var(--yoru-light) 0%, var(--yoru) 58%, var(--yoru-deep) 100%);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+button:focus-visible {
+  outline: 2px solid var(--kaya);
+  outline-offset: 2px;
+}
+
+/* 仮の画面（のちの作業で本物に置き換わる） */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 16px;
+}
+.screen .name {
+  font-family: var(--font-display);
+  font-size: 44px;
+  letter-spacing: 0.08em;
+  color: var(--gofun);
+}
+.screen .nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 320px;
+}
+.screen .nav button {
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid #eee8dc66;
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+/* 画面の切り替えの幕：墨・紅・藍の縦縞（定式幕を3色で描き直したもの） */
+#curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  visibility: hidden;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--sumi) 0 calc(100% / 6),
+    var(--wana) calc(100% / 6) calc(100% / 3),
+    var(--mahou) calc(100% / 3) 50%
+  );
+  /* 1周で幅の半分。2周ぶんで6本の縞になる */
+}
+#curtain.run { visibility: visible; pointer-events: auto; }

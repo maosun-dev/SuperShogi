@@ -7,15 +7,26 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.core.json && tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/three": "^0.186.0",
     "typescript": "^5.9.3",
+    "vite": "^7.3.7",
     "vitest": "^3.2.7"
   },
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@fontsource/shippori-mincho-b1": "^5.3.0",
+    "@fontsource/yuji-boku": "^5.3.1",
+    "three": "^0.186.1"
+  }
 }
