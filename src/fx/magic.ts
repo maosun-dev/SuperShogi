@@ -10,7 +10,7 @@ import { BD, BW, squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
 import { HAND_LABEL } from '../view/hud';
 import {
-  animateEl, cameraHome, cameraPush, cameraTo, cardFly, cutIn, dim, easeInOut, easeOut, flash, later, puff, shakeBy, shatter,
+  animateEl, cameraHome, cameraPush, cameraTo, cardFly, cutIn, dim, easeInOut, easeOut, flash, later, lightCap, puff, shakeBy, shatter,
   smokeRing, speedLines, transient, type FxCtx,
 } from './kit';
 import { getSound } from './sound';
@@ -130,7 +130,7 @@ async function irekae(ctx: FxCtx, cue: MagicCue): Promise<void> {
 }
 
 // ---------- 落雷（試作の castRakurai の後半） ----------
-function makeBolt(from: THREE.Vector3, to: THREE.Vector3, radius: number): THREE.Group {
+function makeBolt(from: THREE.Vector3, to: THREE.Vector3, radius: number, cap: (a: number) => number): THREE.Group {
   const path = new THREE.CurvePath<THREE.Vector3>();
   let prev = from.clone();
   const n = 14;
@@ -143,9 +143,9 @@ function makeBolt(from: THREE.Vector3, to: THREE.Vector3, radius: number): THREE
   }
   const grp = new THREE.Group();
   const core = new THREE.Mesh(new THREE.TubeGeometry(path, n * 4, radius, 6),
-    new THREE.MeshBasicMaterial({ color: PAL.mahouCore, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    new THREE.MeshBasicMaterial({ color: PAL.mahouCore, transparent: true, opacity: cap(1), blending: THREE.AdditiveBlending, depthWrite: false }));
   const glow = new THREE.Mesh(new THREE.TubeGeometry(path, n * 4, radius * 4.5, 8),
-    new THREE.MeshBasicMaterial({ color: PAL.mahouGlow, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+    new THREE.MeshBasicMaterial({ color: PAL.mahouGlow, transparent: true, opacity: cap(0.35), blending: THREE.AdditiveBlending, depthWrite: false }));
   grp.add(glow, core);
   return grp;
 }
@@ -161,10 +161,10 @@ async function rakurai(ctx: FxCtx, cue: MagicCue): Promise<void> {
   boltLight?.position.set(at.x, 2.2, at.z);
   try {
     for (let k = 0; k < 3; k++) {
-      const bolt = makeBolt(top, at.clone().setY(0.25), k === 0 ? 0.07 : 0.05);
+      const bolt = makeBolt(top, at.clone().setY(0.25), k === 0 ? 0.07 : 0.05, (a) => lightCap(ctx, a));
       const shown = k === 0 ? 120 : 70;
       transient(ctx, bolt, shown * ctx.timing.scale);
-      if (boltLight) boltLight.intensity = 90;
+      if (boltLight) boltLight.intensity = 90 * lightCap(ctx, 0.9) / 0.9; // 動きを減らす設定では光を弱める
       flash(ctx, PALS.mahouFlash, k === 0 ? 0.85 : 0.5, 160);
       if (k === 0) { shatter(ctx, e.pieceId); shakeBy(ctx, 0.55); getSound().play('thunder'); getSound().play('shatter'); }
       await ctx.wait(shown);

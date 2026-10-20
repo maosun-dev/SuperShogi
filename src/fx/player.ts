@@ -11,7 +11,7 @@ import { squarePos } from '../view/board3d';
 import { pieceMesh, sync } from '../view/pieces3d';
 import { loadSettings, safeStore } from '../app/storage';
 import { fxTiming, planFx, type Cue, type FxTiming } from './plan';
-import { FxCancelled, atHome, cameraHome, clearLayers, clearTransients, makeCtx, type FxCtx } from './kit';
+import { FxCancelled, atHome, cameraHome, clearLayers, clearTransients, makeCtx, showNotice, type FxCtx } from './kit';
 import { playMagic, prepareMagic } from './magic';
 import { playTrapFire, playTrapSet } from './trap';
 import { playArmor, playEquip, playSecond } from './equip';
@@ -95,8 +95,9 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
     case 'gameOver':
       await playGameOver(ctx, cue, kingAt);
       return;
-    default:
-      // 小さな知らせ（notice）は今は出さない
+    case 'notice':
+      // 小さな知らせ：静かな帯で出す（墨しぶきなし）
+      await showNotice(ctx, cue.text);
       return;
   }
 }

@@ -553,6 +553,22 @@ button:focus-visible {
 .match .fx-fly > * { position: absolute; margin: 0; }
 .match .fx-fly .card { cursor: default; transition: none; }
 .match .fx-flash { z-index: 9; opacity: 0; }
+/* 小さな知らせ（指せる手がないときなど）。静かな細い帯で、案内の帯（ボタン付き）とは別に出す */
+.match .fx-notice {
+  z-index: 8; display: flex; justify-content: center; align-items: flex-start;
+  padding: 26% 16px 0; opacity: 0;
+}
+.match .fx-notice span {
+  max-width: 100%; padding: 8px 16px;
+  background: color-mix(in srgb, var(--yoru-deep) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gofun) 33%, transparent);
+  border-radius: 4px;
+  color: var(--gofun);
+  font-family: var(--font-body);
+  font-size: 14px; font-weight: 800; text-align: center;
+}
+.match .fx-notice.on { opacity: 1; transition: opacity .18s ease-out; }
+.match .fx-notice.off { opacity: 0; transition: opacity .25s ease-in; }
 @media (prefers-reduced-motion: reduce) {
   /* 筆文字は出すが、大きく叩きつける動きはやめて現れるだけにする */
   .match .fx-cutin.on .band,

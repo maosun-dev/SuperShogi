@@ -72,7 +72,7 @@ export function makeCtx(
 }
 
 // ---------- 重ね板（対局画面の root の中に1組だけ作る） ----------
-interface Layers { dim: HTMLElement; lines: HTMLElement; cutin: HTMLElement; fly: HTMLElement; flash: HTMLElement }
+interface Layers { dim: HTMLElement; lines: HTMLElement; cutin: HTMLElement; fly: HTMLElement; flash: HTMLElement; notice: HTMLElement }
 const layerOf = new WeakMap<HTMLElement, Layers>();
 
 function layers(ctx: FxCtx): Layers {
@@ -85,12 +85,16 @@ function layers(ctx: FxCtx): Layers {
     d.setAttribute('aria-hidden', 'true');
     return d;
   };
-  const L: Layers = { dim: mk('fx-dim'), lines: mk('fx-lines'), cutin: mk('fx-cutin'), fly: mk('fx-fly'), flash: mk('fx-flash') };
+  const L: Layers = { dim: mk('fx-dim'), lines: mk('fx-lines'), cutin: mk('fx-cutin'), fly: mk('fx-fly'), flash: mk('fx-flash'), notice: mk('fx-notice') };
+  // 小さな知らせだけは読み上げ対象にする（aria-hidden を外し、丁寧な読み上げにする）
+  L.notice.removeAttribute('aria-hidden');
+  L.notice.setAttribute('aria-live', 'polite');
+  L.notice.append(document.createElement('span'));
   // カットインの中身（文字はカード定義の定数だけが入る）
   L.cutin.innerHTML = '<div class="band"></div>'
     + '<svg class="ink" viewBox="-300 -150 600 300" preserveAspectRatio="xMidYMid meet"></svg>'
     + '<div class="word"></div><div class="sub"></div>';
-  root.append(L.dim, L.lines, L.cutin, L.fly, L.flash);
+  root.append(L.dim, L.lines, L.cutin, L.fly, L.flash, L.notice);
   layerOf.set(root, L);
   return L;
 }
@@ -105,6 +109,8 @@ export function clearLayers(ctx: FxCtx): void {
   L.fly.replaceChildren();
   L.flash.style.transition = 'none';
   L.flash.style.opacity = '0';
+  L.notice.classList.remove('on', 'off');
+  L.notice.firstElementChild!.textContent = '';
   // 飛ばすために隠した手札を戻す（ふつうはこのあとの描き直しで消えるが、描き直しに失敗しても札が消えたままにならないように）
   for (const c of ctx.hud.root.querySelectorAll<HTMLElement>('.hand .card')) {
     if (c.style.visibility === 'hidden') c.style.visibility = '';
@@ -131,6 +137,22 @@ export function flash(ctx: FxCtx, color: string, peak: number, ms: number): void
  */
 export function lightCap(ctx: FxCtx, a: number): number {
   return ctx.timing.flashMax < 0.9 ? Math.min(a, ctx.timing.flashMax) : a;
+}
+
+/** 小さな知らせを静かに出す（墨しぶきなし・案内の帯とは別）。ms × timing.scale だけ見せて消す */
+export async function showNotice(ctx: FxCtx, text: string, ms = 900): Promise<void> {
+  if (!ctx.alive()) throw new FxCancelled();
+  const el = layers(ctx).notice;
+  el.firstElementChild!.textContent = text;
+  el.classList.remove('on', 'off');
+  void el.offsetWidth; // 前の表示を外してから付け直す
+  el.classList.add('on');
+  try {
+    await ctx.wait(ms);
+  } finally {
+    el.classList.add('off');
+    el.classList.remove('on');
+  }
 }
 
 /** 集中線（試作の buildSpeedLines） */
@@ -232,16 +254,18 @@ export async function cardFly(ctx: FxCtx, cardId: CardId, from: 'me' | 'foe'): P
   card.style.left = `${x}px`;
   card.style.top = `${y}px`;
   L.fly.append(card);
+  // 動きを減らす設定では、飛び去る瞬間の白飛びを抑える（ふだんは 3）
+  const peak = ctx.timing.flashMax < 0.9 ? 1.4 : 3;
   const kf: Keyframe[] = from === 'me'
     ? [
       { transform: 'none', filter: 'brightness(1)' },
       { offset: 0.3, transform: 'translateY(-60px) scale(1.25) rotate(-4deg)', filter: 'brightness(1.4)' },
-      { transform: 'translateY(-320px) scale(1.9) rotate(8deg)', opacity: 0, filter: 'brightness(3)' },
+      { transform: 'translateY(-320px) scale(1.9) rotate(8deg)', opacity: 0, filter: `brightness(${peak})` },
     ]
     : [
       { transform: 'translateY(-60px) scale(.6) rotate(6deg)', opacity: 0, filter: 'brightness(1)' },
       { offset: 0.3, transform: 'translateY(40px) scale(1.25) rotate(4deg)', opacity: 1, filter: 'brightness(1.4)' },
-      { transform: 'translateY(300px) scale(1.9) rotate(-8deg)', opacity: 0, filter: 'brightness(3)' },
+      { transform: 'translateY(300px) scale(1.9) rotate(-8deg)', opacity: 0, filter: `brightness(${peak})` },
     ];
   try {
     const a = card.animate(kf, { duration: Math.max(1, 520 * ctx.timing.scale), easing: 'cubic-bezier(.5,0,.8,.3)', fill: 'forwards' });

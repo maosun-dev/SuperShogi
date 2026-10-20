@@ -4,12 +4,6 @@
 export type ScreenName = 'title' | 'level' | 'deck' | 'reveal' | 'match' | 'result' | 'zukan' | 'settings';
 export interface Screen { mount(root: HTMLElement): void; unmount(): void }
 
-export const ALL_SCREENS: ScreenName[] = ['title', 'level', 'deck', 'reveal', 'match', 'result', 'zukan', 'settings'];
-export const SCREEN_LABEL: Record<ScreenName, string> = {
-  title: 'タイトル', level: '強さ選び', deck: 'カード選び', reveal: '札見せ',
-  match: '対局', result: '結果', zukan: 'カード図鑑', settings: '設定',
-};
-
 const CURTAIN_MS = 450;
 const REDUCED_MS = 120;
 
@@ -18,14 +12,10 @@ let current: Screen | null = null;
 let root: HTMLElement | null = null;
 let curtain: HTMLElement | null = null;
 let busy: Promise<void> | null = null;
-let clapper: () => void = () => {}; // 拍子木の音（タスク12で差し替える。今は無音）
+let clapper: () => void = () => {}; // 拍子木の音（main.ts が setClapper で効果音を差し込む。それまでは無音）
 
 export function registerScreen(name: ScreenName, make: (params: unknown) => Screen): void {
   makers.set(name, make);
-}
-
-export function hasScreen(name: ScreenName): boolean {
-  return makers.has(name);
 }
 
 /** 拍子木の音を鳴らす関数を差し込む */
