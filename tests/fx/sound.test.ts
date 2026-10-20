@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { volumeToGain } from '../../src/fx/sound';
+import { getSound, volumeToGain } from '../../src/fx/sound';
 
 describe('volumeToGain', () => {
   it('0 は無音、1 は最大', () => {
@@ -13,5 +13,13 @@ describe('volumeToGain', () => {
     expect(volumeToGain(-1)).toBe(0);
     expect(volumeToGain(5)).toBe(1);
     expect(volumeToGain(NaN)).toBe(0);
+  });
+});
+
+describe('getSound（AudioContext のない Node）', () => {
+  it('unlock と play が例外を出さず、音は出せない状態のまま', () => {
+    const s = getSound();
+    expect(() => { s.unlock(); s.play('hyoshigi'); s.setVolume(0.5); }).not.toThrow();
+    expect(s.running()).toBe(false);
   });
 });

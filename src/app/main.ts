@@ -50,9 +50,13 @@ function start(): void {
   const sound = getSound();
   sound.setVolume(loadSettings(safeStore()).volume);
   setClapper(() => sound.play('hyoshigi'));
-  const unlock = (): void => sound.unlock();
-  window.addEventListener('pointerdown', unlock, { capture: true });
-  window.addEventListener('keydown', unlock, { capture: true });
+  // iOS Safari は touchend / click でしか再開を許さないことがあるので、4種類すべてで試す。音が出せるようになったら外す
+  const kinds = ['pointerdown', 'touchend', 'click', 'keydown'] as const;
+  const unlock = (): void => {
+    sound.unlock();
+    if (sound.running()) for (const k of kinds) window.removeEventListener(k, unlock, { capture: true });
+  };
+  for (const k of kinds) window.addEventListener(k, unlock, { capture: true });
   registerScreen('title', () => titleScreen());
   registerScreen('zukan', () => zukanScreen());
   registerScreen('match', (p) => matchScreen(p));

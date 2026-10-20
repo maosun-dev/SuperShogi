@@ -13,6 +13,8 @@ export interface Sound {
   unlock(): void;
   play(name: SoundName, opts?: { gain?: number }): void;
   setVolume(v: number): void;
+  /** 音が出せる状態か（AudioContext が running）。解錠のきっかけの登録を外してよいかの判断に使う */
+  running(): boolean;
 }
 
 /** 音量つまみ（0〜1）→ 本当の大きさ。耳には2乗ぐらいがちょうどよい。範囲外・数でないものは丸める */
@@ -140,7 +142,7 @@ const RECIPES: Record<SoundName, Recipe> = {
   },
 };
 
-const silent: Sound = { unlock() {}, play() {}, setVolume() {} };
+const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false };
 
 function createSound(): Sound {
   let ctx: Ctx | null = null;
@@ -164,7 +166,8 @@ function createSound(): Sound {
           master.connect(ctx.destination);
           kit = { ctx, out: master, noise: noiseBuffer(ctx) };
         }
-        if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+        // running 以外（suspended と、iOS の interrupted）はどちらも再開を試す
+        if (ctx.state !== 'running') void ctx.resume().catch(() => {});
       } catch (e) {
         failed = true;
         ctx = null; kit = null; master = null;
@@ -174,12 +177,14 @@ function createSound(): Sound {
     play(name, opts) {
       try {
         if (!ctx || !kit || failed) return;
-        if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+        // 音が出せない間は再開だけ試し、音は予約せず捨てる（解錠の瞬間に溜まった音が一斉に鳴らないように）
+        if (ctx.state !== 'running') { void ctx.resume().catch(() => {}); return; }
         RECIPES[name](kit, ctx.currentTime + 0.005, opts?.gain ?? 1);
       } catch (e) {
         console.error(`効果音に失敗しました（${name}）`, e);
       }
     },
+    running: () => ctx !== null && ctx.state === 'running',
     setVolume(v) {
       volume = v;
       try {
