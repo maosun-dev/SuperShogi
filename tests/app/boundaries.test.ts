@@ -14,11 +14,11 @@ function tsFiles(dir: string): string[] {
   return out;
 }
 
-// import / from の行だけを取り出す
+// ファイル全体から import / export ... from / 動的 import の文を取り出す（複数行も1つの文として）
+const STATEMENT =
+  /\b(?:import|export)\s*(?:type\s+)?(?:[^'";]*?\bfrom\s*)?['"][^'"]+['"]|\bimport\(\s*['"][^'"]+['"]\s*\)/g;
 function importLines(file: string): string[] {
-  return readFileSync(file, 'utf8')
-    .split('\n')
-    .filter((l) => /\bfrom\s+['"]/.test(l) || /^\s*import\s+['"]/.test(l) || /\bimport\(/.test(l));
+  return readFileSync(file, 'utf8').match(STATEMENT) ?? [];
 }
 
 describe('層の境目', () => {
