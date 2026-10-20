@@ -41,7 +41,7 @@ test.each(LV)('時間内に答える（初期局面と中盤）: %s', level => {
   for (const [name, s] of [['初期', start], ['中盤', mid]] as const) {
     if (s.result) continue;
     const t0 = Date.now();
-    const r = chooseCpuAction(viewFor(s, s.turn), level, 1);
+    const r = chooseCpuAction(viewFor(s, s.turn), s.turn, level, 1);
     const ms = Date.now() - t0;
     console.log(`[時間] ${level} ${name}: ${ms}ms depth=${r.depth} nodes=${r.nodes}`);
     expect(ms).toBeLessThanOrEqual(LEVELS[level].timeLimitMs + 200);
@@ -59,7 +59,7 @@ test('手の数が膨らむ局面でも時間内', () => {
   put(s, { c: 4, r: 4 }, 'HI', 'sente', { promoted: true, equip: 'idaten' });
   s.turn = 'sente';
   const t0 = Date.now();
-  const r = chooseCpuAction(viewFor(s, 'sente'), 'strong', 1);
+  const r = chooseCpuAction(viewFor(s, 'sente'), 'sente', 'strong', 1);
   const ms = Date.now() - t0;
   console.log(`[時間] strong 膨らむ局面: ${ms}ms depth=${r.depth} nodes=${r.nodes}`);
   expect(ms).toBeLessThanOrEqual(LEVELS.strong.timeLimitMs + 200);

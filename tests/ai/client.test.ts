@@ -25,7 +25,7 @@ const decks = { sente: LEVELS.weak.deck, gote: LEVELS.weak.deck };
 test('考えた手が返る', async () => {
   const s = createGame(decks);
   const client = createCpuClient(fakeWorker());
-  const a = await client.think(viewFor(s, 'sente'), 'weak', 1);
+  const a = await client.think(viewFor(s, 'sente'), 'sente', 'weak', 1);
   expect(legalActions(s)).toContainEqual(a);
 });
 
@@ -35,8 +35,8 @@ test('続けて2回頼んでも、それぞれの答えが混ざらない', asyn
   expect(gote.turn).toBe('gote');
   const client = createCpuClient(fakeWorker());
   const [a, b] = await Promise.all([
-    client.think(viewFor(sente, 'sente'), 'weak', 1),
-    client.think(viewFor(gote, 'gote'), 'weak', 1),
+    client.think(viewFor(sente, 'sente'), 'sente', 'weak', 1),
+    client.think(viewFor(gote, 'gote'), 'gote', 'weak', 1),
   ]);
   expect(legalActions(sente)).toContainEqual(a);
   expect(legalActions(gote)).toContainEqual(b);
@@ -47,5 +47,12 @@ test('続けて2回頼んでも、それぞれの答えが混ざらない', asyn
 test('終わった対局を頼むと reject', async () => {
   const s: GameState = { ...createGame(decks), result: { winner: 'sente', reason: 'king-captured' } };
   const client = createCpuClient(fakeWorker());
-  await expect(client.think(viewFor(s, 'gote'), 'weak', 1)).rejects.toThrow('対局はもう終わっています');
+  await expect(client.think(viewFor(s, 'gote'), 'gote', 'weak', 1)).rejects.toThrow('対局はもう終わっています');
+});
+
+test('手番でない側として頼むと reject', async () => {
+  const s = createGame(decks);
+  expect(s.turn).toBe('sente');
+  const client = createCpuClient(fakeWorker());
+  await expect(client.think(viewFor(s, 'gote'), 'gote', 'weak', 1)).rejects.toThrow('CPU の手番ではありません');
 });

@@ -1,7 +1,7 @@
 // CPU の先読み：ネガマックス＋アルファベータ、駒を取る手だけの延長読み、時間切れでの打ち切り
 import { applyActionUnchecked, legalActions } from '../rules/game';
 import { idx } from '../rules/board';
-import type { Action, GameState, PieceKind } from '../rules/types';
+import type { Action, GameState, PieceKind, Side } from '../rules/types';
 import { evaluate, PIECE_VALUE } from './evaluate';
 import { makeRng } from './random';
 
@@ -36,10 +36,12 @@ function sameAction(a: Action, b: Action): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export function search(view: GameState, opts: SearchOptions): SearchResult {
+// side は CPU が受け持つ側。view はその側の viewFor の結果で、手番も side であること
+export function search(view: GameState, side: Side, opts: SearchOptions): SearchResult {
   const now = opts.now ?? Date.now;
   const start = now();
   if (view.result) throw new Error('対局はもう終わっています');
+  if (view.turn !== side) throw new Error('CPU の手番ではありません');
   const root: GameState = { ...view, seen: {} }; // 読みの中では千日手を考えない
   const rootActions = legalActions(root);
   if (rootActions.length === 0) throw new Error('指せる行動がありません');

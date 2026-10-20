@@ -13,7 +13,7 @@ test.each([1, 2, 3])('CPU 同士で120手指しても反則も例外も出ない
   for (; plies < 120 && !s.result; plies++) {
     const level = s.turn === 'sente' ? 'weak' : 'normal';
     const { deck: _deck, ...opts } = LEVELS[level];
-    const r = search(viewFor(s, s.turn), { ...opts, timeLimitMs: 50, seed: seed * 1000 + plies });
+    const r = search(viewFor(s, s.turn), s.turn, { ...opts, timeLimitMs: 50, seed: seed * 1000 + plies });
     s = applyAction(s, r.action).state;
   }
   console.log(`[通し] 種${seed}: ${plies}手 結果=${JSON.stringify(s.result)}`);

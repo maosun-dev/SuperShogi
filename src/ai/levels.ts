@@ -1,5 +1,5 @@
 // CPU の強さ3段階：読む深さ・わざと迷う度合い・持ち込みカード
-import type { CardId, GameState } from '../rules/types';
+import type { CardId, GameState, Side } from '../rules/types';
 import { search, type SearchOptions, type SearchResult } from './search';
 
 export type Level = 'weak' | 'normal' | 'strong';
@@ -21,8 +21,8 @@ export const LEVELS: Record<Level, LevelConfig> = {
   },
 };
 
-// view は viewFor で作った「見えている情報」だけの局面
-export function chooseCpuAction(view: GameState, level: Level, seed: number): SearchResult {
+// view は viewFor(本当の局面, side) で作った「見えている情報」だけの局面
+export function chooseCpuAction(view: GameState, side: Side, level: Level, seed: number): SearchResult {
   const { deck: _deck, ...opts } = LEVELS[level];
-  return search(view, { ...opts, seed });
+  return search(view, side, { ...opts, seed });
 }
