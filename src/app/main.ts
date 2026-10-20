@@ -5,8 +5,10 @@ import '@fontsource/shippori-mincho-b1/800.css';
 import './style.css';
 import {
   ALL_SCREENS, SCREEN_LABEL, hasScreen, initScreens, registerScreen, showScreen,
-  type Screen, type ScreenName,
+  setClapper, type Screen, type ScreenName,
 } from './screens';
+import { getSound } from '../fx/sound';
+import { loadSettings, safeStore } from './storage';
 import { zukanScreen } from './screens/zukan';
 import { titleScreen } from './screens/title';
 import { matchScreen } from './screens/match';
@@ -44,6 +46,13 @@ function start(): void {
   const root = document.getElementById('app');
   if (!root) throw new Error('#app がありません');
   initScreens(root);
+  // 効果音：音量は設定から。音は最初の操作のあとに鳴らし始める（それまでは無音）。幕の拍子木もここで差し込む
+  const sound = getSound();
+  sound.setVolume(loadSettings(safeStore()).volume);
+  setClapper(() => sound.play('hyoshigi'));
+  const unlock = (): void => sound.unlock();
+  window.addEventListener('pointerdown', unlock, { capture: true });
+  window.addEventListener('keydown', unlock, { capture: true });
   registerScreen('title', () => titleScreen());
   registerScreen('zukan', () => zukanScreen());
   registerScreen('match', (p) => matchScreen(p));

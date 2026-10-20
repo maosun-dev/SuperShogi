@@ -16,6 +16,7 @@ import { playMagic, prepareMagic } from './magic';
 import { playTrapFire, playTrapSet } from './trap';
 import { playArmor, playEquip, playSecond } from './equip';
 import { playCheck, playGameOver } from './finale';
+import { getSound } from './sound';
 
 const MOVE_MS = 160;   // 普段の駒の移動（演出の長さの設定に関係なく、いつも静かで速く）
 const HOP = 0.18;      // 動くときに少し浮かせる高さ
@@ -35,6 +36,7 @@ async function slide(ctx: FxCtx, pieceId: number, from: Parameters<typeof square
   await ctx.stage.tween(MOVE_MS, (t) => {
     m.position.set(a.x + (b.x - a.x) * t, y0 + Math.sin(Math.PI * t) * HOP, a.z + (b.z - a.z) * t);
   }, easeOut);
+  getSound().play('tick');
 }
 
 /** 取られた王のマス：前の局面で、動いた先に（動かした側でない）王がいたマス。なければ null */
@@ -65,6 +67,7 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
       if (!m) return;
       const y0 = m.position.y;
       await ctx.stage.tween(MOVE_MS, (t) => { m.position.y = y0 + (1 - t) * DROP_FROM; }, easeOut);
+      getSound().play('tick');
       return;
     }
     case 'magic':

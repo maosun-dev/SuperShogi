@@ -14,6 +14,7 @@ import {
   atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, lightCap, localRect, overlay, puff, shakeBy, transient,
   type FxCtx,
 } from './kit';
+import { getSound } from './sound';
 
 type TrapSetCue = Extract<Cue, { kind: 'trapSet' }>;
 type TrapFireCue = Extract<Cue, { kind: 'trapFire' }>;
@@ -123,6 +124,7 @@ async function flipSlot(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
   const slot = slotOf(ctx, cue.owner, firedIndex(ctx, cue.owner));
   if (!slot) return;
   const half = 100 * ctx.timing.scale;
+  getSound().play('flip');
   slot.style.position = 'relative';
   slot.style.zIndex = '3';
   // 前半：裏のまま 90° まで回りながら大きくなる
@@ -425,6 +427,7 @@ async function narifuuji(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
       seal.scale.setScalar(2.4 - 1.4 * t);
     }, (t) => t * t);
     flash(ctx, PALS.wana, 0.4, 220);
+    getSound().play('stamp');
     shakeBy(ctx, 0.32);
     // 駒は表に戻って落ちる（少し弾む）
     await ctx.tween(240, (t) => {

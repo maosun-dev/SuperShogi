@@ -14,6 +14,7 @@ import { PAL, PALS, rgba } from '../view/palette';
 import { decal, ring } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
 import { cardHtml } from '../view/cardArt';
+import { getSound } from './sound';
 
 export interface FxCtx {
   stage: Stage;
@@ -142,6 +143,7 @@ export async function cutIn(
   el.classList.remove('on', 'off');
   void el.offsetWidth; // 前の動きを外してから付け直す（毎回はじめから動かす）
   el.classList.add('on');
+  getSound().play('hyoshigi');
   try {
     await ctx.wait(ms);
   } finally {

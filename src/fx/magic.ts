@@ -13,6 +13,7 @@ import {
   cameraHome, cameraPush, cameraTo, cardFly, cutIn, dim, easeInOut, easeOut, flash, puff, shakeBy, shatter,
   smokeRing, speedLines, transient, type FxCtx,
 } from './kit';
+import { getSound } from './sound';
 
 type MagicCue = Extract<Cue, { kind: 'magic' }>;
 type MagicName = 'oshikaeshi' | 'irekae' | 'rakurai' | 'itetsuku' | 'yobimodoshi';
@@ -63,6 +64,7 @@ async function oshikaeshi(ctx: FxCtx, cue: MagicCue): Promise<void> {
   const dir = Math.sign(b.z - a.z) || -1;   // 押される向き（奥が -z）
   // 藍の風の帯が3本、押す向きへ流れる
   const winds: Promise<void>[] = [];
+  getSound().play('wind');
   const tex = windTexture();
   for (let i = 0; i < 3; i++) {
     const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide, opacity: 0 });
@@ -106,6 +108,7 @@ async function irekae(ctx: FxCtx, cue: MagicCue): Promise<void> {
   if (!ma || !mb) return;
   const pa = squarePos(e.a), pb = squarePos(e.b);
   const RISE = 1.2;
+  getSound().play('whoosh');
   // 1.2 浮く
   await ctx.tween(280, (t) => { ma.position.y = mb.position.y = PIECE_Y + RISE * t; }, easeOut);
   // 交差する弧：互いに反対側へふくらんで入れ替わる。そのあいだに1回転
@@ -163,7 +166,7 @@ async function rakurai(ctx: FxCtx, cue: MagicCue): Promise<void> {
       transient(ctx, bolt, shown * ctx.timing.scale);
       if (boltLight) boltLight.intensity = 90;
       flash(ctx, PALS.mahouFlash, k === 0 ? 0.85 : 0.5, 160);
-      if (k === 0) { shatter(ctx, e.pieceId); shakeBy(ctx, 0.55); }
+      if (k === 0) { shatter(ctx, e.pieceId); shakeBy(ctx, 0.55); getSound().play('thunder'); getSound().play('shatter'); }
       await ctx.wait(shown);
       bolt.visible = false;
       if (boltLight) boltLight.intensity = 0;
@@ -274,6 +277,7 @@ async function itetsuku(ctx: FxCtx, cue: MagicCue): Promise<void> {
     draw(maxR);
     for (const x of tinted) x.mat.color.copy(pale);
     flash(ctx, PALS.mahouPale, 0.35, 260);
+    getSound().play('frost');
     shakeBy(ctx, 0.1);
     await ctx.wait(600);
     // 霜は薄れて消える（凍っている間は駒の青みで分かる）

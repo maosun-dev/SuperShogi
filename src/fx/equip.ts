@@ -9,6 +9,7 @@ import { PAL, PALS, rgba } from '../view/palette';
 import { ring, squarePos } from '../view/board3d';
 import { pieceMesh, sync } from '../view/pieces3d';
 import { cameraHome, cameraTo, cardFly, cutIn, easeInOut, easeOut, flash, lightCap, puff, shakeBy, transient, type FxCtx } from './kit';
+import { getSound } from './sound';
 import { squareOf } from './trap';
 
 type EquipCue = Extract<Cue, { kind: 'equip' }>;
@@ -258,6 +259,7 @@ export async function playEquip(ctx: FxCtx, cue: EquipCue): Promise<void> {
     // 足元に六角形が現れる（ここから先は sync が出し続ける）
     sync(ctx.stage, ctx.after, ctx.me);
     hexBurst(ctx, at);
+    getSound().play('chime');
     await ctx.wait(600);
     await cameraHome(ctx, 700);
   } finally {
@@ -334,6 +336,7 @@ export async function playArmor(ctx: FxCtx, cue: ArmorCue): Promise<void> {
     const hit = a.clone().lerp(b, 0.78).setY(0.35);
     const backDir = a.clone().sub(b).normalize();
     sparks(ctx, hit, backDir);
+    getSound().play('clang');
     flash(ctx, PALS.hakkou, 0.6, 140);
     shakeBy(ctx, 0.38);
     const dx0 = def?.position.x ?? 0;

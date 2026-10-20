@@ -11,6 +11,7 @@ import { PAL, PALS } from '../view/palette';
 import { squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
 import { atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, lightCap, shakeBy, transient, type FxCtx } from './kit';
+import { getSound } from './sound';
 import { squareOf } from './trap';
 
 type CheckCue = Extract<Cue, { kind: 'check' }>;
@@ -66,6 +67,7 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
   const r = cue.result;
   if (r.winner === null || !kingAt) {
     // 引き分け：盤全体を映すだけ
+    getSound().play('drum');
     if (!atHome(ctx)) await cameraHome(ctx, 700);
     await ctx.wait(500);
     return;
@@ -93,6 +95,7 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
     }
     // 当たった瞬間：光と揺れ。王はゆっくり浮き上がり始める
     flash(ctx, PALS.hakkou, 0.8, 200 * SLOW);
+    getSound().play('drum');
     shakeBy(ctx, 0.45);
     let lift: Promise<void> = Promise.resolve();
     if (km) {
