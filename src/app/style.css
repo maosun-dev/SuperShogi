@@ -101,3 +101,218 @@ button:focus-visible {
   /* 1周で幅の半分。2周ぶんで6本の縞になる */
 }
 #curtain.run { visibility: visible; pointer-events: auto; }
+
+/* ---- カードの札（試作の .card を移したもの）----
+   --s は手札（74×112）を 1 とした倍率。large は 180×272、small は 36×54（名前なし） */
+.card {
+  --c: var(--mahou);
+  --s: 1;
+  position: relative;
+  flex: none;
+  width: calc(74px * var(--s));
+  height: calc(112px * var(--s));
+  border-radius: calc(5px * var(--s));
+  background: var(--gofun);
+  border: calc(3px * var(--s)) solid var(--c);
+  box-shadow:
+    inset 0 0 0 calc(2px * var(--s)) var(--gofun),
+    inset 0 0 0 calc(3px * var(--s)) color-mix(in srgb, var(--sumi) 20%, transparent),
+    0 calc(6px * var(--s)) calc(14px * var(--s)) color-mix(in srgb, var(--sumi) 53%, transparent);
+  color: var(--sumi);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: transform .18s ease;
+}
+.card.wana { --c: var(--wana); }
+.card.soubi { --c: var(--soubi); }
+.card.large { --s: 2.432; width: 180px; height: 272px; cursor: default; }
+.card.sel { transform: translateY(-14px); }
+.card:focus-visible { outline: 2px solid var(--kaya); outline-offset: 3px; }
+.card .cost {
+  position: absolute;
+  left: calc(4px * var(--s));
+  top: calc(4px * var(--s));
+  width: calc(20px * var(--s));
+  height: calc(20px * var(--s));
+  border-radius: 50%;
+  background: var(--c);
+  color: var(--gofun);
+  font-weight: 800;
+  font-size: calc(12px * var(--s));
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.card .name {
+  position: absolute;
+  right: calc(4px * var(--s));
+  top: calc(6px * var(--s));
+  writing-mode: vertical-rl;
+  font-weight: 800;
+  font-size: calc(12.5px * var(--s));
+  letter-spacing: calc(1px * var(--s));
+  line-height: 1.05;
+}
+.card svg {
+  position: absolute;
+  left: calc(5px * var(--s));
+  bottom: calc(8px * var(--s));
+  width: calc(44px * var(--s));
+  height: calc(62px * var(--s));
+}
+.card .kind {
+  position: absolute;
+  right: calc(4px * var(--s));
+  bottom: calc(5px * var(--s));
+  width: calc(17px * var(--s));
+  height: calc(17px * var(--s));
+  background: var(--wana);
+  color: var(--gofun);
+  border-radius: calc(2px * var(--s));
+  font-size: calc(11px * var(--s));
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+/* 選んだ枚数（カード選び）：札の右上に墨の丸で「二」「一」 */
+.card .count {
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--sumi);
+  color: var(--gofun);
+  border: 1.5px solid var(--gofun);
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+/* 小さい札：コストと印と絵だけ。文字は読める大きさに保つ */
+.card.small { width: 36px; height: 54px; border-width: 2px; border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--gofun), 0 3px 6px color-mix(in srgb, var(--sumi) 45%, transparent); }
+.card.small .cost { left: 1px; top: 1px; width: 13px; height: 13px; font-size: 9px; }
+.card.small svg { left: 3px; bottom: 4px; width: 26px; height: 36px; }
+.card.small .kind { right: 1px; bottom: 1px; width: 11px; height: 11px; font-size: 8px; border-radius: 1px; }
+.card.small .count { right: -6px; top: -6px; width: 16px; height: 16px; font-size: 9px; border-width: 1px; }
+.card.cast { animation: cast .5s cubic-bezier(.5,0,.8,.3) forwards; pointer-events: none; }
+@keyframes cast {
+  30% { transform: translateY(-60px) scale(1.25) rotate(-4deg); filter: brightness(1.4); }
+  100% { transform: translateY(-320px) scale(1.9) rotate(8deg); opacity: 0; filter: brightness(3); }
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+
+/* ---- カード図鑑 ---- */
+.zukan {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.zukan > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 6px;
+}
+.zukan h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: .08em;
+}
+.zukan .back {
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--gofun) 40%, transparent);
+  border-radius: 3px;
+  font-weight: 800;
+  font-size: 14px;
+}
+.zukan .rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0 24px;
+}
+.zukan section { margin-top: 14px; }
+.zukan h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 800;
+}
+.zukan h2 .seal {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--c);
+  color: var(--gofun);
+  font-size: 13px;
+}
+.zukan h2 small { font-size: 12px; font-weight: 500; opacity: .7; }
+.zukan .row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px 16px 14px;
+  scroll-padding: 16px;
+  scrollbar-width: none; /* はみ出した札が見えていれば横に送れると分かるので、つまみは出さない */
+}
+.zukan .row::-webkit-scrollbar { display: none; }
+.zukan .pick {
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: 5px;
+}
+.zukan .pick .card { pointer-events: none; }
+.zukan .pick:focus-visible { outline: 2px solid var(--kaya); outline-offset: 3px; }
+
+/* 大きな札と説明 */
+.zukan .look {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--yoru-deep) 88%, transparent);
+}
+.zukan .look[hidden] { display: none; }
+.zukan .look .about {
+  width: 100%;
+  max-width: 340px;
+  background: var(--gofun);
+  color: var(--sumi);
+  border-left: 8px solid var(--c);
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+.zukan .look .head { display: flex; align-items: baseline; gap: 8px; }
+.zukan .look .head b { font-size: 19px; font-weight: 800; }
+.zukan .look .head span { font-size: 12px; opacity: .7; }
+.zukan .look p { font-size: 14px; line-height: 1.75; margin: 6px 0 10px; }
+.zukan .look .close {
+  padding: 8px 18px;
+  border: 1px solid color-mix(in srgb, var(--sumi) 33%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sumi);
+  font-weight: 800;
+}
+.zukan .mahou { --c: var(--mahou); }
+.zukan .wana { --c: var(--wana); }
+.zukan .soubi { --c: var(--soubi); }
