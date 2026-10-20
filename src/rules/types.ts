@@ -35,7 +35,7 @@ export interface GameState {
 export type Action =
   | { type: 'move'; from: Square; to: Square; promote: boolean; second?: { to: Square; promote: boolean } }
   | { type: 'drop'; kind: HandKind; to: Square }
-  | { type: 'card'; uid: number; targets: Square[] };
+  | { type: 'card'; uid: number; targets: Square[]; pick?: HandKind };
 
 export type GameEvent =
   | { type: 'moved'; pieceId: number; from: Square; to: Square; promoted: boolean }

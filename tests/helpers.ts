@@ -31,3 +31,10 @@ export function put(
   s.board[idx(sq)] = p;
   return p;
 }
+
+// side の手札にカードを1枚足し、その uid を返す
+export function giveCard(s: GameState, side: Side, cardId: CardId): number {
+  const uid = s.nextId++;
+  s.players[side].cards.push({ uid, cardId, used: false });
+  return uid;
+}
