@@ -191,3 +191,20 @@ test('相手のカードは使えない', () => {
   const uid = giveCard(s, 'gote', 'rakurai');
   expect(() => applyAction(s, card(uid, [{ c: 4, r: 6 }]))).toThrow(IllegalActionError);
 });
+
+test('凍てつく盤で指せる手が1つもないときは、手番が自動で相手へ回る（対局が止まらない）', () => {
+  const s = emptyState();
+  // 後手は隅の王だけ。周りはすべて先手の駒で、凍っていると取れない
+  put(s, { c: 0, r: 0 }, 'OU', 'gote');
+  put(s, { c: 1, r: 0 }, 'KI', 'sente');
+  put(s, { c: 0, r: 1 }, 'KI', 'sente');
+  put(s, { c: 1, r: 1 }, 'KI', 'sente');
+  put(s, { c: 8, r: 8 }, 'OU', 'sente');
+  const uid = giveCard(s, 'sente', 'itetsuku');
+  const { state, events } = applyAction(s, card(uid, []));
+  expect(events).toContainEqual({ type: 'passed', side: 'gote' });
+  expect(state.turn).toBe('sente');
+  expect(state.frozen).toBeNull();
+  expect(state.result).toBeNull();
+  expect(legalActions(state).length).toBeGreaterThan(0);
+});

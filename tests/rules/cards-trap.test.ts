@@ -260,3 +260,37 @@ test('罠の発動は手番に数えない（発動のあとも手番は普通�
   expect(state.turn).toBe('sente');
   expect(state.ply).toBe(1);
 });
+
+test('韋駄天＋成り封じ：1手目の成りを封じられ、2手目がその駒で動けない手なら secondMoveSkipped', () => {
+  const s = base();
+  setTrap(s, 'gote', 'narifuuji');
+  const gi = put(s, { c: 4, r: 3 }, 'GI', 'sente', { equip: 'idaten' });
+  // 成銀なら横へ動けるが、成れなかった銀は横へ動けない
+  const a = mv({ c: 4, r: 3 }, { c: 4, r: 2 }, true, { to: { c: 5, r: 2 }, promote: false });
+  expect(legalActions(s)).toContainEqual(a);
+  const { state, events } = applyAction(s, a);
+  expect(events).toContainEqual({ type: 'secondMoveSkipped', pieceId: gi.id });
+  expect(state.board[idx({ c: 4, r: 2 })]).toMatchObject({ kind: 'GI', promoted: false });
+  expect(state.board[idx({ c: 5, r: 2 })]).toBeNull();
+});
+
+test('韋駄天＋成り封じ：成れなかった歩が、成らずに最奥段へ入ることはない', () => {
+  const s = base();
+  setTrap(s, 'gote', 'narifuuji');
+  const fu = put(s, { c: 4, r: 2 }, 'FU', 'sente', { equip: 'idaten' });
+  const a = mv({ c: 4, r: 2 }, { c: 4, r: 1 }, true, { to: { c: 4, r: 0 }, promote: false });
+  expect(legalActions(s)).toContainEqual(a);
+  const { state, events } = applyAction(s, a);
+  expect(events).toContainEqual({ type: 'secondMoveSkipped', pieceId: fu.id });
+  expect(state.board[idx({ c: 4, r: 0 })]).toBeNull();
+  expect(state.board[idx({ c: 4, r: 1 })]).toMatchObject({ kind: 'FU', promoted: false });
+});
+
+test('韋駄天＋成り封じ：2手目がその駒でも動ける手なら、そのまま動く', () => {
+  const s = base();
+  setTrap(s, 'gote', 'narifuuji');
+  put(s, { c: 4, r: 3 }, 'GI', 'sente', { equip: 'idaten' });
+  const a = mv({ c: 4, r: 3 }, { c: 4, r: 2 }, true, { to: { c: 4, r: 1 }, promote: false });
+  const { state } = applyAction(s, a);
+  expect(state.board[idx({ c: 4, r: 1 })]).toMatchObject({ kind: 'GI', promoted: false });
+});

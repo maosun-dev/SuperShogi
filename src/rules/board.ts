@@ -66,8 +66,11 @@ export function positionKey(s: GameState): string {
   });
   const hands = (['sente', 'gote'] as Side[]).map(side =>
     HAND_KINDS.map(k => s.players[side].hand[k]).join(','));
+  // 使ったカードは枚数だけ数える。どのカードかを入れると、伏せた罠の中身が千日手の記録から分かってしまう。
+  // 中身の見える罠の分を引いておくと、viewFor した局面（伏せた罠のカードを未使用に見せる）とキーがそろう
   const used = (['sente', 'gote'] as Side[]).map(side =>
-    s.players[side].cards.filter(c => c.used).map(c => c.uid).join(','));
+    s.players[side].cards.filter(c => c.used).length
+    - s.traps.filter(t => t.owner === side && t.cardId !== null).length);
   const traps = (['sente', 'gote'] as Side[]).map(side =>
     s.traps.filter(t => t.owner === side).length);
   return [cells.join(''), hands.join('|'), s.turn, used.join('|'), traps.join(','), s.frozen ?? '-'].join('/');

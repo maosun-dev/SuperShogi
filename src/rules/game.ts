@@ -131,8 +131,10 @@ export function applyAction(s0: GameState, a: Action): { state: GameState; event
     const first = stepMove(s, events, a.from, a.to, a.promote);
     if (s.result) return { state: s, events };
     if (a.second) {
-      // 1手目で止められた・駒が消えたときは2回目を飛ばす
-      if (first === 'moved' && s.board[idx(a.to)]?.id === p.id) {
+      // 1手目で止められた・駒が消えた・成りを封じられて2回目の動きができなくなったときは、2回目を飛ばす
+      const still = first === 'moved' && s.board[idx(a.to)]?.id === p.id;
+      const second = a.second;
+      if (still && secondMoves(s, p, a.to, a.to, false).some(m => sameSq(m.to, second.to) && m.promote === second.promote)) {
         stepMove(s, events, a.to, a.second.to, a.second.promote);
       } else {
         events.push({ type: 'secondMoveSkipped', pieceId: p.id });
@@ -287,5 +289,20 @@ function endTurn(s: GameState, events: GameEvent[]): void {
     finish(s, events, { winner: null, reason: 'repetition' });
   } else if (s.ply > MOVE_LIMIT) {
     finish(s, events, { winner: null, reason: 'move-limit' });
+  } else if (!hasAnyAction(s)) {
+    // 指せる行動が1つもない（凍てつく盤で囲まれた王だけ、など）ときは、手番を自動で相手へ回す
+    events.push({ type: 'passed', side: s.turn });
+    endTurn(s, events);
   }
+}
+
+// 行動が1つでもあるか（駒の移動はすぐ見つかることが多いので先に調べる）
+function hasAnyAction(s: GameState): boolean {
+  const frozen = s.frozen === s.turn;
+  for (let i = 0; i < 81; i++) {
+    const p = s.board[i];
+    if (!p || p.side !== s.turn) continue;
+    if (pieceTargets(s, sqOf(i)).some(to => !(frozen && s.board[idx(to)]))) return true;
+  }
+  return legalActions(s).length > 0;
 }

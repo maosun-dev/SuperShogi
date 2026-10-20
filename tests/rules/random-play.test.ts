@@ -2,7 +2,7 @@ import { test, expect } from 'vitest';
 import { applyAction, createGame, legalActions } from '../../src/rules/game';
 import { filterEventsFor, viewFor } from '../../src/rules/view';
 import { CARDS, validateDeck } from '../../src/cards';
-import { HAND_KINDS, opponent } from '../../src/rules/board';
+import { HAND_KINDS, opponent, positionKey } from '../../src/rules/board';
 import type { Action, CardId, GameState, Side } from '../../src/rules/types';
 
 // 種（シード）付きの乱数
@@ -63,6 +63,7 @@ test.each(range(200))('でたらめ対局 %i は例外なく決着か引き分�
     // 相手から見た局面・出来事に、こちらの罠の場所・中身が入らない
     for (const side of ['sente', 'gote'] as Side[]) {
       const foe = opponent(side);
+      expect(positionKey(viewFor(s, side))).toBe(positionKey(s));
       expect(viewFor(s, side).traps.filter(t => t.owner === foe).every(t => t.cardId === null && t.at === null)).toBe(true);
       expect(filterEventsFor(events, side)
         .filter(e => e.type === 'trapSet' && e.side === foe)

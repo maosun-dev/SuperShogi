@@ -1,6 +1,7 @@
 import { test, expect } from 'vitest';
 import { applyAction, createGame } from '../../src/rules/game';
 import { filterEventsFor, viewFor } from '../../src/rules/view';
+import { positionKey } from '../../src/rules/board';
 import type { GameEvent } from '../../src/rules/types';
 import { emptyState, giveCard, put, setTrap } from '../helpers';
 
@@ -60,4 +61,21 @@ test('filterEventsFor は自分の trapSet と、発動した trapTriggered を�
     { type: 'trapTriggered', owner: 'gote', uid: 2, cardId: 'otoshiana', at: { c: 2, r: 2 } },
   ];
   expect(filterEventsFor(events, 'sente')).toEqual(events);
+});
+
+test('viewFor：千日手の記録（seen）からも、伏せた罠のカードが分からない', () => {
+  const a = createGame({ sente: ['kagami', 'narifuuji'], gote: [] });
+  const b = createGame({ sente: ['kagami', 'narifuuji'], gote: [] });
+  const ra = applyAction(a, { type: 'card', uid: a.players.sente.cards[0].uid, targets: [] });
+  const rb = applyAction(b, { type: 'card', uid: b.players.sente.cards[1].uid, targets: [] });
+  // 鏡の結界を伏せた局面と成り封じを伏せた局面が、後手からは同じに見える
+  expect(viewFor(ra.state, 'gote').seen).toEqual(viewFor(rb.state, 'gote').seen);
+  expect(viewFor(ra.state, 'gote').players).toEqual(viewFor(rb.state, 'gote').players);
+});
+
+test('viewFor した局面の positionKey は、本当の局面の positionKey と同じ', () => {
+  const s = createGame({ sente: ['kagami', 'otoshiana'], gote: [] });
+  const r = applyAction(s, { type: 'card', uid: s.players.sente.cards[0].uid, targets: [] });
+  expect(positionKey(viewFor(r.state, 'gote'))).toBe(positionKey(r.state));
+  expect(positionKey(viewFor(r.state, 'sente'))).toBe(positionKey(r.state));
 });

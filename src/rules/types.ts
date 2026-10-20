@@ -54,6 +54,8 @@ export type GameEvent =
   | { type: 'handTransferred'; kind: HandKind; from: Side; to: Side }
   | { type: 'frozen'; side: Side }
   | { type: 'secondMoveSkipped'; pieceId: number }
+  | { type: 'passed'; side: Side }     // 指せる行動がなく、手番が自動で回った
+
   | { type: 'check'; side: Side }      // side の王が狙われている
   | { type: 'gameOver'; result: Result };
 
