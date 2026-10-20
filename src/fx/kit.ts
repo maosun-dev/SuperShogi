@@ -70,6 +70,10 @@ export function clearLayers(ctx: FxCtx): void {
   L.fly.replaceChildren();
   L.flash.style.transition = 'none';
   L.flash.style.opacity = '0';
+  // 飛ばすために隠した手札を戻す（ふつうはこのあとの描き直しで消えるが、描き直しに失敗しても札が消えたままにならないように）
+  for (const c of ctx.hud.root.querySelectorAll<HTMLElement>('.hand .card')) {
+    if (c.style.visibility === 'hidden') c.style.visibility = '';
+  }
 }
 
 // ---------- 画面の重ね板の演出 ----------
@@ -162,7 +166,7 @@ export async function cardFly(ctx: FxCtx, cardId: CardId, from: 'me' | 'foe'): P
   if (src) {
     const r = localRect(ctx, src);
     x = r.x; y = r.y;
-    src.style.visibility = 'hidden'; // 本物は隠す（演出のあとの描き直しで消える）
+    src.style.visibility = 'hidden'; // 本物は隠す（演出の最後の clearLayers で戻し、描き直しで消える）
   } else {
     const foe = root.querySelector('.side.foe');
     const rr = root.getBoundingClientRect();

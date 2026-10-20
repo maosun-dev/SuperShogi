@@ -126,10 +126,20 @@ function createStage(): Stage {
     for (let i = tweens.length - 1; i >= 0; i--) {
       const tw = tweens[i];
       const p = Math.min(1, (now - tw.t0) / tw.dur);
-      tw.fn(tw.ease(p));
+      try {
+        tw.fn(tw.ease(p));
+      } catch (e) {
+        // 1つの失敗でほかの動き・描画・待ちを止めない：外して終わったことにする
+        console.error('動きの途中で失敗しました', e);
+        tweens.splice(i, 1);
+        tw.res();
+        continue;
+      }
       if (p >= 1) { tweens.splice(i, 1); tw.res(); }
     }
-    for (const fn of frameFns) fn(dt, now);
+    for (const fn of frameFns) {
+      try { fn(dt, now); } catch (e) { console.error('毎フレームの処理で失敗しました', e); }
+    }
     if (mode === 'title') {
       // 盤の中心のまわりを回る
       titleAngle = reducedMotion() ? TITLE_STILL_ANGLE : titleAngle + dt * TITLE_SPEED;

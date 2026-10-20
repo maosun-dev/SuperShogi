@@ -74,12 +74,13 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side): Presenter {
       } catch (e) {
         console.error('演出の段取りを作れませんでした', e);
       } finally {
-        // 後始末：重ね板を消し、カメラが寄ったままなら戻し（鏡で無効にされた魔法など）、盤を局面どおりに揃える
+        // 後始末：カメラが寄ったままなら戻し（鏡で無効にされた魔法など）、重ね板を消して隠した手札を戻し、
+        // 盤を局面どおりに揃える。1つの失敗がほかを止めないよう、それぞれ別に包む
         if (ctx) {
           try {
-            clearLayers(ctx);
             if (!atHome(ctx)) await cameraHome(ctx, SETTLE_MS);
-          } catch (e) { console.error('演出の後始末に失敗しました', e); }
+          } catch (e) { console.error('カメラを戻せませんでした', e); }
+          try { clearLayers(ctx); } catch (e) { console.error('重ね板を消せませんでした', e); }
         }
         try { sync(stage, step.after, me); } catch (e) { console.error('盤を揃えられませんでした', e); }
       }
