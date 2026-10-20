@@ -328,3 +328,236 @@ button:focus-visible {
 .zukan .mahou { --c: var(--mahou); }
 .zukan .wana { --c: var(--wana); }
 .zukan .soubi { --c: var(--soubi); }
+
+/* ---- 対局画面（試作の組み立て：上の帯・盤・下の帯・手札） ---- */
+.match {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.match .side { position: relative; z-index: 2; padding: 6px 16px; font-size: 13px; }
+.match .side .row { display: flex; align-items: center; gap: 10px; }
+.match .side .who { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; font-weight: 800; }
+.match .seal {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--gofun);
+  border-radius: 3px;
+  font-size: 12px;
+}
+.match .side.me .who { color: color-mix(in srgb, var(--gofun) 70%, transparent); }
+.match .side.me.turn .who { color: var(--kaya); }
+.match .side.me.turn .seal { border-color: var(--kaya); }
+/* CPU の考え中：小さく、ゆっくり明滅する */
+.match .thinking { font-size: 12px; font-weight: 500; color: var(--kaya-light); }
+.match .thinking:not(:empty) { animation: breathe 1.4s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: .45; } }
+
+/* 伏せ札の3枠 */
+.match .traps { display: flex; gap: 4px; flex: none; }
+.match .slot {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 26px;
+  border-radius: 2px;
+  border: 1px dashed color-mix(in srgb, var(--gofun) 33%, transparent);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+}
+.match .slot.back {
+  border: 1.5px solid var(--sumi);
+  background: repeating-linear-gradient(45deg, var(--wana) 0 3px, var(--wana-deep) 3px 6px);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gofun) 40%, transparent);
+}
+.match .slot.mine {
+  border: 1.5px solid var(--wana);
+  background: color-mix(in srgb, var(--wana) 20%, transparent);
+  color: var(--gofun);
+}
+.match .rest-open {
+  flex: none;
+  padding: 3px 9px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--gofun) 40%, transparent);
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* 駒台：五角形の駒札と漢数字の枚数。高さを固定して、盤の大きさが揺れないようにする */
+.match .komadai {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.match .komadai::-webkit-scrollbar { display: none; }
+.match .komadai .none { font-size: 12px; opacity: .55; }
+.match .koma {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 3px;
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  transition: transform .15s ease;
+}
+.match .koma .face {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 27px;
+  padding-top: 3px;
+  background: var(--kaya-light);
+  color: var(--sumi);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  clip-path: polygon(50% 0, 86% 17%, 100% 100%, 0 100%, 14% 17%);
+}
+/* 相手の駒札は先を下に向ける（字は読めるように正立のまま） */
+.match .komadai.foe .koma .face {
+  padding: 0 0 3px;
+  clip-path: polygon(0 0, 100% 0, 86% 83%, 50% 100%, 14% 83%);
+}
+.match .koma .num { font-size: 13px; font-weight: 800; }
+.match .komadai.me .koma.sel { transform: translateY(-4px); filter: drop-shadow(0 0 3px var(--kaya)); }
+.match .komadai.me .koma.sel .face { background: var(--kaya); }
+
+/* 盤の場所と案内の帯 */
+.match .board-area { position: relative; flex: 1; min-height: 0; }
+.match .prompt {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  z-index: 2;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 7px 12px;
+  background: color-mix(in srgb, var(--yoru-deep) 87%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gofun) 27%, transparent);
+  border-radius: 4px;
+  font-size: 13px;
+}
+.match .prompt[hidden] { display: none; }
+.match .prompt .pbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.match .prompt button {
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--gofun) 40%, transparent);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.match .prompt button.yes,
+.match .prompt button.choice { background: var(--gofun); color: var(--sumi); border-color: var(--gofun); }
+.match .prompt button.promote,
+.match .prompt button.choice { padding: 5px 14px; font-size: 14px; }
+
+/* 下の帯と手札 */
+.match .mine-area { position: relative; z-index: 3; }
+.match .hand {
+  display: flex;
+  justify-content: safe center;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 16px 12px 18px;
+  scrollbar-width: none;
+}
+.match .hand::-webkit-scrollbar { display: none; }
+.match .hand .none { height: 112px; display: grid; place-items: center; font-size: 13px; opacity: .55; }
+.match .hand .card.off { opacity: .45; }
+.match.locked .hand .card,
+.match.locked .komadai.me .koma { pointer-events: none; }
+.match.locked .hand { opacity: .75; }
+
+/* カードの説明の板（手札のすぐ上） */
+.match .detail {
+  --c: var(--mahou);
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(100% + 6px);
+  z-index: 4;
+  padding: 12px 14px;
+  background: var(--gofun);
+  color: var(--sumi);
+  border-left: 8px solid var(--c);
+  border-radius: 4px;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--sumi) 66%, transparent);
+}
+.match .detail[hidden] { display: none; }
+.match .detail.wana { --c: var(--wana); }
+.match .detail.soubi { --c: var(--soubi); }
+.match .detail .dhead { display: flex; align-items: baseline; gap: 8px; }
+.match .detail .dname { font-size: 19px; font-weight: 800; }
+.match .detail .dmeta { font-size: 12px; opacity: .7; }
+.match .detail .dtext { font-size: 14px; line-height: 1.75; margin: 6px 0 8px; }
+.match .detail .dnote { font-size: 13px; font-weight: 800; color: var(--wana-deep); margin-bottom: 8px; }
+.match .detail .dnote[hidden] { display: none; }
+.match .detail .dbtns { display: flex; gap: 8px; }
+.match .detail button { padding: 8px 18px; border-radius: 4px; font-weight: 800; }
+.match .detail .use { background: var(--c); color: var(--gofun); border: 0; }
+.match .detail .use:disabled { background: color-mix(in srgb, var(--sumi) 18%, transparent); color: color-mix(in srgb, var(--sumi) 50%, transparent); cursor: not-allowed; }
+.match .detail .cancel { background: transparent; color: var(--sumi); border: 1px solid color-mix(in srgb, var(--sumi) 33%, transparent); }
+
+/* 相手の残り札 */
+.match .rest {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--yoru-deep) 85%, transparent);
+}
+.match .rest[hidden] { display: none; }
+.match .rest-box {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: var(--yoru);
+  border: 1px solid color-mix(in srgb, var(--gofun) 27%, transparent);
+  border-radius: 4px;
+}
+.match .rest-title { font-size: 15px; font-weight: 800; }
+.match .rest-list { display: flex; flex-wrap: wrap; gap: 12px; }
+.match .rest-card { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 56px; }
+.match .rest-card .card { cursor: default; }
+.match .rest-card figcaption { font-size: 11px; text-align: center; line-height: 1.3; }
+.match .rest-none { font-size: 13px; opacity: .7; }
+.match .rest-close {
+  align-self: flex-end;
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--gofun) 40%, transparent);
+  border-radius: 4px;
+  font-weight: 800;
+}
+@media (prefers-reduced-motion: reduce) {
+  .match .thinking:not(:empty) { animation: none; }
+  .match .koma { transition: none; }
+}
+
+/* 結果（仮。タスク13で仕上げる） */
+.screen.result .reason { font-size: 15px; }

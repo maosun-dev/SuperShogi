@@ -9,6 +9,8 @@ import {
 } from './screens';
 import { zukanScreen } from './screens/zukan';
 import { titleScreen } from './screens/title';
+import { matchScreen } from './screens/match';
+import { resultScreen } from './screens/result';
 
 // ---- 仮の画面（のちの作業で本物に置き換える） ----
 function placeholder(name: ScreenName): Screen {
@@ -43,6 +45,8 @@ function start(): void {
   initScreens(root);
   registerScreen('title', () => titleScreen());
   registerScreen('zukan', () => zukanScreen());
+  registerScreen('match', (p) => matchScreen(p));
+  registerScreen('result', (p) => resultScreen(p));
   for (const n of ALL_SCREENS) {
     if (!hasScreen(n)) registerScreen(n, () => placeholder(n));
   }
