@@ -3,7 +3,8 @@ import type { CardId } from '../../rules/types';
 import type { CardKind } from '../../cards/types';
 import { CARDS } from '../../cards';
 import { KIND_MARK, cardHtml } from '../../view/cardArt';
-import { showScreen, type Screen } from '../screens';
+import { type Screen } from '../screens';
+import { pageHead } from './ui';
 
 const KINDS: CardKind[] = ['magic', 'trap', 'equip'];
 
@@ -21,11 +22,7 @@ export function zukanScreen(): Screen {
   return {
     mount(root) {
       box = el('div', 'zukan');
-      const header = el('header');
-      const back = el('button', 'back', 'タイトルへ');
-      back.type = 'button';
-      back.addEventListener('click', () => { void showScreen('title'); });
-      header.append(el('h1', '', 'カード図鑑'), back);
+      const header = pageHead('カード図鑑', 'title');
 
       // 大きな札と説明（最初は隠す）
       const look = el('div', 'look');

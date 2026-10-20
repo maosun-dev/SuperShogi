@@ -54,50 +54,12 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* 仮の画面（のちの作業で本物に置き換わる） */
-.screen {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 24px 16px;
-}
-.screen .name {
-  font-family: var(--font-display);
-  font-size: 44px;
-  letter-spacing: 0.08em;
-  color: var(--gofun);
-}
-.screen .nav {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  max-width: 320px;
-}
-.screen .nav button {
-  padding: 8px 14px;
-  background: transparent;
-  border: 1px solid #eee8dc66;
-  border-radius: 3px;
-  font-size: 14px;
-}
-
 /* 3D の舞台を置く場所（画面いっぱい、文字やボタンの後ろ） */
 .stage-host {
   position: absolute;
   inset: 0;
   z-index: 0;
 }
-/* タイトル（仮）：盤の上下に名前と行き先 */
-.screen.title { justify-content: space-between; }
-.screen.title > .name,
-.screen.title > .nav { position: relative; z-index: 1; }
-.screen.title > .nav button { background: var(--yoru); }
-
 /* 画面の切り替えの幕：墨・紅・藍の縦縞（定式幕を3色で描き直したもの） */
 #curtain {
   position: fixed;
@@ -225,26 +187,6 @@ button:focus-visible {
   inset: 0;
   display: flex;
   flex-direction: column;
-}
-.zukan > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 6px;
-}
-.zukan h1 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 34px;
-  letter-spacing: .08em;
-}
-.zukan .back {
-  padding: 7px 14px;
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--gofun) 40%, transparent);
-  border-radius: 3px;
-  font-weight: 800;
-  font-size: 14px;
 }
 .zukan .rows {
   flex: 1;
@@ -560,9 +502,6 @@ button:focus-visible {
   .match .koma { transition: none; }
 }
 
-/* 結果（仮。タスク13で仕上げる） */
-.screen.result .reason { font-size: 15px; }
-
 /* ---- 演出の重ね板（試作の #dim / #flash / #lines / #cutin を移したもの）---- */
 .match .fx { position: absolute; inset: 0; pointer-events: none; }
 .match .fx-dim { z-index: 5; background: var(--yoru-night); opacity: 0; transition: opacity .2s; }
@@ -621,4 +560,458 @@ button:focus-visible {
   .match .fx-cutin.on .word,
   .match .fx-cutin.on .sub { animation: fx-fade .2s ease-out both; }
   @keyframes fx-fade { from { opacity: 0; } to { opacity: 1; } }
+}
+
+/* ======== 画面の共通部品（タイトル以外の画面） ======== */
+.page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.page-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 6px;
+  flex: none;
+}
+.page-head h1 {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 30px;
+  letter-spacing: .08em;
+  line-height: 1.2;
+}
+.back {
+  flex: none;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--gofun) 40%, transparent);
+  border-radius: 3px;
+  font-weight: 800;
+  font-size: 14px;
+}
+.primary, .ghost {
+  min-height: 46px;
+  padding: 10px 20px;
+  border-radius: 3px;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: .06em;
+}
+.primary {
+  background: var(--gofun);
+  color: var(--sumi);
+  border: 0;
+  box-shadow: inset 0 0 0 2px var(--gofun), inset 0 0 0 3.5px var(--sumi);
+}
+.primary:disabled {
+  background: color-mix(in srgb, var(--gofun) 25%, transparent);
+  color: color-mix(in srgb, var(--gofun) 55%, transparent);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.ghost {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--gofun) 45%, transparent);
+}
+.text {
+  align-self: center;
+  padding: 8px 12px;
+  background: none;
+  border: 0;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  opacity: .85;
+}
+[role="button"]:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--kaya);
+  outline-offset: 2px;
+}
+
+/* ======== タイトル ======== */
+.title-screen { position: absolute; inset: 0; }
+.title-screen .logo {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 1;
+  isolation: isolate;
+}
+.title-screen .logo h1 {
+  writing-mode: vertical-rl;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(64px, 22vw, 92px);
+  line-height: 1;
+  letter-spacing: .02em;
+  color: var(--gofun);
+  -webkit-text-stroke: 6px var(--sumi);
+  paint-order: stroke fill;
+}
+/* 隈取の一筆：字の後ろ、少し左へずらして */
+.title-screen .kuma {
+  position: absolute;
+  z-index: -1;
+  top: -6%;
+  left: -18%;
+  width: 70%;
+  height: 112%;
+  color: var(--wana);
+  transform: rotate(4deg);
+}
+.title-screen .fuda-row {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 18px;
+}
+/* 千社札：縦長の紙札。上に種類の色の帯、内側に墨の細い枠 */
+.fuda {
+  --c: var(--wana);
+  position: relative;
+  writing-mode: vertical-rl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 172px;
+  padding: 18px 0 6px;
+  background: var(--gofun);
+  color: var(--sumi);
+  border: 0;
+  border-radius: 2px;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: .2em;
+  box-shadow:
+    inset 0 0 0 4px var(--gofun),
+    inset 0 0 0 5.5px var(--sumi),
+    0 8px 18px color-mix(in srgb, var(--sumi) 55%, transparent);
+}
+.fuda::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  background: var(--c);
+  border-radius: 2px 2px 0 0;
+}
+.fuda.mahou { --c: var(--mahou); height: 150px; }
+.fuda:active { transform: translateY(2px); }
+/* 角印「設」：左下の小さな紅の判 */
+.kakuin {
+  position: absolute;
+  z-index: 1;
+  left: 16px;
+  bottom: 28px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: var(--wana);
+  color: var(--gofun);
+  border: 0;
+  border-radius: 4px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+  box-shadow: inset 0 0 0 3px var(--wana), inset 0 0 0 4.5px var(--gofun);
+  transform: rotate(-4deg);
+}
+
+/* ======== 強さ選び ======== */
+.lead { padding: 4px 16px 0; font-size: 13px; line-height: 1.7; opacity: .8; }
+.level-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px 24px;
+}
+.level-fuda {
+  --c: var(--mahou);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name tally" "cards cards";
+  align-items: end;
+  gap: 10px 12px;
+  padding: 12px 16px 14px;
+  background: var(--gofun);
+  color: var(--sumi);
+  border: 0;
+  border-left: 10px solid var(--c);
+  border-radius: 3px;
+  text-align: left;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--sumi) 50%, transparent);
+}
+.level-fuda.normal { --c: var(--soubi); }
+.level-fuda.strong { --c: var(--wana); }
+.level-fuda .lv-name { grid-area: name; font-family: var(--font-display); font-size: 34px; line-height: 1; }
+.level-fuda .lv-tally { grid-area: tally; font-size: 14px; font-weight: 800; }
+.level-fuda .lv-cards { grid-area: cards; display: flex; flex-wrap: wrap; gap: 6px; }
+.level-fuda .card { cursor: inherit; }
+
+/* ======== カード選び ======== */
+.deckb { overflow-y: hidden; }
+.cost-meter {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 16px 0;
+}
+.cost-meter .left { display: flex; flex-direction: column; align-items: center; min-width: 76px; }
+.cost-meter .cap { font-size: 11px; font-weight: 800; opacity: .8; }
+.cost-meter .num { font-family: var(--font-display); font-size: 52px; line-height: 1; }
+.cost-meter .dots { display: flex; gap: 4px; }
+/* 墨の丸。選んだカードの分は種類の色の判が押される */
+.cost-meter .dots i {
+  --c: transparent;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sumi);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gofun) 30%, transparent);
+}
+.cost-meter .dots i.mahou { --c: var(--mahou); }
+.cost-meter .dots i.wana { --c: var(--wana); }
+.cost-meter .dots i.soubi { --c: var(--soubi); }
+.cost-meter .dots i:is(.mahou, .wana, .soubi) {
+  background: var(--c);
+  box-shadow: inset 0 0 0 2px var(--c), inset 0 0 0 3px var(--gofun);
+  transform: rotate(-12deg) scale(1.08);
+}
+.deckb .msg { flex: none; min-height: 22px; padding: 2px 16px; font-size: 13px; font-weight: 800; color: var(--kaya-light); }
+.deckb .rows { flex: 1; min-height: 0; overflow-y: auto; }
+.deckb .kind-row { --c: var(--mahou); }
+.deckb .kind-row.wana { --c: var(--wana); }
+.deckb .kind-row.soubi { --c: var(--soubi); }
+.deckb h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.deckb h2 .seal {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--c);
+  color: var(--gofun);
+  font-size: 11px;
+}
+.deckb .row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 16px 16px 6px;
+  scrollbar-width: none;
+}
+.deckb .row::-webkit-scrollbar { display: none; }
+.deckb .pick, .deckb .chosen {
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: 4px;
+}
+.deckb .pick .card { --s: .7; pointer-events: none; }
+/* 枚数の丸は札の名前（右上の縦書き）にかからないよう、外へ出す */
+.deckb .pick .card .count { right: -9px; top: -14px; width: 20px; height: 20px; font-size: 11px; }
+.deckb .pick.full .card { opacity: .45; }
+.deckb .chosen .card { pointer-events: none; }
+.deck-foot {
+  flex: none;
+  padding: 8px 16px 14px;
+  border-top: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent);
+  background: color-mix(in srgb, var(--yoru-deep) 70%, transparent);
+}
+.deck-foot .foot-cap { padding: 0; }
+.deck-foot .strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 62px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  scrollbar-width: none;
+}
+.deck-foot .strip::-webkit-scrollbar { display: none; }
+.deck-foot .strip .none { font-size: 13px; opacity: .65; }
+.deck-foot .acts { display: flex; gap: 10px; margin-top: 6px; }
+.deck-foot .acts .primary { flex: 1; }
+
+/* ======== 対局前の札見せ ======== */
+.reveal-skip {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px 24px;
+  cursor: pointer;
+}
+.reveal-row h2 { margin-bottom: 10px; font-size: 13px; font-weight: 800; text-align: center; opacity: .85; }
+.reveal-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.reveal-cards .card { --s: .8; cursor: inherit; }
+.reveal-cards .none { font-size: 13px; opacity: .65; }
+.reveal .iza {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-family: var(--font-display);
+  font-size: min(34vw, 140px);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--gofun);
+  -webkit-text-stroke: 7px var(--sumi);
+  paint-order: stroke fill;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(2.2) rotate(-14deg);
+  pointer-events: none;
+}
+.reveal.on .iza { animation: iza .38s cubic-bezier(.2,1.5,.3,1) forwards; }
+@keyframes iza {
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-6deg); }
+}
+@keyframes still-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ======== 結果 ======== */
+.result { overflow: hidden; }
+.stage-host.dim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--yoru-deep) 62%, transparent);
+}
+.result-center {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+/* 紅の角判 */
+.hanko {
+  display: grid;
+  place-items: center;
+  width: 156px;
+  height: 156px;
+  margin-bottom: 10px;
+  background: color-mix(in srgb, var(--gofun) 94%, transparent);
+  color: var(--wana);
+  border: 7px solid var(--wana);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 3px var(--gofun), inset 0 0 0 5px var(--wana);
+  font-family: var(--font-display);
+  font-size: 104px;
+  line-height: 1;
+  transform: rotate(-6deg);
+  animation: hanko .32s cubic-bezier(.3,1.4,.4,1) both;
+}
+.hanko.two { font-size: 60px; letter-spacing: .02em; }
+@keyframes hanko {
+  from { transform: rotate(-14deg) scale(1.7); opacity: 0; }
+  to { transform: rotate(-6deg) scale(1); opacity: 1; }
+}
+.result .reason { font-size: 18px; font-weight: 800; }
+.result .vs { font-size: 13px; opacity: .7; }
+.result-acts {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 32px 28px;
+}
+
+/* ======== 設定 ======== */
+.set-item {
+  padding: 18px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--gofun) 15%, transparent);
+}
+.set-item h2, .set-item label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 800;
+}
+.seg {
+  display: inline-flex;
+  border: 1.5px solid color-mix(in srgb, var(--gofun) 50%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.seg button {
+  min-width: 88px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 0;
+  font-weight: 800;
+  font-size: 16px;
+}
+.seg button[aria-pressed="true"] { background: var(--gofun); color: var(--sumi); }
+.seg button:focus-visible { outline-offset: -4px; }
+.set-item .note { margin-top: 10px; font-size: 12px; line-height: 1.7; opacity: .75; }
+.vol-row { display: flex; align-items: center; gap: 14px; }
+.vol-row input { flex: 1; min-width: 0; height: 32px; accent-color: var(--kaya); }
+.vol-num { min-width: 2.6em; font-family: var(--font-display); font-size: 24px; text-align: right; }
+
+/* ======== 対局中の「戻る」と投了の確かめ ======== */
+.match .side .back { padding: 3px 9px; font-size: 12px; }
+.match .resign {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--yoru-deep) 85%, transparent);
+}
+.match .resign[hidden] { display: none; }
+.match .resign-box {
+  width: 100%;
+  max-width: 320px;
+  padding: 18px;
+  background: var(--yoru);
+  border: 1px solid color-mix(in srgb, var(--gofun) 27%, transparent);
+  border-radius: 4px;
+}
+.match .resign-box p { font-size: 16px; font-weight: 800; line-height: 1.6; }
+.match .resign-btns { display: flex; gap: 10px; margin-top: 16px; }
+.match .resign-btns button { flex: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal .iza { transform: translate(-50%, -50%) rotate(-6deg); }
+  .reveal.on .iza { animation: still-fade .2s ease-out forwards; }
+  .hanko { animation: still-fade .2s ease-out both; }
+  .cost-meter .dots i:is(.mahou, .wana, .soubi) { transform: none; }
 }

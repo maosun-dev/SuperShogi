@@ -1,43 +1,47 @@
-// 結果画面（仮）：勝ち負けと理由、「もう一度」「タイトルへ」だけ。タスク13で仕上げる
+// 結果画面：中央に紅の角判「勝」「負」「引分」（Yuji Boku）、下に理由。
+// ボタン「もう一度」（札見せへ）「カードを組み直す」（カード選びへ）、小さく「タイトルへ」。
+// 戦績はここではなく、対局画面の onOver・投了で記録する（二重に数えないため）。
 import type { CardId, Result } from '../../rules/types';
 import type { Level } from '../../ai/levels';
+import { getStage } from '../../view/stage';
+import { setHighlights } from '../../view/board3d';
+import { LEVEL_NAME, outcomeOf, resultWords } from '../outcome';
 import { showScreen, type Screen } from '../screens';
+import { button, el } from './ui';
 
 export interface ResultParams { result: Result; level: Level; deck: CardId[] }
 
-function words(r: Result): { seal: string; reason: string } {
-  if (r.winner === 'sente') return { seal: '勝', reason: '王を取りました' };
-  if (r.winner === 'gote') return { seal: '負', reason: '王を取られました' };
-  return { seal: '引分', reason: r.reason === 'repetition' ? '同じ局面が4回出ました' : '300手を超えました' };
-}
-
 export function resultScreen(params: unknown): Screen {
-  const p = params as ResultParams | undefined;
+  const p = params as Partial<ResultParams> | undefined;
+  const level: Level = p?.level === 'normal' || p?.level === 'strong' ? p.level : 'weak';
+  const deck = p?.deck ?? [];
+  const result: Result = p?.result ?? { winner: null, reason: 'move-limit' };
   return {
     mount(root) {
-      const box = document.createElement('div');
-      box.className = 'screen result';
+      const w = resultWords(result);
+      const box = el('div', `page result ${outcomeOf(result)}`);
       box.dataset.screen = 'result';
-      const w = p ? words(p.result) : { seal: '結果', reason: '' };
-      const seal = document.createElement('div');
-      seal.className = 'name';
-      seal.textContent = w.seal;
-      const reason = document.createElement('p');
-      reason.className = 'reason';
-      reason.textContent = w.reason;
-      const nav = document.createElement('div');
-      nav.className = 'nav';
-      const again = document.createElement('button');
-      again.type = 'button';
-      again.textContent = 'もう一度';
-      again.addEventListener('click', () => { void showScreen('match', p ? { level: p.level, deck: p.deck } : undefined); });
-      const title = document.createElement('button');
-      title.type = 'button';
-      title.textContent = 'タイトルへ';
-      title.addEventListener('click', () => { void showScreen('title'); });
-      nav.append(again, title);
-      box.append(seal, reason, nav);
+      // 後ろに盤を見せる（決着でカメラが寄ったままなので、mode で普段の視点に戻す）
+      const host = el('div', 'stage-host dim');
+      const stage = getStage();
+
+      const center = el('div', 'result-center');
+      const seal = el('div', `hanko${w.seal.length > 1 ? ' two' : ''}`, w.seal);
+      seal.setAttribute('role', 'img');
+      seal.setAttribute('aria-label', w.seal === '引分' ? '引き分け' : w.seal === '勝' ? '勝ち' : '負け');
+      center.append(seal, el('p', 'reason', w.reason), el('p', 'vs', `相手：${LEVEL_NAME[level]}`));
+
+      const acts = el('nav', 'result-acts');
+      acts.append(
+        button('primary', 'もう一度', () => { void showScreen('reveal', { level, deck }); }),
+        button('ghost', 'カードを組み直す', () => { void showScreen('deck', { level }); }),
+        button('text', 'タイトルへ', () => { void showScreen('title'); }),
+      );
+      box.append(host, center, acts);
       root.append(box);
+      stage.attach(host);
+      stage.mode = 'match';
+      setHighlights(stage, [], []);
     },
     unmount() {},
   };

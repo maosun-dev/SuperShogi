@@ -12,6 +12,9 @@ import { createHud } from '../../view/hud';
 import { createPresenter } from '../../fx/player';
 import { showScreen, type Screen } from '../screens';
 import { installFxKey } from '../dev';
+import { recordResult, safeStore } from '../storage';
+import { outcomeOf, type Outcome } from '../outcome';
+import { button, el } from './ui';
 
 export interface MatchParams {
   level: Level;
@@ -20,18 +23,16 @@ export interface MatchParams {
   fxKey?: boolean;     // 開発用：Space キーでカードを使う
 }
 
-// 仮の持ち込み（強さ選び・カード選びの画面ができるまで。タスク13で置き換える）
-const DEFAULT_DECK: CardId[] = ['rakurai', 'irekae', 'otoshiana', 'tenma'];
 const TAP_SLOP = 10; // これ以上指が動いたらタップとみなさない（px）
 
 function paramsOf(p: unknown): MatchParams {
   const q = (p ?? {}) as Partial<MatchParams>;
   const level: Level = q.level ?? 'weak';
-  const deck = q.deck ?? DEFAULT_DECK;
+  const deck = q.deck ?? [];
   const bad = validateDeck(deck);
   if (bad) {
-    console.error(`持ち込みが正しくないので仮の持ち込みで始めます：${bad}`);
-    return { level, deck: DEFAULT_DECK };
+    console.error(`持ち込みが正しくないのでカードなしで始めます：${bad}`);
+    return { level, deck: [] };
   }
   // 開発用の口は開発中だけ通す
   if (import.meta.env.DEV) return { level, deck, initial: q.initial, fxKey: q.fxKey };
@@ -53,6 +54,13 @@ export function matchScreen(params: unknown): Screen {
   let cpu: ReturnType<typeof createBrowserCpu> | null = null;
   let cleanup: (() => void)[] = [];
   let disposed = false; // unmount 済みなら true
+  let recorded = false; // 戦績は1局につき1回だけ記録する
+
+  const record = (o: Outcome): void => {
+    if (recorded) return;
+    recorded = true;
+    recordResult(safeStore(), level, o);
+  };
 
   return {
     mount(root) {
@@ -96,7 +104,10 @@ export function matchScreen(params: unknown): Screen {
       cpu = createBrowserCpu();
       const m = createMatch({
         level, humanDeck: deck, cpu, presenter, initial,
-        onOver: (result: Result) => { void showScreen('result', { result, level, deck }); },
+        onOver: (result: Result) => {
+          record(outcomeOf(result));
+          void showScreen('result', { result, level, deck });
+        },
       });
       match = m;
 
@@ -183,6 +194,45 @@ export function matchScreen(params: unknown): Screen {
         () => setHighlights(stage, [], []),
       ];
       if (import.meta.env.DEV && fxKey) cleanup.push(installFxKey(m, (a) => { void submit(a); }));
+
+      // ---- 左上の「戻る」と、投了の確かめ ----
+      const ask = el('div', 'resign');
+      ask.hidden = true;
+      ask.setAttribute('role', 'alertdialog');
+      ask.setAttribute('aria-modal', 'true');
+      const askText = el('p', '', '投了してタイトルへ戻りますか？');
+      askText.id = 'resign-text';
+      ask.setAttribute('aria-labelledby', 'resign-text');
+      const askBox = el('div', 'resign-box');
+      const keep = button('ghost', '続ける');
+      const yes = button('primary', '投了する');
+      const btns = el('div', 'resign-btns');
+      btns.append(yes, keep);
+      askBox.append(askText, btns);
+      ask.append(askBox);
+      box.append(ask);
+      const back = button('back', '戻る');
+      hud.root.querySelector('.side.foe .row')?.prepend(back);
+      const closeAsk = (): void => { ask.hidden = true; back.focus(); };
+      back.addEventListener('click', () => {
+        if (m.phase() === 'over') return; // 決着済み：もうすぐ結果画面へ移る
+        ask.hidden = false;
+        keep.focus();
+      });
+      keep.addEventListener('click', closeAsk);
+      ask.addEventListener('click', (e) => { if (e.target === ask) closeAsk(); });
+      yes.addEventListener('click', () => {
+        if (m.phase() === 'over' || yes.disabled) return;
+        yes.disabled = true;
+        // 決着の演出の最中なら本当の結果を、そうでなければ負けを記録する
+        const r = m.result();
+        record(r ? outcomeOf(r) : 'loss');
+        m.dispose();
+        void showScreen('title');
+      });
+      const onAskKey = (e: KeyboardEvent): void => { if (e.key === 'Escape' && !ask.hidden) closeAsk(); };
+      window.addEventListener('keydown', onAskKey);
+      cleanup.push(() => window.removeEventListener('keydown', onAskKey));
 
       setHighlights(stage, [], []);
       sync(stage, m.view(), 'sente');

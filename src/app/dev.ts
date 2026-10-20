@@ -36,8 +36,9 @@ export function sampleView(): GameState {
   return viewFor(s, 'sente');
 }
 
-/** URL に ?dev=board があれば確認用の局面、なければ初期配置 */
+/** 開発中に URL に ?dev=board があれば確認用の局面、なければ初期配置 */
 export function titleView(): GameState {
+  if (!import.meta.env.DEV) return initialView();
   const q = new URLSearchParams(location.search);
   return q.get('dev') === 'board' ? sampleView() : initialView();
 }
