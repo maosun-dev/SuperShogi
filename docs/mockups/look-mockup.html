@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>超将棋 見た目試作</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&family=Shippori+Mincho+B1:wght@500;800&display=swap" rel="stylesheet">
+<style>
+/* 見た目の試作（使い捨て）。本番コードではない */
+:root{
+  --kaya:#E2B65B; --yoru:#14213D; --mahou:#2B59C3; --wana:#D7263D; --soubi:#C9A227;
+  --gofun:#EEE8DC; --sumi:#1d1a17;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0c1428}
+body{display:flex;justify-content:center;font-family:"Shippori Mincho B1",serif;color:var(--gofun);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none}
+#app{position:relative;width:100%;max-width:430px;height:100%;max-height:932px;
+  background:radial-gradient(120% 70% at 50% 42%,#22386a 0%,var(--yoru) 58%,#0d1730 100%);
+  overflow:hidden;display:flex;flex-direction:column}
+
+/* 上下の帯：対局者の情報 */
+.side{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:13px;z-index:2}
+.side .who{display:flex;align-items:center;gap:7px;font-weight:800;flex:1}
+.seal{display:inline-grid;place-items:center;width:22px;height:22px;border:1.5px solid var(--gofun);border-radius:3px;font-size:12px}
+.side.me .who{color:var(--kaya)}
+.side.me .seal{border-color:var(--kaya)}
+.hands b{font-size:15px;margin-left:4px}
+.traps{display:flex;gap:4px}
+.slot{width:18px;height:26px;border-radius:2px;border:1px dashed #eee8dc55}
+.slot.back{border:1.5px solid var(--sumi);
+  background:repeating-linear-gradient(45deg,var(--wana) 0 3px,#7a0f1c 3px 6px);box-shadow:0 0 0 1px #eee8dc66}
+.slot.mine{border:1.5px solid var(--wana);background:#d7263d33}
+
+#stage{position:relative;flex:1;min-height:0}
+#stage canvas{display:block;width:100%;height:100%}
+
+/* 手札 */
+footer{z-index:3}
+#hand{display:flex;justify-content:center;gap:10px;padding:6px 12px 18px}
+.card{--c:var(--mahou);position:relative;width:74px;height:112px;border-radius:5px;background:var(--gofun);
+  border:3px solid var(--c);box-shadow:inset 0 0 0 2px var(--gofun),inset 0 0 0 3px #1d1a1733,0 6px 14px #0008;
+  color:var(--sumi);cursor:pointer;transition:transform .18s ease}
+.card.wana{--c:var(--wana)} .card.soubi{--c:var(--soubi)}
+.card.sel{transform:translateY(-14px)}
+.card:focus-visible{outline:2px solid var(--kaya);outline-offset:3px}
+.card .cost{position:absolute;left:4px;top:4px;width:20px;height:20px;border-radius:50%;background:var(--c);color:var(--gofun);
+  font-weight:800;font-size:12px;display:grid;place-items:center}
+.card .name{position:absolute;right:4px;top:6px;writing-mode:vertical-rl;font-weight:800;font-size:12.5px;letter-spacing:1px;line-height:1.05}
+.card svg{position:absolute;left:5px;bottom:8px;width:44px;height:62px}
+.card .kind{position:absolute;right:4px;bottom:5px;width:17px;height:17px;background:var(--wana);color:var(--gofun);border-radius:2px;
+  font-size:11px;font-weight:800;display:grid;place-items:center}
+.card.cast{animation:cast .5s cubic-bezier(.5,0,.8,.3) forwards;pointer-events:none}
+@keyframes cast{30%{transform:translateY(-60px) scale(1.25) rotate(-4deg);filter:brightness(1.4)}
+  100%{transform:translateY(-320px) scale(1.9) rotate(8deg);opacity:0;filter:brightness(3)}}
+
+/* カードの説明 */
+#detail{position:absolute;left:16px;right:16px;bottom:160px;background:var(--gofun);color:var(--sumi);border-left:8px solid var(--c);
+  border-radius:4px;padding:12px 14px;box-shadow:0 10px 30px #000a;z-index:4}
+#detail[hidden]{display:none}
+#detail .dhead{display:flex;align-items:baseline;gap:8px}
+#detail .dname{font-size:19px}
+#detail .dmeta{font-size:12px;opacity:.7}
+#detail p{font-size:14px;line-height:1.75;margin:6px 0 10px}
+#detail .dbtns{display:flex;gap:8px}
+button{font:inherit;font-weight:800;border:0;border-radius:4px;padding:8px 18px;cursor:pointer}
+#detail .use{background:var(--c);color:var(--gofun)}
+#detail .cancel{background:transparent;color:var(--sumi);border:1px solid #1d1a1755}
+button:focus-visible{outline:2px solid var(--kaya);outline-offset:2px}
+
+#prompt{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#0d1730dd;border:1px solid #eee8dc44;border-radius:4px;
+  padding:7px 12px;font-size:13px;white-space:nowrap;z-index:2;display:flex;gap:10px;align-items:center}
+#prompt[hidden]{display:none}
+#prompt button{padding:3px 10px;background:transparent;color:var(--gofun);border:1px solid #eee8dc66;font-size:12px}
+
+/* 演出用の重ね板 */
+.layer{position:absolute;inset:0;pointer-events:none}
+#dim{background:#060d22;opacity:0;transition:opacity .2s;z-index:5}
+#flash{background:#fff;opacity:0;z-index:9}
+#lines{opacity:0;z-index:6;transition:opacity .12s}
+#lines.on{opacity:1}
+#lines svg{width:100%;height:100%}
+#cutin{z-index:7;opacity:0;overflow:hidden}
+#cutin.on{opacity:1}
+#cutin.off{opacity:0;transition:opacity .25s}
+#cutin .band{position:absolute;left:-10%;width:120%;top:36%;height:25%;background:var(--band,var(--mahou));transform:skewY(-8deg)}
+#cutin .ink{position:absolute;left:50%;top:48.5%;width:120%;height:70%;transform:translate(-50%,-50%)}
+#cutin .word{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) rotate(-6deg);white-space:nowrap;
+  font-family:"Yuji Boku",serif;font-size:min(30vw,128px);line-height:1;color:var(--gofun);
+  -webkit-text-stroke:6px var(--sumi);paint-order:stroke fill;letter-spacing:.05em}
+#cutin .sub{position:absolute;right:9%;top:63%;font-weight:800;font-size:14px;background:var(--sumi);padding:2px 8px;transform:rotate(-8deg)}
+#cutin.on .band{animation:band .32s cubic-bezier(.2,.9,.2,1) both}
+#cutin.on .ink{animation:ink .22s .16s ease-out both}
+#cutin.on .word{animation:slam .42s .1s cubic-bezier(.2,1.5,.3,1) both}
+#cutin.on .sub{animation:band .3s .3s cubic-bezier(.2,.9,.2,1) both}
+@keyframes band{from{transform:translateX(-110%) skewY(-8deg)}to{transform:translateX(0) skewY(-8deg)}}
+@keyframes ink{from{transform:translate(-50%,-50%) scale(.2);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+@keyframes slam{from{transform:translate(-50%,-50%) scale(2.8) rotate(-12deg);opacity:0}
+  to{transform:translate(-50%,-50%) scale(1) rotate(-6deg);opacity:1}}
+
+#again{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:8;background:var(--gofun);color:var(--sumi);box-shadow:0 8px 24px #000a}
+#again[hidden]{display:none}
+#toast{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);background:var(--sumi);border:1px solid #eee8dc44;
+  padding:8px 14px;border-radius:4px;font-size:13px;z-index:8;opacity:0;transition:opacity .2s;white-space:nowrap}
+#toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="side foe">
+    <div class="who"><span class="seal">敵</span>CPU・ふつう</div>
+    <div class="hands">持駒<b>なし</b></div>
+    <div class="traps" title="相手の伏せ札"><i class="slot back"></i><i class="slot"></i><i class="slot"></i></div>
+  </header>
+
+  <div id="stage">
+    <div id="prompt" hidden><span>壊す相手の駒を選んでください</span><button type="button" id="promptCancel">やめる</button></div>
+  </div>
+
+  <footer>
+    <div class="side me">
+      <div class="who"><span class="seal">自</span>あなたの手番</div>
+      <div class="hands">持駒<b>歩</b></div>
+      <div class="traps" title="自分の伏せ札"><i class="slot mine"></i><i class="slot"></i><i class="slot"></i></div>
+    </div>
+    <div id="hand"></div>
+  </footer>
+
+  <div id="detail" hidden>
+    <div class="dhead"><b class="dname"></b><span class="dmeta"></span></div>
+    <p class="dtext"></p>
+    <div class="dbtns"><button type="button" class="use">使う</button><button type="button" class="cancel">やめる</button></div>
+  </div>
+
+  <div class="layer" id="dim"></div>
+  <div class="layer" id="lines"></div>
+  <div class="layer" id="cutin">
+    <div class="band"></div>
+    <svg class="ink" viewBox="-300 -150 600 300" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="word">落雷</div>
+    <div class="sub">魔法・コスト4</div>
+  </div>
+  <div class="layer" id="flash"></div>
+  <button type="button" id="again" hidden>もう一度見る</button>
+  <div id="toast"></div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = s => document.querySelector(s);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+// ---------- カード（試作用の4枚） ----------
+const CARDS = [
+  { id:'rakurai', name:'落雷', kind:'mahou', cost:4, text:'相手の駒を1つ破壊する。王・飛車・角は選べない。' },
+  { id:'kagami',  name:'鏡の結界', kind:'wana', cost:3, text:'伏せておく。相手が魔法を使ったとき、自動でめくれて無効にする。' },
+  { id:'tenma',   name:'天馬の蹄', kind:'soubi', cost:2, text:'自分の駒1つに付ける。その駒は桂馬の動きも使えるようになる。' },
+  { id:'kaze',    name:'押し返しの風', kind:'mahou', cost:1, text:'相手の駒1つを1マス後ろへ押し戻す（後ろが空いているときだけ）。' },
+];
+const KIND = { mahou:['魔','魔法'], wana:['罠','罠'], soubi:['装','装備'] };
+const ART = {
+  rakurai:`<circle cx="14" cy="12" r="9" fill="#1d1a17"/><circle cx="26" cy="9" r="10" fill="#1d1a17"/><circle cx="35" cy="15" r="7" fill="#1d1a17"/>
+    <path d="M24 18 L15 36 L23 36 L17 58 L34 30 L25 30 L31 18Z" fill="#2B59C3" stroke="#1d1a17" stroke-width="1.5"/>`,
+  kagami:`<circle cx="23" cy="30" r="17" fill="none" stroke="#D7263D" stroke-width="3"/><circle cx="23" cy="30" r="12" fill="#C9A227"/>
+    <path d="M15 26 L27 18 M16 33 L31 23" stroke="#EEE8DC" stroke-width="2.5" stroke-linecap="round"/><path d="M23 47 L23 58 M15 58 L31 58" stroke="#1d1a17" stroke-width="3"/>`,
+  tenma:`<path d="M10 52 Q10 22 23 22 Q36 22 36 52 L29 52 Q29 31 23 31 Q17 31 17 52Z" fill="#C9A227" stroke="#1d1a17" stroke-width="1.5"/>
+    <path d="M4 20 Q12 6 20 14 M42 20 Q34 6 26 14 M6 28 Q12 18 18 22 M40 28 Q34 18 28 22" stroke="#1d1a17" stroke-width="2.2" fill="none" stroke-linecap="round"/>`,
+  kaze:`<path d="M6 18 Q30 8 32 20 Q33 28 24 26" stroke="#2B59C3" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M4 34 Q34 26 38 38 Q39 46 30 44" stroke="#1d1a17" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M10 50 Q28 44 30 52" stroke="#2B59C3" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+};
+
+const handEl = $('#hand');
+let selected = null;
+for (const c of CARDS) {
+  const el = document.createElement('div');
+  el.className = `card ${c.kind}`; el.tabIndex = 0; el.dataset.id = c.id;
+  el.setAttribute('role','button'); el.setAttribute('aria-label', `${c.name}（${KIND[c.kind][1]}・コスト${c.cost}）`);
+  el.innerHTML = `<span class="cost">${c.cost}</span><span class="name">${c.name}</span>
+    <svg viewBox="0 0 46 62">${ART[c.id]}</svg><span class="kind">${KIND[c.kind][0]}</span>`;
+  el.addEventListener('click', () => pickCard(c, el));
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickCard(c, el); } });
+  handEl.appendChild(el);
+}
+
+const detail = $('#detail');
+function pickCard(c, el) {
+  if (mode !== 'idle') return;
+  document.querySelectorAll('.card.sel').forEach(x => x.classList.remove('sel'));
+  selected = { c, el }; el.classList.add('sel');
+  detail.style.setProperty('--c', `var(--${c.kind})`);
+  detail.querySelector('.dname').textContent = c.name;
+  detail.querySelector('.dmeta').textContent = `${KIND[c.kind][1]}・コスト${c.cost}`;
+  detail.querySelector('.dtext').textContent = c.text;
+  detail.hidden = false;
+}
+function closeDetail() { detail.hidden = true; document.querySelectorAll('.card.sel').forEach(x => x.classList.remove('sel')); }
+detail.querySelector('.cancel').onclick = () => { closeDetail(); selected = null; };
+detail.querySelector('.use').onclick = () => {
+  if (selected.c.id !== 'rakurai') { toast('この試作で動くのは「落雷」だけです'); return; }
+  detail.hidden = true; startTargeting();
+};
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2200); }
+
+// ---------- 3D の盤 ----------
+const stage = $('#stage');
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0x000000, 0);
+stage.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+
+scene.add(new THREE.HemisphereLight(0xfff1d6, 0x1a2a50, 1.1));
+const sun = new THREE.DirectionalLight(0xfff0d0, 1.9);
+sun.position.set(-5, 14, 7); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left:-9, right:9, top:9, bottom:-9, near:1, far:40 });
+scene.add(sun);
+const boltLight = new THREE.PointLight(0x9fbcff, 0, 18, 1.6);
+scene.add(boltLight);
+
+// 木目をキャンバスで描く
+function wood(w, h, base, grain, n) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); g.fillStyle = base; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < n; i++) {
+    const y = Math.random() * h, a = 0.03 + Math.random() * 0.09;
+    g.strokeStyle = `rgba(${grain},${a})`; g.lineWidth = 0.6 + Math.random() * 2.6;
+    g.beginPath(); g.moveTo(0, y);
+    for (let x = 0; x <= w; x += 24) g.lineTo(x, y + Math.sin(x * 0.006 + i) * 9 + (Math.random() - .5) * 2);
+    g.stroke();
+  }
+  return c;
+}
+const CW = 1, CD = 1.1;                 // マスの幅と奥行き
+const BW = 9.9, BD = 10.8, BH = 1.5;    // 盤の大きさ
+function boardTopTex() {
+  const s = 100, c = wood(BW * s, BD * s, '#E2B65B', '120,70,20', 140), g = c.getContext('2d');
+  const mx = (BW - 9 * CW) / 2 * s, my = (BD - 9 * CD) / 2 * s;
+  g.strokeStyle = 'rgba(29,26,23,.85)'; g.lineWidth = 2.4;
+  for (let i = 0; i <= 9; i++) {
+    g.beginPath(); g.moveTo(mx + i * CW * s, my); g.lineTo(mx + i * CW * s, my + 9 * CD * s); g.stroke();
+    g.beginPath(); g.moveTo(mx, my + i * CD * s); g.lineTo(mx + 9 * CW * s, my + i * CD * s); g.stroke();
+  }
+  g.lineWidth = 5; g.strokeRect(mx, my, 9 * CW * s, 9 * CD * s);
+  g.fillStyle = 'rgba(29,26,23,.9)';
+  for (const [i, j] of [[3,3],[3,6],[6,3],[6,6]]) { g.beginPath(); g.arc(mx + i * CW * s, my + j * CD * s, 7, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+const sideTex = new THREE.CanvasTexture(wood(1024, 160, '#C99A45', '90,50,10', 50)); sideTex.colorSpace = THREE.SRGBColorSpace;
+const sideMat = new THREE.MeshStandardMaterial({ map:sideTex, roughness:.6 });
+const topMat = new THREE.MeshStandardMaterial({ map:boardTopTex(), roughness:.55 });
+const board = new THREE.Mesh(new THREE.BoxGeometry(BW, BH, BD), [sideMat, sideMat, topMat, sideMat, sideMat, sideMat]);
+board.position.y = -BH / 2; board.receiveShadow = true; board.castShadow = true; scene.add(board);
+const legMat = new THREE.MeshStandardMaterial({ color:0x8a5a22, roughness:.7 });
+for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+  const leg = new THREE.Mesh(new THREE.CylinderGeometry(.75, .55, 1.3, 20), legMat);
+  leg.position.set(sx * (BW / 2 - 1.3), -BH - .65, sz * (BD / 2 - 1.3)); leg.castShadow = true; scene.add(leg);
+}
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity:.35 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -BH - 1.3; floor.receiveShadow = true; scene.add(floor);
+
+const sq = (c, r) => new THREE.Vector3((c - 4) * CW, 0, (r - 4) * CD);
+
+// ---------- 駒 ----------
+const pieceMat = new THREE.MeshStandardMaterial({ color:0xF2D594, roughness:.45 });
+const geoCache = {};
+function pieceGeo(s) {
+  if (geoCache[s]) return geoCache[s];
+  const sh = new THREE.Shape();
+  sh.moveTo(-.36 * s, -.42 * s); sh.lineTo(.36 * s, -.42 * s); sh.lineTo(.29 * s, .28 * s); sh.lineTo(0, .44 * s); sh.lineTo(-.29 * s, .28 * s); sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, { depth:.16 * s, bevelEnabled:true, bevelThickness:.02, bevelSize:.02, bevelSegments:2 });
+  g.rotateX(-Math.PI / 2);   // 先端が奥（相手側）を向く
+  return geoCache[s] = g;
+}
+function labelTex(ch) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 160;
+  const g = c.getContext('2d'); g.fillStyle = '#1d1a17';
+  g.font = '800 104px "Shippori Mincho B1", serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(ch, 64, 90);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+const SIZE = { 王:1, 玉:1, 飛:.95, 角:.95, 金:.93, 銀:.93, 桂:.88, 香:.86, 歩:.82 };
+const pieces = [];
+function addPiece(ch, side, c, r) {
+  const s = SIZE[ch], grp = new THREE.Group();
+  const body = new THREE.Mesh(pieceGeo(s), pieceMat); body.castShadow = true; body.receiveShadow = true; grp.add(body);
+  const lab = new THREE.Mesh(new THREE.PlaneGeometry(.5 * s, .625 * s),
+    new THREE.MeshStandardMaterial({ map:labelTex(ch), transparent:true, roughness:.6 }));
+  lab.rotation.x = -Math.PI / 2; lab.position.set(0, .16 * s + .026, .03 * s); grp.add(lab);
+  grp.position.copy(sq(c, r)); grp.position.y = .02;
+  if (side === 'foe') grp.rotation.y = Math.PI;
+  grp.userData = { ch, side, c, r, s };
+  scene.add(grp); pieces.push(grp); return grp;
+}
+
+// ---------- 演出用の小物 ----------
+function ring(inner, outer, color, segs = 40) {
+  const m = new THREE.Mesh(new THREE.RingGeometry(inner, outer, segs),
+    new THREE.MeshBasicMaterial({ color, transparent:true, opacity:.8, depthWrite:false, side:THREE.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; return m;
+}
+function decal(draw, w, h) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256; draw(c.getContext('2d'));
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map:t, transparent:true, depthWrite:false }));
+  m.rotation.x = -Math.PI / 2; return m;
+}
+
+// ---------- 演出の時間管理 ----------
+const tweens = [];
+const tween = (dur, fn, ease = t => t) => new Promise(res => tweens.push({ t0:performance.now(), dur, fn, ease, res }));
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
+const baseLook = new THREE.Vector3(0, -.4, .35);
+let basePos = new THREE.Vector3();
+let shake = 0;
+const frags = [];   // 砕けた駒のかけら
+let sparks = null;
+const pulses = [];  // 点滅する目印
+
+function fitCamera() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  const tv = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const d = Math.max(5.75 / (tv * camera.aspect), 6.4 / tv);
+  basePos = baseLook.clone().add(new THREE.Vector3(0, .9, .42).normalize().multiplyScalar(d));
+  if (mode === 'idle' || mode === 'target') { camPos.copy(basePos); camLook.copy(baseLook); }
+}
+
+let mode = 'idle';
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i], p = Math.min(1, (now - tw.t0) / tw.dur);
+    tw.fn(tw.ease(p)); if (p >= 1) { tweens.splice(i, 1); tw.res(); }
+  }
+  for (const p of pulses) {
+    p.mesh.material.opacity = p.lo + (p.hi - p.lo) * (.5 + .5 * Math.sin(now / 1000 * p.speed));
+    if (p.spin) p.mesh.rotation.z += dt * p.spin;
+  }
+  for (const f of frags) {
+    f.v.y -= 20 * dt; f.m.position.addScaledVector(f.v, dt);
+    if (f.m.position.y < .05) { f.m.position.y = .05; f.v.y *= -.32; f.v.x *= .7; f.v.z *= .7; f.av.multiplyScalar(.7); }
+    f.m.rotation.x += f.av.x * dt; f.m.rotation.y += f.av.y * dt; f.m.rotation.z += f.av.z * dt;
+  }
+  if (sparks) {
+    const pos = sparks.geometry.attributes.position, v = sparks.userData.v;
+    for (let i = 0; i < v.length; i++) { v[i].y -= 9 * dt; pos.setXYZ(i, pos.getX(i) + v[i].x * dt, pos.getY(i) + v[i].y * dt, pos.getZ(i) + v[i].z * dt); }
+    pos.needsUpdate = true; sparks.material.opacity = Math.max(0, sparks.material.opacity - dt * .9);
+  }
+  camera.position.copy(camPos);
+  if (shake > 0) {
+    camera.position.x += (Math.random() - .5) * shake; camera.position.y += (Math.random() - .5) * shake;
+    shake = Math.max(0, shake - dt * .9);
+  }
+  camera.lookAt(camLook);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+// ---------- 落雷の流れ ----------
+let targets = [];
+function startTargeting() {
+  mode = 'target'; $('#prompt').hidden = false;
+  for (const p of pieces) {
+    const u = p.userData;
+    if (u.side !== 'foe' || '王飛角'.includes(u.ch)) continue;
+    const r = ring(.46, .56, 0xD7263D); r.position.set(p.position.x, .012, p.position.z); scene.add(r);
+    const pulse = { mesh:r, lo:.25, hi:.95, speed:6 }; pulses.push(pulse);
+    targets.push({ p, r, pulse });
+  }
+}
+function clearTargets() {
+  for (const t of targets) { scene.remove(t.r); pulses.splice(pulses.indexOf(t.pulse), 1); }
+  targets = []; $('#prompt').hidden = true;
+}
+$('#promptCancel').onclick = () => { clearTargets(); closeDetail(); mode = 'idle'; };
+
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (mode !== 'target') return;
+  const b = renderer.domElement.getBoundingClientRect();
+  ptr.set((e.clientX - b.left) / b.width * 2 - 1, -(e.clientY - b.top) / b.height * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects(targets.map(t => t.p), true)[0];
+  if (!hit) return;
+  let o = hit.object; while (o.parent && !pieces.includes(o)) o = o.parent;
+  castRakurai(o);
+});
+
+function flash(color, peak, ms) {
+  const f = $('#flash'); f.style.background = color; f.style.transition = 'none'; f.style.opacity = peak;
+  requestAnimationFrame(() => { f.style.transition = `opacity ${ms}ms ease-out`; f.style.opacity = 0; });
+}
+function buildSpeedLines() {
+  let s = '<svg viewBox="-400 -400 800 800" preserveAspectRatio="xMidYMid slice">';
+  for (let i = 0; i < 70; i++) {
+    const a = Math.random() * Math.PI * 2, w = .006 + Math.random() * .012, r0 = 150 + Math.random() * 120, r1 = 760;
+    const p = (r, aa) => `${(Math.cos(aa) * r).toFixed(1)},${(Math.sin(aa) * r).toFixed(1)}`;
+    s += `<polygon points="${p(r0, a)} ${p(r1, a - w)} ${p(r1, a + w)}" fill="#EEE8DC" opacity="${(.35 + Math.random() * .5).toFixed(2)}"/>`;
+  }
+  $('#lines').innerHTML = s + '</svg>';
+}
+function buildInk() {
+  // 墨しぶき：大きな塊＋飛び散る粒＋垂れ
+  let s = '<path d="M-230 -40 Q-150 -110 -20 -95 Q120 -120 220 -60 Q260 0 210 55 Q90 115 -60 95 Q-210 90 -245 30Z" fill="#1d1a17"/>';
+  for (let i = 0; i < 46; i++) {
+    const a = Math.random() * Math.PI * 2, r = 120 + Math.random() * 170;
+    s += `<circle cx="${(Math.cos(a) * r * 1.3).toFixed(0)}" cy="${(Math.sin(a) * r * .55).toFixed(0)}" r="${(2 + Math.random() * 11).toFixed(1)}" fill="#1d1a17"/>`;
+  }
+  for (const x of [-140, -30, 95, 170]) s += `<path d="M${x - 6} 80 Q${x} ${135 + Math.random() * 30} ${x + 6} 80Z" fill="#1d1a17"/>`;
+  $('#cutin .ink').innerHTML = s;
+}
+
+function makeBolt(from, to, radius) {
+  const path = new THREE.CurvePath(); let prev = from.clone(); const n = 14;
+  for (let i = 1; i <= n; i++) {
+    const t = i / n, jit = (1 - t) * .9;
+    const pt = i === n ? to.clone() : from.clone().lerp(to, t).add(new THREE.Vector3((Math.random() - .5) * jit, 0, (Math.random() - .5) * jit));
+    path.add(new THREE.LineCurve3(prev, pt)); prev = pt;
+  }
+  const grp = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.TubeGeometry(path, n * 4, radius, 6), new THREE.MeshBasicMaterial({ color:0xf2f6ff, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }));
+  const glow = new THREE.Mesh(new THREE.TubeGeometry(path, n * 4, radius * 4.5, 8), new THREE.MeshBasicMaterial({ color:0x4f7dff, transparent:true, opacity:.35, blending:THREE.AdditiveBlending, depthWrite:false }));
+  grp.add(glow, core); return grp;
+}
+
+function shatter(piece) {
+  const at = piece.position.clone(), s = piece.userData.s;
+  scene.remove(piece); pieces.splice(pieces.indexOf(piece), 1);
+  const m1 = pieceMat, m2 = new THREE.MeshStandardMaterial({ color:0x2a2420, roughness:.8 });
+  for (let i = 0; i < 18; i++) {
+    const g = new THREE.BoxGeometry(.08 + Math.random() * .2, .06 + Math.random() * .1, .08 + Math.random() * .2);
+    const m = new THREE.Mesh(g, i % 5 === 0 ? m2 : m1); m.castShadow = true;
+    m.position.set(at.x + (Math.random() - .5) * .4 * s, .15, at.z + (Math.random() - .5) * .4 * s); scene.add(m);
+    const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 4;
+    frags.push({ m, v:new THREE.Vector3(Math.cos(a) * sp, 4 + Math.random() * 6, Math.sin(a) * sp),
+      av:new THREE.Vector3(Math.random() * 20 - 10, Math.random() * 20 - 10, Math.random() * 20 - 10) });
+  }
+  const N = 160, geo = new THREE.BufferGeometry(), arr = new Float32Array(N * 3), v = [];
+  for (let i = 0; i < N; i++) {
+    arr.set([at.x, .3, at.z], i * 3);
+    const d = new THREE.Vector3(Math.random() - .5, Math.random() * .9, Math.random() - .5).normalize().multiplyScalar(3 + Math.random() * 7); v.push(d);
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  sparks = new THREE.Points(geo, new THREE.PointsMaterial({ color:0xc9dbff, size:.13, transparent:true, opacity:1, blending:THREE.AdditiveBlending, depthWrite:false }));
+  sparks.userData.v = v; scene.add(sparks);
+  const burn = decal(g => {
+    const gr = g.createRadialGradient(128, 128, 8, 128, 128, 124);
+    gr.addColorStop(0, 'rgba(20,14,10,.9)'); gr.addColorStop(.5, 'rgba(40,24,10,.55)'); gr.addColorStop(1, 'rgba(40,24,10,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  }, 1.5, 1.6);
+  burn.position.set(at.x, .006, at.z); scene.add(burn);
+}
+
+async function castRakurai(target) {
+  mode = 'busy'; clearTargets();
+  const cardEl = selected.el; closeDetail(); cardEl.classList.add('cast');
+  setTimeout(() => cardEl.remove(), 520);
+  const at = target.position.clone();
+
+  // 拍子木の「間」：白く光って一瞬止まる
+  await wait(260);
+  flash('#ffffff', .9, 180);
+  buildSpeedLines(); $('#lines').classList.add('on');
+
+  // カメラが駒へぐっと寄る
+  const p0 = camPos.clone(), l0 = camLook.clone();
+  const p1 = at.clone().add(new THREE.Vector3(1.2, 4.6, 4.4)), l1 = at.clone().setY(.3);
+  await tween(reduceMotion ? 1 : 620, t => { camPos.lerpVectors(p0, p1, t); camLook.lerpVectors(l0, l1, t); }, easeOut);
+
+  // 筆文字のカットイン
+  buildInk();
+  const cut = $('#cutin'); cut.classList.remove('off'); cut.style.setProperty('--band', 'var(--mahou)');
+  cut.classList.add('on');
+  await wait(1000);
+  cut.classList.add('off'); cut.classList.remove('on'); $('#lines').classList.remove('on');
+
+  // 空が暗くなる → 雷
+  $('#dim').style.opacity = .55;
+  await wait(260);
+  const top = at.clone().add(new THREE.Vector3((Math.random() - .5) * 2, 16, (Math.random() - .5) * 2));
+  boltLight.position.set(at.x, 2.2, at.z);
+  for (let k = 0; k < 3; k++) {
+    const bolt = makeBolt(top, at.clone().setY(.25), k === 0 ? .07 : .05);
+    scene.add(bolt); boltLight.intensity = 90; flash('#cfdcff', k === 0 ? .85 : .5, 160);
+    if (k === 0) { shatter(target); shake = reduceMotion ? 0 : .55; }
+    await wait(k === 0 ? 120 : 70);
+    scene.remove(bolt); boltLight.intensity = 0;
+    await wait(k === 0 ? 90 : 120);
+  }
+  $('#dim').style.opacity = 0;
+  await wait(900);
+
+  // 元の視点へ戻る
+  const p2 = camPos.clone(), l2 = camLook.clone();
+  await tween(reduceMotion ? 1 : 900, t => { camPos.lerpVectors(p2, basePos, t); camLook.lerpVectors(l2, baseLook, t); }, easeInOut);
+  $('#again').hidden = false;
+}
+$('#again').onclick = () => location.reload();
+
+// ---------- 局面を並べて開始 ----------
+async function start() {
+  try { await Promise.race([Promise.all([document.fonts.load('800 100px "Shippori Mincho B1"'), document.fonts.load('100px "Yuji Boku"')]), wait(2500)]); } catch {}
+  const back = '香桂銀金王金銀桂香';
+  for (let c = 0; c < 9; c++) {
+    addPiece(back[c], 'foe', c, 0);
+    addPiece(back[c] === '王' ? '玉' : back[c], 'me', c, 8);
+  }
+  addPiece('飛', 'foe', 1, 1); addPiece('角', 'foe', 7, 1);
+  addPiece('角', 'me', 1, 7);
+  for (let c = 0; c < 9; c++) {
+    addPiece('歩', 'foe', c, c === 6 ? 3 : 2);
+    if (c !== 2) addPiece('歩', 'me', c, c === 6 ? 5 : 6);
+  }
+  // 少し進んだ局面に見せる：相手の銀が出てきて、自分の飛車は天馬の蹄を装備中
+  const gin = pieces.find(p => p.userData.side === 'foe' && p.userData.ch === '銀' && p.userData.c === 6);
+  gin.position.copy(sq(6, 2)).setY(.02); gin.userData.r = 2;
+  pieces.find(p => p.userData.side === 'foe' && p.userData.ch === '歩' && p.userData.c === 6).position.copy(sq(6, 3)).setY(.02);
+  const hisha = addPiece('飛', 'me', 7, 5);
+  const eq = ring(.5, .68, 0xF2C230, 6); eq.position.set(hisha.position.x, .014, hisha.position.z); scene.add(eq);
+  pulses.push({ mesh:eq, lo:.55, hi:.95, speed:2.5, spin:.6 });
+  // 自分にだけ見える落とし穴の印
+  const pit = decal(g => {
+    g.strokeStyle = 'rgba(215,38,61,.95)'; g.lineWidth = 10; g.setLineDash([22, 14]); g.strokeRect(18, 18, 220, 220);
+    g.fillStyle = 'rgba(215,38,61,.9)'; g.font = '800 92px "Shippori Mincho B1", serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('罠', 128, 134);
+  }, CW * .92, CD * .92);
+  pit.position.copy(sq(4, 4)).setY(.01); scene.add(pit);
+  pulses.push({ mesh:pit, lo:.25, hi:.6, speed:2 });
+
+  new ResizeObserver(fitCamera).observe(stage); fitCamera();
+  requestAnimationFrame(frame);
+  toast('カードをタップしてみてください（「落雷」が動きます）');
+}
+start();
+</script>
+</body>
+</html>
