@@ -1,4 +1,6 @@
 // CPU の先読み：ネガマックス＋アルファベータ、駒を取る手だけの延長読み、時間切れでの打ち切り
+// 決めごと：同じ局面・同じ種なら同じ手を返す。
+// ただし時間いっぱいまで読む局面では、どの深さまで読み終えるかが機械の速さで変わるので、同じ種でも手が変わりうる
 import { applyActionUnchecked, legalActions } from '../rules/game';
 import { idx } from '../rules/board';
 import type { Action, GameState, PieceKind, Side } from '../rules/types';
@@ -21,6 +23,7 @@ export const WIN = 1_000_000;
 
 const CHECK_EVERY = 16;           // 何局面ごとに時計を見るか
 const KING_VICTIM = 100_000;      // 並べ替え用：王を取る手は最優先（取れば勝ち）
+export const CARD_CANDIDATES_PER_CARD = 3; // 1枚のカードから候補に残す行動の数の上限
 
 // 時間切れで読みを打ち切るための合図
 class TimeUp extends Error {}
@@ -34,6 +37,38 @@ function victimValue(kind: PieceKind): number {
 
 function sameAction(a: Action, b: Action): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+export interface CardCand { a: Action; child: GameState; score: number }
+
+// 同点のときの順位：対象の先頭マスにある駒の価値（対象のないカード・空きマスは0）
+function targetValue(s: GameState, a: Action): number {
+  if (a.type !== 'card' || a.targets.length === 0) return 0;
+  const p = s.board[idx(a.targets[0])];
+  return p ? PIECE_VALUE[p.kind] : 0;
+}
+
+// カードの行動を1回ずつ適用して点数を付け、よい順に選ぶ。
+// 点数が同じなら価値の高い駒を対象にした方を先にする（装備がいつも盤の順の最初の駒に付かないように）。
+// 1枚のカードからは CARD_CANDIDATES_PER_CARD 個までにして、他のカードが枠から締め出されないようにする
+export function cardCandidates(s: GameState, actions: Action[], cardWidth: number): CardCand[] {
+  const cards: (CardCand & { tie: number; uid: number })[] = [];
+  for (const a of actions) {
+    if (a.type !== 'card') continue;
+    const child = applyActionUnchecked(s, a).state;
+    cards.push({ a, child, score: evaluate(child, s.turn), tie: targetValue(s, a), uid: a.uid });
+  }
+  cards.sort((x, y) => y.score - x.score || y.tie - x.tie);
+  const perCard = new Map<number, number>();
+  const out: CardCand[] = [];
+  for (const c of cards) {
+    if (out.length >= cardWidth) break;
+    const n = perCard.get(c.uid) ?? 0;
+    if (n >= CARD_CANDIDATES_PER_CARD) continue;
+    perCard.set(c.uid, n + 1);
+    out.push({ a: c.a, child: c.child, score: c.score });
+  }
+  return out;
 }
 
 // side は CPU が受け持つ側。view はその側の viewFor の結果で、手番も side であること
@@ -53,7 +88,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   let nodes = 0;
   let canStop = false; // 根の候補を1つも読み終えるまでは打ち切らない（必ず手を返すため）
 
-  // 局面を1つ数え、256局面ごとに時計を見る
+  // 局面を1つ数え、CHECK_EVERY 局面ごとに時計を見る
   function tick(): void {
     nodes++;
     if (canStop && nodes % CHECK_EVERY === 0 && now() - start >= opts.timeLimitMs) throw new TimeUp();
@@ -98,20 +133,11 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   function candidates(s: GameState, ply: number): Cand[] {
     const all = ply === 0 ? rootActions : legalActions(s);
     const out: Cand[] = [];
-    const cards: { a: Action; child: GameState; score: number }[] = [];
-    const useCards = ply < opts.cardPlies;
     for (const a of all) {
-      if (a.type === 'card') {
-        if (!useCards) continue;
-        const child = applyActionUnchecked(s, a).state;
-        cards.push({ a, child, score: evaluate(child, s.turn) });
-      } else {
-        out.push({ a, order: orderKey(s, a) });
-      }
+      if (a.type !== 'card') out.push({ a, order: orderKey(s, a) });
     }
-    if (cards.length > 0) {
-      cards.sort((x, y) => y.score - x.score);
-      for (const c of cards.slice(0, opts.cardWidth)) out.push({ a: c.a, child: c.child, order: 2 });
+    if (ply < opts.cardPlies) {
+      for (const c of cardCandidates(s, all, opts.cardWidth)) out.push({ a: c.a, child: c.child, order: 2 });
     }
     // 同じ順位の中では元の並びを保つ（安定な並べ替え）
     out.sort((x, y) => x.order - y.order);

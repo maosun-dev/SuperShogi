@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { search, WIN, type SearchOptions } from '../../src/ai/search';
+import { cardCandidates, search, WIN, type SearchOptions } from '../../src/ai/search';
 import { applyAction, createGame, legalActions } from '../../src/rules/game';
 import { viewFor } from '../../src/rules/view';
 import type { Action, GameState } from '../../src/rules/types';
@@ -123,4 +123,28 @@ test('深さ1の途中でも時間切れなら、読み終えた手を返す', (
   const r = search(s, 'sente', { ...BASE, maxDepth: 3, timeLimitMs: 100, now });
   expect(legalActions(s).some(a => JSON.stringify(a) === JSON.stringify(r.action))).toBe(true);
   expect(r.depth).toBe(1);
+});
+
+test('装備は価値の高い駒を優先して候補に入れる', () => {
+  const s = emptyState('sente');
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  for (let c = 0; c < 9; c++) put(s, { c, r: 6 }, 'FU', 'sente');
+  put(s, { c: 7, r: 7 }, 'HI', 'sente');
+  put(s, { c: 4, r: 0 }, 'OU', 'gote');
+  giveCard(s, 'sente', 'hagane');
+  const cands = cardCandidates(s, legalActions(s), 8);
+  const targets = cands.map(c => (c.a.type === 'card' ? c.a.targets[0] : null));
+  expect(targets).toContainEqual({ c: 7, r: 7 });
+});
+
+test('1枚のカードが候補の枠を独占しない', () => {
+  const s = emptyState('sente');
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  for (let c = 0; c < 9; c++) put(s, { c, r: 6 }, 'FU', 'sente');
+  put(s, { c: 4, r: 0 }, 'OU', 'gote');
+  giveCard(s, 'sente', 'hagane');
+  const kagami = giveCard(s, 'sente', 'kagami');
+  const cands = cardCandidates(s, legalActions(s), 4);
+  expect(cands.length).toBeLessThanOrEqual(4);
+  expect(cands.some(c => c.a.type === 'card' && c.a.uid === kagami)).toBe(true);
 });
