@@ -1,5 +1,5 @@
 // 対局の進行：行動を受け取り、新しい局面と出来事の記録を返す
-import type { Action, CardId, CardInstance, GameEvent, GameState, HandKind, Piece, Side, Square } from './types';
+import type { Action, CardId, CardInstance, GameEvent, GameState, HandKind, Piece, SetTrap, Side, Square } from './types';
 import { IllegalActionError } from './types';
 import { HAND_KINDS, cloneState, emptyHand, idx, initialBoard, opponent, positionKey, sameSq, sqOf } from './board';
 import { canPromote, dropTargets, isInCheck, mustPromote, pieceTargets } from './moves';
@@ -143,6 +143,7 @@ export function applyAction(s0: GameState, a: Action): { state: GameState; event
     s.players[side].hand[a.kind]--;
     s.board[idx(a.to)] = p;
     events.push({ type: 'dropped', pieceId: p.id, side, kind: a.kind, to: a.to });
+    enterSquare(s, events, a.to);
   } else {
     const inst = s.players[side].cards.find(c => c.uid === a.uid)!;
     useCard(s, events, side, inst, a.targets, a.pick);
@@ -163,6 +164,15 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
     events.push({ type: 'armorBlocked', defenderId: target.id, attackerId: p.id, at: to });
     return 'blocked';
   }
+  if (promote && !mustPromote(p.kind, side, to)) {
+    // 成り封じ：成らずに動く（成らないと行き所がない手では発動しない）
+    const t = findTrap(s, opponent(side), 'promote');
+    if (t) {
+      fireTrap(s, events, t);
+      events.push({ type: 'promotionBlocked', pieceId: p.id });
+      promote = false;
+    }
+  }
   if (target) {
     // 取る：成りを戻して取った側の持ち駒へ（装備は付いてこない）
     events.push({ type: 'captured', pieceId: target.id, at: to, by: side });
@@ -173,7 +183,41 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
   if (promote) p.promoted = true;
   events.push({ type: 'moved', pieceId: p.id, from, to, promoted: promote });
   if (target?.kind === 'OU') finish(s, events, { winner: side, reason: 'king-captured' });
+  else enterSquare(s, events, to);
   return 'moved';
+}
+
+// side が伏せた罠のうち、trigger で発動するもの（uid が小さい1枚）
+function findTrap(s: GameState, owner: Side, trigger: 'magic' | 'promote'): SetTrap | undefined {
+  return s.traps
+    .filter(t => t.owner === owner && t.cardId && CARDS[t.cardId].trap?.trigger === trigger)
+    .sort((a, b) => a.uid - b.uid)[0];
+}
+
+// 罠を取り除き、発動を記録する
+function fireTrap(s: GameState, events: GameEvent[], t: SetTrap): void {
+  s.traps = s.traps.filter(x => x.uid !== t.uid);
+  events.push({ type: 'trapTriggered', owner: t.owner, uid: t.uid, cardId: t.cardId!, at: t.at });
+}
+
+// 駒を消す（誰の持ち駒にもならない）
+function destroyAt(s: GameState, events: GameEvent[], sq: Square, cause: CardId): void {
+  const p = s.board[idx(sq)];
+  if (!p) return;
+  s.board[idx(sq)] = null;
+  events.push({ type: 'destroyed', pieceId: p.id, at: sq, cause });
+}
+
+// 駒がマスに入ったとき：駒の持ち主と反対の側の落とし穴があれば発動する。王なら発動せず罠は残る
+function enterSquare(s: GameState, events: GameEvent[], sq: Square): void {
+  const p = s.board[idx(sq)];
+  if (!p || p.kind === 'OU') return;
+  const t = s.traps
+    .filter(t => t.owner !== p.side && t.at && sameSq(t.at, sq) && t.cardId && CARDS[t.cardId].trap?.trigger === 'enter')
+    .sort((a, b) => a.uid - b.uid)[0];
+  if (!t) return;
+  fireTrap(s, events, t);
+  destroyAt(s, events, sq, t.cardId!);
 }
 
 function cardContext(s: GameState, events: GameEvent[], side: Side): CardContext {
@@ -182,19 +226,19 @@ function cardContext(s: GameState, events: GameEvent[], side: Side): CardContext
     side,
     emit: e => { events.push(e); },
     destroy(sq, cause) {
-      const p = s.board[idx(sq)];
-      if (!p) return;
-      s.board[idx(sq)] = null;
-      events.push({ type: 'destroyed', pieceId: p.id, at: sq, cause });
+      destroyAt(s, events, sq, cause);
     },
     relocate(from, to) {
       s.board[idx(to)] = s.board[idx(from)];
       s.board[idx(from)] = null;
+      enterSquare(s, events, to);
     },
     swap(a, b) {
       const pa = s.board[idx(a)];
       s.board[idx(a)] = s.board[idx(b)];
       s.board[idx(b)] = pa;
+      enterSquare(s, events, a);
+      enterSquare(s, events, b);
     },
   };
 }
@@ -204,7 +248,24 @@ function useCard(
 ): void {
   const def = CARDS[inst.cardId];
   inst.used = true;
+  if (def.trap) {
+    // 罠を伏せる。場所が漏れないよう cardUsed は出さない
+    const uid = s.nextId++;
+    const at = def.trap.placement === 'square' ? targets[0] : null;
+    s.traps.push({ uid, owner: side, cardId: def.id, at });
+    events.push({ type: 'trapSet', side, uid, cardId: def.id, at });
+    return;
+  }
   events.push({ type: 'cardUsed', side, cardId: inst.cardId, targets });
+  if (def.kind === 'magic') {
+    // 鏡の結界：効果の前に無効にする。使った側の手番はそのまま終わる
+    const t = findTrap(s, opponent(side), 'magic');
+    if (t) {
+      fireTrap(s, events, t);
+      events.push({ type: 'magicNegated', side, cardId: def.id });
+      return;
+    }
+  }
   def.resolve?.(cardContext(s, events, side), targets, pick);
 }
 

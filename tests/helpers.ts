@@ -38,3 +38,10 @@ export function giveCard(s: GameState, side: Side, cardId: CardId): number {
   s.players[side].cards.push({ uid, cardId, used: false });
   return uid;
 }
+
+// 罠を直接伏せた状態にする（テストの準備用）
+export function setTrap(s: GameState, owner: Side, cardId: CardId, at: Square | null = null): number {
+  const uid = s.nextId++;
+  s.traps.push({ uid, owner, cardId, at });
+  return uid;
+}
