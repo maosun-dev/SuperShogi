@@ -11,6 +11,7 @@ import type { Action, GameState, Side } from '../../src/rules/types';
 function fakeWorker(): WorkerLike {
   const w: WorkerLike = {
     onmessage: null,
+    onerror: null,
     postMessage(m: ThinkRequest) {
       Promise.resolve().then(() => {
         w.onmessage?.({ data: handleThinkRequest(m) });
@@ -34,6 +35,7 @@ function reversingWorker(): WorkerLike {
   const queued: ThinkRequest[] = [];
   const w: WorkerLike = {
     onmessage: null,
+    onerror: null,
     postMessage(m: ThinkRequest) {
       queued.push(m);
       if (queued.length < 2) return;
@@ -78,4 +80,50 @@ test('手番でない側として頼むと reject', async () => {
   expect(s.turn).toBe('sente');
   const client = createCpuClient(fakeWorker());
   await expect(client.think(viewFor(s, 'gote'), 'gote', 'weak', 1)).rejects.toThrow('CPU の手番ではありません');
+});
+
+// 何も答えない偽の Worker
+function silentWorker(): WorkerLike & { terminated: boolean } {
+  const w = {
+    onmessage: null, onerror: null, terminated: false,
+    postMessage(_m: ThinkRequest) {},
+    terminate() { w.terminated = true; },
+  } as WorkerLike & { terminated: boolean };
+  return w;
+}
+
+test('Worker が落ちたら待っている頼みが reject される', async () => {
+  const s = createGame(decks);
+  const w = silentWorker();
+  const client = createCpuClient(w);
+  const p1 = client.think(viewFor(s, 'sente'), 'sente', 'weak', 1);
+  const p2 = client.think(viewFor(s, 'sente'), 'sente', 'weak', 2);
+  const r = Promise.allSettled([p1, p2]);
+  w.onerror?.(new Error('boom'));
+  const res = await r;
+  for (const x of res) {
+    expect(x.status).toBe('rejected');
+    expect((x as PromiseRejectedResult).reason.message).toBe('CPU が止まりました');
+  }
+});
+
+test('答えが来なければ時間切れで reject', async () => {
+  const s = createGame(decks);
+  const client = createCpuClient(silentWorker(), { timeoutMs: () => 20 });
+  await expect(client.think(viewFor(s, 'sente'), 'sente', 'weak', 1)).rejects.toThrow('CPU が時間内に答えませんでした');
+});
+
+test('dispose で待ちが reject され、あとから来た答えは捨てる', async () => {
+  const s = createGame(decks);
+  const w = silentWorker();
+  const client = createCpuClient(w);
+  const req: ThinkRequest[] = [];
+  w.postMessage = (m) => { req.push(m); };
+  const p = client.think(viewFor(s, 'sente'), 'sente', 'weak', 1);
+  const r = expect(p).rejects.toThrow('CPU を止めました');
+  client.dispose();
+  await r;
+  expect(w.terminated).toBe(true);
+  // あとから答えが来ても何も起きない
+  expect(() => w.onmessage?.({ data: handleThinkRequest(req[0]) })).not.toThrow();
 });
