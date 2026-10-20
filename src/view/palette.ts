@@ -26,6 +26,17 @@ export const PAL = {
   sunLight: 0xfff0d0, // 日の光
   soubiLight: 0xf2c230, // 装備の金の輪
   mahouPale: 0xaec4ef, // 凍った駒の青み
+  // 演出（試作の落雷の値。藍・胡粉・墨の明暗）
+  hakkou: 0xffffff, // 白い光（胡粉をいちばん明るくしたもの）
+  mahouFlash: 0xcfdcff, // 雷の光
+  mahouCore: 0xf2f6ff, // 雷の芯
+  mahouGlow: 0x4f7dff, // 雷のまわりの光
+  mahouBolt: 0x9fbcff, // 雷が照らす光
+  mahouSpark: 0xc9dbff, // 火花
+  sumiChar: 0x2a2420, // 焦げたかけら
+  sumiBurn: 0x140e0a, // 焦げ跡の芯
+  sumiBurnEdge: 0x28180a, // 焦げ跡のふち
+  yoruNight: 0x060d22, // 暗くなる空
 } as const;
 
 export type PalName = keyof typeof PAL;

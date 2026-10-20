@@ -12,6 +12,7 @@
   --yoru-deep: #0d1730;
   --wana-deep: #7a0f1c;
   --kaya-light: #F2D594;
+  --yoru-night: #060d22;   /* 演出で暗くなる空 */
 
   --font-body: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --font-display: "Yuji Boku", "Shippori Mincho B1", serif;
@@ -561,3 +562,63 @@ button:focus-visible {
 
 /* 結果（仮。タスク13で仕上げる） */
 .screen.result .reason { font-size: 15px; }
+
+/* ---- 演出の重ね板（試作の #dim / #flash / #lines / #cutin を移したもの）---- */
+.match .fx { position: absolute; inset: 0; pointer-events: none; }
+.match .fx-dim { z-index: 5; background: var(--yoru-night); opacity: 0; transition: opacity .2s; }
+.match .fx-lines { z-index: 6; opacity: 0; transition: opacity .12s; }
+.match .fx-lines.on { opacity: 1; }
+.match .fx-lines svg { width: 100%; height: 100%; }
+.match .fx-cutin { z-index: 7; opacity: 0; overflow: hidden; }
+.match .fx-cutin.on { opacity: 1; }
+.match .fx-cutin.off { opacity: 0; transition: opacity .25s; }
+.match .fx-cutin .band {
+  position: absolute; left: -10%; top: 36%; width: 120%; height: 25%;
+  background: var(--band, var(--mahou)); transform: skewY(-8deg);
+}
+.match .fx-cutin .ink { position: absolute; left: 50%; top: 48.5%; width: 120%; height: 70%; transform: translate(-50%, -50%); }
+.match .fx-cutin .word {
+  position: absolute; left: 50%; top: 48%;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: min(30vw, 128px);
+  line-height: 1;
+  color: var(--gofun);
+  -webkit-text-stroke: 6px var(--sumi);
+  paint-order: stroke fill;
+  letter-spacing: .05em;
+}
+/* 長いカード名（押し返しの風など）は字が小さくなる（大きさは kit.ts の cutIn が字数から決める）ので、縁も細くする */
+.match .fx-cutin .word.long { -webkit-text-stroke: 5px var(--sumi); }
+.match .fx-cutin .sub {
+  position: absolute; right: 9%; top: 63%;
+  padding: 2px 8px;
+  background: var(--sumi);
+  color: var(--gofun);
+  font-size: 14px; font-weight: 800;
+  transform: rotate(-8deg);
+}
+.match .fx-cutin.on .band { animation: fx-band .32s cubic-bezier(.2,.9,.2,1) both; }
+.match .fx-cutin.on .ink { animation: fx-ink .22s .16s ease-out both; }
+.match .fx-cutin.on .word { animation: fx-slam .42s .1s cubic-bezier(.2,1.5,.3,1) both; }
+.match .fx-cutin.on .sub { animation: fx-band .3s .3s cubic-bezier(.2,.9,.2,1) both; }
+@keyframes fx-band { from { transform: translateX(-110%) skewY(-8deg); } to { transform: translateX(0) skewY(-8deg); } }
+@keyframes fx-ink { from { transform: translate(-50%, -50%) scale(.2); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes fx-slam {
+  from { transform: translate(-50%, -50%) scale(2.8) rotate(-12deg); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1) rotate(-6deg); opacity: 1; }
+}
+/* 飛ぶ札・飛ぶ駒札（重ね板の上を動く複製） */
+.match .fx-fly { z-index: 8; overflow: visible; }
+.match .fx-fly > * { position: absolute; margin: 0; }
+.match .fx-fly .card { cursor: default; transition: none; }
+.match .fx-flash { z-index: 9; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  /* 筆文字は出すが、大きく叩きつける動きはやめて現れるだけにする */
+  .match .fx-cutin.on .band,
+  .match .fx-cutin.on .ink,
+  .match .fx-cutin.on .word,
+  .match .fx-cutin.on .sub { animation: fx-fade .2s ease-out both; }
+  @keyframes fx-fade { from { opacity: 0; } to { opacity: 1; } }
+}

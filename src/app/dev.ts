@@ -1,5 +1,8 @@
 // 開発用の局面づくり（app 側に置く。view/fx は createGame/applyAction を使わない決まりのため）
-import type { GameState } from '../rules/types';
+import type { Action, CardId, GameState } from '../rules/types';
+import { CARDS } from '../cards';
+import { LEVELS, type Level } from '../ai/levels';
+import type { Match } from './match';
 import { createGame } from '../rules/game';
 import { viewFor } from '../rules/view';
 
@@ -37,4 +40,45 @@ export function sampleView(): GameState {
 export function titleView(): GameState {
   const q = new URLSearchParams(location.search);
   return q.get('dev') === 'board' ? sampleView() : initialView();
+}
+
+// ---------- 演出の試し口（?fx=<カード>。開発中だけ） ----------
+
+/**
+ * ?fx=rakurai のように付けて開くと、そのカードを使える局面で対局画面を開く。Space キーで自分がそのカードを使う。
+ * &kagami=1 で相手に鏡の結界を伏せておく（無効にされる流れの確認用）。&cpu=normal などで相手の持ち込みを変える。
+ * 開発中（import.meta.env.DEV）だけ。ふだんは null
+ */
+export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameState; fxKey: true } | null {
+  if (!import.meta.env.DEV) return null;
+  const q = new URLSearchParams(location.search);
+  const id = q.get('fx') as CardId | null;
+  if (!id || !(id in CARDS)) return null;
+  const cpu = q.get('cpu');
+  const level: Level = cpu === 'normal' || cpu === 'strong' ? cpu : 'weak';
+  const s = createGame({ sente: [id], gote: cpu ? LEVELS[level].deck : [] });
+  // 呼び戻し：相手に持ち駒を持たせる
+  if (id === 'yobimodoshi') { s.players.gote.hand.KI = 1; s.players.gote.hand.FU = 2; }
+  if (q.get('kagami')) s.traps.push({ uid: s.nextId++, owner: 'gote', cardId: 'kagami', at: null });
+  return { level, deck: [id], initial: s, fxKey: true };
+}
+
+/** 試し口で使う行動：カードの行動のうち、対象の駒の種類が違うもの（入れ替えで同じ駒どうしを避ける）を先に選ぶ */
+function pickCardAction(view: GameState, legal: Action[]): Action | undefined {
+  const cards = legal.filter((a): a is Extract<Action, { type: 'card' }> => a.type === 'card');
+  const kinds = (a: Extract<Action, { type: 'card' }>) => new Set(a.targets.map((t) => view.board[t.r * 9 + t.c]?.kind));
+  return cards.find((a) => a.targets.length < 2 || kinds(a).size === a.targets.length) ?? cards[0];
+}
+
+/** Space キーで、試し口のカードを使う。戻り値で外す */
+export function installFxKey(match: Match, submit: (a: Action) => void): () => void {
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.code !== 'Space' || e.repeat) return;
+    e.preventDefault();
+    if (match.phase() !== 'human') return;
+    const a = pickCardAction(match.view(), match.legal());
+    if (a) submit(a);
+  };
+  window.addEventListener('keydown', onKey);
+  return () => window.removeEventListener('keydown', onKey);
 }

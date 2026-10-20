@@ -1,5 +1,5 @@
 // 対局画面：上の帯・盤・下の帯・手札。タップを reduceInput で合法な行動に変え、進行役に渡す。
-import type { CardId, GameEvent, HandKind, Result, Square } from '../../rules/types';
+import type { CardId, GameEvent, GameState, HandKind, Result, Square } from '../../rules/types';
 import type { Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
 import { createMatch, type Match, type Presenter } from '../match';
@@ -11,8 +11,14 @@ import { sync } from '../../view/pieces3d';
 import { createHud } from '../../view/hud';
 import { createPresenter } from '../../fx/player';
 import { showScreen, type Screen } from '../screens';
+import { installFxKey } from '../dev';
 
-export interface MatchParams { level: Level; deck: CardId[] }
+export interface MatchParams {
+  level: Level;
+  deck: CardId[];
+  initial?: GameState; // 開発用：本当の局面を差し込む（演出の試し口 ?fx=）。通常は使わない
+  fxKey?: boolean;     // 開発用：Space キーでカードを使う
+}
 
 // 仮の持ち込み（強さ選び・カード選びの画面ができるまで。タスク13で置き換える）
 const DEFAULT_DECK: CardId[] = ['rakurai', 'irekae', 'otoshiana', 'tenma'];
@@ -27,6 +33,8 @@ function paramsOf(p: unknown): MatchParams {
     console.error(`持ち込みが正しくないので仮の持ち込みで始めます：${bad}`);
     return { level, deck: DEFAULT_DECK };
   }
+  // 開発用の口は開発中だけ通す
+  if (import.meta.env.DEV) return { level, deck, initial: q.initial, fxKey: q.fxKey };
   return { level, deck };
 }
 
@@ -40,7 +48,7 @@ function lastSquare(events: GameEvent[]): Square | null {
 }
 
 export function matchScreen(params: unknown): Screen {
-  const { level, deck } = paramsOf(params);
+  const { level, deck, initial, fxKey } = paramsOf(params);
   let match: Match | null = null;
   let cpu: ReturnType<typeof createBrowserCpu> | null = null;
   let cleanup: (() => void)[] = [];
@@ -87,7 +95,7 @@ export function matchScreen(params: unknown): Screen {
 
       cpu = createBrowserCpu();
       const m = createMatch({
-        level, humanDeck: deck, cpu, presenter,
+        level, humanDeck: deck, cpu, presenter, initial,
         onOver: (result: Result) => { void showScreen('result', { result, level, deck }); },
       });
       match = m;
@@ -174,6 +182,7 @@ export function matchScreen(params: unknown): Screen {
         () => window.removeEventListener('keydown', onKey),
         () => setHighlights(stage, [], []),
       ];
+      if (import.meta.env.DEV && fxKey) cleanup.push(installFxKey(m, (a) => { void submit(a); }));
 
       setHighlights(stage, [], []);
       sync(stage, m.view(), 'sente');

@@ -11,6 +11,7 @@ import { zukanScreen } from './screens/zukan';
 import { titleScreen } from './screens/title';
 import { matchScreen } from './screens/match';
 import { resultScreen } from './screens/result';
+import { fxMatchParams } from './dev';
 
 // ---- 仮の画面（のちの作業で本物に置き換える） ----
 function placeholder(name: ScreenName): Screen {
@@ -50,7 +51,9 @@ function start(): void {
   for (const n of ALL_SCREENS) {
     if (!hasScreen(n)) registerScreen(n, () => placeholder(n));
   }
-  void showScreen('title');
+  // 開発中に ?fx=<カード> が付いていれば、演出の試し口として対局画面から始める
+  const fx = fxMatchParams();
+  void (fx ? showScreen('match', fx) : showScreen('title'));
 }
 
 start();

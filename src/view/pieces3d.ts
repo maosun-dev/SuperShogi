@@ -106,7 +106,6 @@ interface PieceObj {
   label: THREE.Mesh;
   kind: PieceKind;
   side: Side;
-  labelKey: string;
   equip: { id: CardId; obj: THREE.Group; stop: () => void } | null;
   check: { obj: THREE.Mesh; stop: () => void } | null;
 }
@@ -123,7 +122,7 @@ function makePiece(p: Piece): PieceObj {
   label.rotation.x = -Math.PI / 2; label.position.set(0, 0.16 * s + 0.026, 0.03 * s);
   grp.add(label);
   grp.userData = { pieceId: p.id, s };
-  return { grp, body, label, kind: p.kind, side: p.side, labelKey: `${lb.ch}|${lb.color}`, equip: null, check: null };
+  return { grp, body, label, kind: p.kind, side: p.side, equip: null, check: null };
 }
 
 /** 装備の六角形（試作の金の輪）と、その札の絵の小さな板 */
@@ -195,8 +194,9 @@ export function pieceMesh(id: number): THREE.Object3D | undefined {
 }
 
 /**
- * 盤の物を局面どおりに揃える。演出のあとの安全網なので、位置・向き・大きさ・見え方もすべて戻す。
- * view は viewFor 済みの局面、me は画面を見ている側。
+ * 盤の物を局面どおりに揃える。view は viewFor 済みの局面、me は画面を見ている側。
+ * 演出のあとの安全網：演出が駒をどう動かしても（位置・向き・大きさ・見え方・材質を変えても）、
+ * ここで全部の駒について局面から決まる値へ必ず戻す。演出は共有の材質を書き換えず、複製を差し替えること。
  */
 export function sync(stage: Stage, view: GameState, me: Side): void {
   watchFont();
@@ -223,12 +223,13 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
     o.grp.scale.set(1, 1, 1);
     o.grp.visible = true;
     o.body.position.set(0, 0, 0); o.body.rotation.set(0, 0, 0); o.body.scale.set(1, 1, 1); o.body.visible = true;
+    const s = SIZE[p.kind];
+    o.label.position.set(0, 0.16 * s + 0.026, 0.03 * s); o.label.rotation.set(-Math.PI / 2, 0, 0); o.label.scale.set(1, 1, 1);
     o.label.visible = true;
 
-    // 字（成り）
+    // 字（成り）。演出が差し替えていても、いつも共有の字の材質へ戻す
     const lb = labelOf(p);
-    const key = `${lb.ch}|${lb.color}`;
-    if (o.labelKey !== key) { o.label.material = labelMat(lb.ch, lb.color); o.labelKey = key; }
+    o.label.material = labelMat(lb.ch, lb.color);
 
     // 凍った側の青み
     o.body.material = view.frozen === p.side ? frozenMat : pieceMat;
