@@ -35,7 +35,7 @@ export const tenma: CardDef = {
 };
 
 export const hagane: CardDef = {
-  id: 'hagane', name: '鋼の鎧', kind: 'equip', cost: 3, fx: 'hagane',
+  id: 'hagane', name: '鋼の鎧', kind: 'equip', cost: 2, fx: 'hagane',
   text: '付けた駒が取られそうになったとき、1回だけ守る。取ろうとした駒は元のマスに戻り、相手の手番は終わる。術札や忍札からは守らない。王には付けられない',
   prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: (s, side) => barePieces(s, side, p => p.kind !== 'OU'),
@@ -44,7 +44,7 @@ export const hagane: CardDef = {
 };
 
 export const tate: CardDef = {
-  id: 'tate', name: '王の盾', kind: 'equip', cost: 3, fx: 'tate',
+  id: 'tate', name: '王の盾', kind: 'equip', cost: 2, fx: 'tate',
   text: '付けた駒と、その周り8マスの味方の駒は、相手の術札と重りの枷を受けない',
   prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: bareOwnPieces,

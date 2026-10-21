@@ -133,13 +133,14 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   const tt = new Map<string, TTEntry>();
   const killers: string[][] = [];
   let nodes = 0;
-  let canStop = false; // 根の候補を1つも読み終えるまでは打ち切らない（必ず手を返すため）
+  // 根の候補を1つ読み終えるまでは、時間の2倍まで待つ（それでも終わらなければ、並べ替えで先頭の手を返す）
+  let canStop = false;
   let maxPly = opts.maxDepth + EXTEND_MORE;
 
   // 局面を1つ数え、CHECK_EVERY 局面ごとに時計を見る
   function tick(): void {
     nodes++;
-    if (canStop && nodes % CHECK_EVERY === 0 && now() - start >= opts.timeLimitMs) throw new TimeUp();
+    if (nodes % CHECK_EVERY === 0 && now() - start >= (canStop ? opts.timeLimitMs : opts.timeLimitMs * 2)) throw new TimeUp();
   }
 
   const path = new Set<string>(); // 根からいまの局面までに通った局面
@@ -234,7 +235,8 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   function quiesce(s: GameState, qd: number, alpha: number, beta: number, ply: number): number {
     tick();
     if (s.result) return terminal(s, ply);
-    if (qd > 0 && isInCheck(s, s.turn)) {
+    // 王手を逃げる手まで読むのは、延長読みの最初の2段だけ（王手の連続で手が膨らむため）
+    if (qd > 0 && qd >= opts.qDepth - 1 && isInCheck(s, s.turn)) {
       let best = -Infinity;
       const evasions: Cand[] = [];
       // 合い駒は、いちばん安い持ち駒を、王手の筋の間に打つ手だけ
@@ -337,7 +339,8 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     let alpha = -Infinity;
     let bestAction = cands[0].a;
     let bestScore = -Infinity;
-    partial = null;
+    // 深さ1で1つも読み終えないうちに時間切れになったときの答え（並べ替えで先頭の手）
+    partial = depth === 1 ? { action: cands[0].a, score: -Infinity } : null;
     for (const c of cands) {
       const child = c.child ?? applyActionUnchecked(root, c.a).state;
       const d = childDepth(root, child, depth, 0);

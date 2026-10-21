@@ -116,7 +116,7 @@ export const kakuotoshi: CardDef = {
 };
 
 export const shoryu: CardDef = {
-  id: 'shoryu', name: '昇竜', kind: 'magic', cost: 4, fx: 'shoryu',
+  id: 'shoryu', name: '昇竜', kind: 'magic', cost: 3, fx: 'shoryu',
   text: '自分の駒1つを、どこにいてもその場で成らせる。金・王・成った駒・成れない駒は選べない。相手の成り封じは発動する',
   prompt: '成らせる自分の駒を選んでください',
   targetSets(s, side) {

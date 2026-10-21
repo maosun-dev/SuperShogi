@@ -35,7 +35,7 @@ export const otoshiana: CardDef = {
 };
 
 export const itetsuku: CardDef = {
-  id: 'itetsuku', name: '凍てつく床', kind: 'trap', cost: 2, fx: 'itetsuku',
+  id: 'itetsuku', name: '凍てつく床', kind: 'trap', cost: 1, fx: 'itetsuku',
   text: 'このマスに入った相手の駒を凍らせる。王は1手番、王以外は2手番動けない',
   prompt: '凍てつく床を仕掛けるマスを選んでください',
   targetSets: squareTargets,
@@ -64,7 +64,7 @@ export const aiuchi: CardDef = {
 };
 
 export const migawari: CardDef = {
-  id: 'migawari', name: '身代わり', kind: 'trap', cost: 3, fx: 'migawari',
+  id: 'migawari', name: '身代わり', kind: 'trap', cost: 4, fx: 'migawari',
   text: '相手が自分の王を取ろうとしたとき、王の隣にいる味方のうちいちばん安い駒を代わりに壊す。取りに来た駒は動かず、相手の手番は終わる。王の隣に味方がいないときは発動しない',
   targetSets: slotTargets,
   trap: { placement: 'slot', trigger: 'kingCapture' },
