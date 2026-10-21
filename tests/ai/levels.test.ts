@@ -66,3 +66,27 @@ test('手の数が膨らむ局面でも時間内', () => {
   console.log(`[時間] strong 膨らむ局面: ${ms}ms depth=${r.depth} nodes=${r.nodes}`);
   expect(ms).toBeLessThanOrEqual(LEVELS.strong.timeLimitMs + 200);
 }, { timeout: 30_000, retry: 2 });
+
+test('よわいは、ときどき読まずに指す（種を変えると手がばらつく）。ふつう・つよいは乱れない', () => {
+  expect(LEVELS.weak.blunder).toBeGreaterThan(0);
+  expect(LEVELS.normal.blunder).toBe(0);
+  expect(LEVELS.strong.blunder).toBe(0);
+  const s = createGame({ sente: [], gote: [] });
+  const picks = new Set<string>();
+  for (let seed = 1; seed <= 40; seed++) picks.add(JSON.stringify(chooseCpuAction(s, 'sente', 'weak', seed).action));
+  expect(picks.size).toBeGreaterThan(3);
+});
+
+test('どの強さでも、取れる王は取る', () => {
+  for (const level of LV) {
+    for (let seed = 1; seed <= 20; seed++) {
+      const s = createGame({ sente: [], gote: [] });
+      // 後手の王の前に先手の金を置く
+      s.board[idx({ c: 4, r: 1 })] = { id: 999, kind: 'KI', side: 'sente', promoted: false, equip: null };
+      const r = chooseCpuAction(s, 'sente', level, seed);
+      const after = applyAction(s, r.action).state;
+      expect(after.result).toEqual({ winner: 'sente', reason: 'king-captured' });
+      if (level !== 'weak') break; // 乱れるのはよわいだけなので、ほかは1回でよい
+    }
+  }
+}, 60_000);
