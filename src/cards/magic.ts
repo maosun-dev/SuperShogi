@@ -1,4 +1,4 @@
-// 魔法カード5枚
+// 術札6枚
 import type { GameState, HandKind, Piece, Side, Square } from '../rules/types';
 import { HAND_KINDS, idx, onBoard, opponent, sqOf } from '../rules/board';
 import { mustPromote } from '../rules/moves';
@@ -60,7 +60,7 @@ export const irekae: CardDef = {
   text: '自分の駒2つの位置を入れ替える。王も対象にできる。行き所のない駒や二歩ができるなら使えない',
   prompt: '入れ替える自分の駒を2つ選んでください',
   targetSets(s, side) {
-    const mine = piecesOf(s, side);
+    const mine = piecesOf(s, side).filter(({ p }) => !p.frozen); // 凍った駒は動けない
     const out: Square[][] = [];
     for (let i = 0; i < mine.length; i++) {
       for (let j = i + 1; j < mine.length; j++) {
@@ -89,16 +89,43 @@ export const rakurai: CardDef = {
   },
 };
 
-export const itetsuku: CardDef = {
-  id: 'itetsuku', name: '凍てつく盤', kind: 'magic', cost: 3, fx: 'itetsuku',
-  text: '次の相手の手番、相手は駒を取れない。王を取ることもできない',
-  targetSets() {
-    return [[]];
+// その列に side の成っていない歩があるか（except のマスは数えない）
+function hasPawnInColumn(s: GameState, side: Side, c: number, except: Square): boolean {
+  return s.board.some((p, i) => {
+    const sq = sqOf(i);
+    return !!p && p.side === side && p.kind === 'FU' && !p.promoted && sq.c === c && !(sq.c === except.c && sq.r === except.r);
+  });
+}
+
+export const kakuotoshi: CardDef = {
+  id: 'kakuotoshi', name: '格落とし', kind: 'magic', cost: 3, fx: 'kakuotoshi',
+  text: '相手の成った駒1つを、成る前の駒に戻す。纏札は残る。戻すと行き所のない駒や二歩になる駒は選べない',
+  prompt: '成りを戻す相手の駒を選んでください',
+  targetSets(s, side) {
+    return piecesOf(s, opponent(side))
+      .filter(({ sq, p }) => p.promoted && !isShielded(s, sq)
+        && !mustPromote(p.kind, p.side, sq)
+        && !(p.kind === 'FU' && hasPawnInColumn(s, p.side, sq.c, sq)))
+      .map(({ sq }) => [sq]);
   },
-  resolve(ctx) {
-    const foe = opponent(ctx.side);
-    ctx.state.frozen = foe;
-    ctx.emit({ type: 'frozen', side: foe });
+  resolve(ctx, [sq]) {
+    const p = ctx.state.board[idx(sq)]!;
+    p.promoted = false;
+    ctx.emit({ type: 'demoted', pieceId: p.id, at: sq });
+  },
+};
+
+export const shoryu: CardDef = {
+  id: 'shoryu', name: '昇竜', kind: 'magic', cost: 4, fx: 'shoryu',
+  text: '自分の駒1つを、どこにいてもその場で成らせる。金・王・成った駒・成れない駒は選べない。相手の成り封じは発動する',
+  prompt: '成らせる自分の駒を選んでください',
+  targetSets(s, side) {
+    return piecesOf(s, side)
+      .filter(({ p }) => !p.promoted && !p.sealed && p.kind !== 'KI' && p.kind !== 'OU')
+      .map(({ sq }) => [sq]);
+  },
+  resolve(ctx, [sq]) {
+    ctx.promoteInPlace(sq);
   },
 };
 
@@ -125,4 +152,4 @@ export const yobimodoshi: CardDef = {
   },
 };
 
-export const MAGIC_CARDS: CardDef[] = [oshikaeshi, irekae, rakurai, itetsuku, yobimodoshi];
+export const MAGIC_CARDS: CardDef[] = [oshikaeshi, irekae, yobimodoshi, kakuotoshi, shoryu, rakurai];

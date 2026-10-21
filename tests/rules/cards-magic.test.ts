@@ -115,35 +115,6 @@ test('入れ替えの術：二歩になる組は対象外', () => {
   expect(pairs).toContainEqual([{ c: 3, r: 6 }, { c: 3, r: 7 }]);
 });
 
-test('凍てつく盤：次の相手の手番では、こちらの駒のマスへの移動が legalActions に入らない。その次の手番では戻る', () => {
-  const s = base();
-  put(s, { c: 4, r: 4 }, 'FU', 'sente');
-  put(s, { c: 4, r: 2 }, 'HI', 'gote');
-  const uid = giveCard(s, 'sente', 'itetsuku');
-  const r1 = applyAction(s, card(uid, []));
-  expect(r1.events).toContainEqual({ type: 'frozen', side: 'gote' });
-  const capture = mv({ c: 4, r: 2 }, { c: 4, r: 4 });
-  expect(legalActions(r1.state)).not.toContainEqual(capture);
-  expect(legalActions(r1.state)).toContainEqual(mv({ c: 4, r: 2 }, { c: 4, r: 3 }));
-  expect(() => applyAction(r1.state, capture)).toThrow(IllegalActionError);
-  // 後手が別の手を指し、先手も指すと、また取れる
-  const r2 = applyAction(r1.state, mv({ c: 0, r: 0 }, { c: 0, r: 1 }));
-  expect(r2.state.frozen).toBeNull();
-  const r3 = applyAction(r2.state, mv({ c: 8, r: 8 }, { c: 8, r: 7 }));
-  expect(legalActions(r3.state)).toContainEqual(capture);
-});
-
-test('凍てつく盤のあとは王も取れない', () => {
-  const s = emptyState();
-  put(s, { c: 4, r: 4 }, 'OU', 'sente');
-  put(s, { c: 4, r: 2 }, 'HI', 'gote');
-  put(s, { c: 0, r: 0 }, 'OU', 'gote');
-  const uid = giveCard(s, 'sente', 'itetsuku');
-  const { state } = applyAction(s, card(uid, []));
-  const acts = legalActions(state);
-  expect(acts.some(a => a.type === 'move' && a.to.c === 4 && a.to.r === 4)).toBe(false);
-});
-
 test('呼び戻し：相手の持ち駒が飛と歩なら、legalActions に pick:"HI" と pick:"FU" の2つが出る。pick:"HI" で飛がこちらへ移り handTransferred が出る', () => {
   const s = base();
   s.players.gote.hand.HI = 1;
@@ -192,19 +163,3 @@ test('相手のカードは使えない', () => {
   expect(() => applyAction(s, card(uid, [{ c: 4, r: 6 }]))).toThrow(IllegalActionError);
 });
 
-test('凍てつく盤で指せる手が1つもないときは、手番が自動で相手へ回る（対局が止まらない）', () => {
-  const s = emptyState();
-  // 後手は隅の王だけ。周りはすべて先手の駒で、凍っていると取れない
-  put(s, { c: 0, r: 0 }, 'OU', 'gote');
-  put(s, { c: 1, r: 0 }, 'KI', 'sente');
-  put(s, { c: 0, r: 1 }, 'KI', 'sente');
-  put(s, { c: 1, r: 1 }, 'KI', 'sente');
-  put(s, { c: 8, r: 8 }, 'OU', 'sente');
-  const uid = giveCard(s, 'sente', 'itetsuku');
-  const { state, events } = applyAction(s, card(uid, []));
-  expect(events).toContainEqual({ type: 'passed', side: 'gote' });
-  expect(state.turn).toBe('sente');
-  expect(state.frozen).toBeNull();
-  expect(state.result).toBeNull();
-  expect(legalActions(state).length).toBeGreaterThan(0);
-});

@@ -1,5 +1,5 @@
 // マス目の計算・初期配置・局面の複製・局面のキー
-import type { GameState, Piece, PieceKind, Side, Square, HandKind } from './types';
+import type { GameState, Handicap, HandicapKind, Piece, PieceKind, Side, Square, HandKind } from './types';
 
 export const HAND_KINDS: HandKind[] = ['HI', 'KA', 'KI', 'GI', 'KE', 'KY', 'FU'];
 
@@ -53,6 +53,31 @@ export function initialBoard(): { board: (Piece | null)[]; nextId: number } {
   return { board, nextId };
 }
 
+export const HANDICAP_LABEL: Record<HandicapKind, string> = {
+  none: 'なし', kyo: '香落ち', kaku: '角落ち', hisha: '飛車落ち', hikyo: '飛香落ち',
+  nimai: '二枚落ち', yonmai: '四枚落ち', rokumai: '六枚落ち',
+};
+
+// 落とす駒のマス（先手の向きで書く。c は先手から見て左が0）。香落ちの香は落とす側から見て左
+const HANDICAP_SQUARES: Record<HandicapKind, Square[]> = {
+  none: [],
+  kyo: [{ c: 0, r: 8 }],
+  kaku: [{ c: 1, r: 7 }],
+  hisha: [{ c: 7, r: 7 }],
+  hikyo: [{ c: 7, r: 7 }, { c: 0, r: 8 }],
+  nimai: [{ c: 7, r: 7 }, { c: 1, r: 7 }],
+  yonmai: [{ c: 7, r: 7 }, { c: 1, r: 7 }, { c: 0, r: 8 }, { c: 8, r: 8 }],
+  rokumai: [{ c: 7, r: 7 }, { c: 1, r: 7 }, { c: 0, r: 8 }, { c: 8, r: 8 }, { c: 1, r: 8 }, { c: 7, r: 8 }],
+};
+
+// 平手の盤から、駒落ちの駒を取り除く（後手は盤を180度回したマス）
+export function applyHandicap(board: (Piece | null)[], h: Handicap): void {
+  for (const sq of HANDICAP_SQUARES[h.kind]) {
+    const at = h.side === 'sente' ? sq : { c: 8 - sq.c, r: 8 - sq.r };
+    board[idx(at)] = null;
+  }
+}
+
 // 深い複製（局面は JSON で表せる値だけでできている）
 export function cloneState(s: GameState): GameState {
   return JSON.parse(JSON.stringify(s)) as GameState;
@@ -62,7 +87,8 @@ export function cloneState(s: GameState): GameState {
 export function positionKey(s: GameState): string {
   const cells = s.board.map(p => {
     if (!p) return '.';
-    return `${p.side[0]}${p.kind}${p.promoted ? '+' : ''}${p.equip ? '@' + p.equip.cardId : ''}`;
+    return `${p.side[0]}${p.kind}${p.promoted ? '+' : ''}${p.equip ? '@' + p.equip.cardId : ''}`
+      + `${p.frozen ? '~' + p.frozen : ''}${p.sealed ? '!' : ''}`;
   });
   const hands = (['sente', 'gote'] as Side[]).map(side =>
     HAND_KINDS.map(k => s.players[side].hand[k]).join(','));
@@ -73,5 +99,5 @@ export function positionKey(s: GameState): string {
     - s.traps.filter(t => t.owner === side && t.cardId !== null).length);
   const traps = (['sente', 'gote'] as Side[]).map(side =>
     s.traps.filter(t => t.owner === side).length);
-  return [cells.join(''), hands.join('|'), s.turn, used.join('|'), traps.join(','), s.frozen ?? '-'].join('/');
+  return [cells.join(''), hands.join('|'), s.turn, used.join('|'), traps.join(','), s.trapSetThisTurn ? 'T' : '-'].join('/');
 }

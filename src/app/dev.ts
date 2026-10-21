@@ -35,7 +35,9 @@ export function sampleView(): GameState {
   // 自分（先手）の落とし穴と、相手の隠れた罠
   s.traps.push({ uid: 900, owner: 'sente', cardId: 'otoshiana', at: { c: 4, r: 4 } });
   s.traps.push({ uid: 901, owner: 'gote', cardId: 'otoshiana', at: { c: 6, r: 5 } });
-  s.frozen = 'gote';
+  // 後手の歩を1つ凍らせる
+  const gfu = s.board[at(4, 2)]!;
+  s.board[at(4, 2)] = { ...gfu, frozen: 2 };
   return viewFor(s, 'sente');
 }
 

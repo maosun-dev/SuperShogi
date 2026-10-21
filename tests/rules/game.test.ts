@@ -142,3 +142,44 @@ test('相手の手番の駒は動かせない', () => {
   const s = createGame(noDecks);
   expect(() => applyAction(s, mv({ c: 2, r: 2 }, { c: 2, r: 3 }))).toThrow(IllegalActionError);
 });
+
+// ---------- 駒落ち ----------
+
+const kinds = (s: GameState, side: 'sente' | 'gote') =>
+  s.board.filter(p => p && p.side === side).map(p => p!.kind).sort().join(',');
+
+test('駒落ちなし（none）は平手と同じで先手から', () => {
+  const s = createGame(noDecks, { handicap: { side: 'gote', kind: 'none' } });
+  expect(s.turn).toBe('sente');
+  expect(s.board.filter(Boolean)).toHaveLength(40);
+});
+
+test('香落ち：落とす側から見て左の香がなくなり、落とした側が先に指す', () => {
+  const s = createGame(noDecks, { handicap: { side: 'sente', kind: 'kyo' } });
+  expect(s.board[idx({ c: 0, r: 8 })]).toBeNull();
+  expect(s.board[idx({ c: 8, r: 8 })]?.kind).toBe('KY');
+  expect(s.turn).toBe('sente');
+  const g = createGame(noDecks, { handicap: { side: 'gote', kind: 'kyo' } });
+  expect(g.board[idx({ c: 8, r: 0 })]).toBeNull();
+  expect(g.board[idx({ c: 0, r: 0 })]?.kind).toBe('KY');
+  expect(g.turn).toBe('gote');
+});
+
+test('駒落ちの種類ごとに消える駒', () => {
+  const want: Record<string, string[]> = {
+    kaku: ['KA'], hisha: ['HI'], hikyo: ['HI', 'KY'], nimai: ['HI', 'KA'],
+    yonmai: ['HI', 'KA', 'KY', 'KY'], rokumai: ['HI', 'KA', 'KY', 'KY', 'KE', 'KE'],
+  };
+  const full = kinds(createGame(noDecks), 'gote').split(',');
+  for (const [kind, gone] of Object.entries(want)) {
+    const s = createGame(noDecks, { handicap: { side: 'gote', kind: kind as never } });
+    const rest = [...full];
+    for (const k of gone) rest.splice(rest.indexOf(k), 1);
+    expect(kinds(s, 'gote')).toBe(rest.join(','));
+    expect(kinds(s, 'sente')).toBe(full.join(','));
+    expect(s.turn).toBe('gote');
+    // 後手の角は (7,1)、飛車は (1,1)
+    if (gone.includes('KA')) expect(s.board[idx({ c: 7, r: 1 })]).toBeNull();
+    if (gone.includes('HI')) expect(s.board[idx({ c: 1, r: 1 })]).toBeNull();
+  }
+});

@@ -1,4 +1,4 @@
-// 王の盾：盾を付けた駒と、その周り8マスの味方は、相手の魔法を受けない
+// 王の盾：盾を付けた駒と、その周り8マスの味方は、相手の術札と重りの枷を受けない
 import type { GameState, Square } from '../rules/types';
 import { idx, onBoard } from '../rules/board';
 

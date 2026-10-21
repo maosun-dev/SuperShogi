@@ -2,15 +2,11 @@
 import { CARDS } from '../cards';
 import { HAND_KINDS, idx, opponent, sqOf } from '../rules/board';
 import { pieceTargets } from '../rules/moves';
-import type { CardId, GameState, PieceKind, Side, Square } from '../rules/types';
+import type { CardId, GameState, Side, Square } from '../rules/types';
 
-export const PIECE_VALUE: Record<PieceKind, number> = {
-  FU: 100, KY: 300, KE: 350, GI: 500, KI: 600, KA: 800, HI: 1000, OU: 0,
-};
-// 成り駒の点数（金は成れないので無し）
-export const PROMOTED_VALUE: Partial<Record<PieceKind, number>> = {
-  FU: 600, KY: 600, KE: 600, GI: 600, KA: 1100, HI: 1300,
-};
+import { PIECE_VALUE, PROMOTED_VALUE } from '../rules/values';
+
+export { PIECE_VALUE, PROMOTED_VALUE };
 export const HAND_FACTOR = 1.1;   // 持ち駒は盤上の1.1倍（どこにでも打てるため）
 export const CARD_PER_COST = 80;  // 未使用のカード：コスト×80
 export const TRAP_PER_COST = 100; // 中身の分かる伏せた罠：コスト×100

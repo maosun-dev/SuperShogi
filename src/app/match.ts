@@ -1,5 +1,5 @@
 // 対局の進行役：本当の局面を持ち、人間と CPU の行動を順に適用して演出役に渡す（DOM なし）
-import type { Action, GameEvent, GameState, Result, Side } from '../rules/types';
+import type { Action, GameEvent, GameState, Handicap, Result, Side } from '../rules/types';
 import type { CardId } from '../rules/types';
 import { applyAction, createGame, legalActions } from '../rules/game';
 import { filterEventsFor, viewFor } from '../rules/view';
@@ -29,10 +29,12 @@ const CPU: Side = 'gote';
 export function createMatch(opts: {
   level: Level; humanDeck: CardId[]; cpu: CpuClient; presenter: Presenter;
   onOver?(r: Result): void; seed?: number;
+  handicap?: Handicap;  // 駒落ち。駒を落とした側が先に指す
   initial?: GameState; // テスト専用：本当の局面を差し込む口。通常は使わない
 }): Match {
-  let real: GameState = opts.initial ?? createGame({ sente: opts.humanDeck, gote: LEVELS[opts.level].deck });
-  let phase: MatchPhase = 'human';
+  let real: GameState = opts.initial
+    ?? createGame({ sente: opts.humanDeck, gote: LEVELS[opts.level].deck }, { handicap: opts.handicap });
+  let phase: MatchPhase = real.turn === HUMAN ? 'human' : 'cpu';
   const rng = makeRng(opts.seed ?? Date.now());
 
   const view = () => viewFor(real, HUMAN);
@@ -83,26 +85,32 @@ export function createMatch(opts: {
     return true;
   }
 
+  // 人間の手番になるか対局が終わるまで、CPU に指させる
+  async function runCpu(): Promise<void> {
+    for (;;) {
+      if (disposed()) return;
+      if (finishIfOver()) return;
+      if (real.turn === HUMAN) { phase = 'human'; return; }
+      phase = 'cpu';
+      const next = await cpuAction();
+      if (disposed()) return;
+      await applyAndPresent(next);
+    }
+  }
+
   return {
     view,
     legal: () => (phase === 'human' ? legalActions(view()) : []),
     phase: () => phase,
     result: () => real.result,
     async start() {
-      // 人間が先手なので何もせずすぐ返る（将来、後手になるときはここで CPU の初手を呼ぶ）
+      // CPU が先に指すとき（CPU 側の駒落ち）は、人間の手番まで進める
+      if (real.turn !== HUMAN) await runCpu();
     },
     async submit(a) {
       if (phase !== 'human') return;
       await applyAndPresent(a);
-      for (;;) {
-        if (disposed()) return;
-        if (finishIfOver()) return;
-        if (real.turn === HUMAN) { phase = 'human'; return; }
-        phase = 'cpu';
-        const next = await cpuAction();
-        if (disposed()) return;
-        await applyAndPresent(next);
-      }
+      await runCpu();
     },
     dispose() { phase = 'disposed'; },
   };

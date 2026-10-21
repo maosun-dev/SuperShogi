@@ -13,7 +13,7 @@ export const LEVELS: Record<Level, LevelConfig> = {
   },
   normal: {
     maxDepth: 2, timeLimitMs: 1000, qDepth: 4, cardPlies: 1, cardWidth: 6, noise: 40,
-    deck: ['rakurai', 'otoshiana', 'tenma', 'narifuuji', 'oshikaeshi'],
+    deck: ['rakurai', 'otoshiana', 'tenma', 'narifuuji'],
   },
   strong: {
     maxDepth: 4, timeLimitMs: 3000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 5,

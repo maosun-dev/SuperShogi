@@ -1,15 +1,20 @@
-// 装備カード4枚
-import type { CardId, GameState, Side, Square } from '../rules/types';
-import { idx, sqOf } from '../rules/board';
+// 纏札6枚
+import type { CardId, GameState, Piece, Side, Square } from '../rules/types';
+import { idx, opponent, sqOf } from '../rules/board';
+import { isShielded } from './shield';
 import type { CardContext, CardDef } from './types';
 
-// 装備が付いていない自分の駒1つ
-function bareOwnPieces(s: GameState, side: Side): Square[][] {
+// 纏札が付いていない side の駒のうち、ok を満たすもの
+function barePieces(s: GameState, side: Side, ok: (p: Piece, sq: Square) => boolean = () => true): Square[][] {
   const out: Square[][] = [];
   s.board.forEach((p, i) => {
-    if (p && p.side === side && !p.equip) out.push([sqOf(i)]);
+    if (p && p.side === side && !p.equip && ok(p, sqOf(i))) out.push([sqOf(i)]);
   });
   return out;
+}
+
+function bareOwnPieces(s: GameState, side: Side): Square[][] {
+  return barePieces(s, side);
 }
 
 function attach(cardId: CardId) {
@@ -23,7 +28,7 @@ function attach(cardId: CardId) {
 export const tenma: CardDef = {
   id: 'tenma', name: '天馬の蹄', kind: 'equip', cost: 2, fx: 'tenma',
   text: '付けた駒が、桂馬の動きも使えるようになる',
-  prompt: '装備を付ける自分の駒を選んでください',
+  prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: bareOwnPieces,
   resolve: attach('tenma'),
   equip: { knight: true },
@@ -31,17 +36,17 @@ export const tenma: CardDef = {
 
 export const hagane: CardDef = {
   id: 'hagane', name: '鋼の鎧', kind: 'equip', cost: 3, fx: 'hagane',
-  text: '付けた駒が取られそうになったとき、1回だけ守る。取ろうとした駒は元のマスに戻り、相手の手番は終わる。魔法や罠からは守らない',
-  prompt: '装備を付ける自分の駒を選んでください',
-  targetSets: bareOwnPieces,
+  text: '付けた駒が取られそうになったとき、1回だけ守る。取ろうとした駒は元のマスに戻り、相手の手番は終わる。術札や忍札からは守らない。王には付けられない',
+  prompt: '纏札を付ける自分の駒を選んでください',
+  targetSets: (s, side) => barePieces(s, side, p => p.kind !== 'OU'),
   resolve: attach('hagane'),
   equip: { armor: true },
 };
 
 export const tate: CardDef = {
-  id: 'tate', name: '王の盾', kind: 'equip', cost: 4, fx: 'tate',
-  text: '付けた駒と、その周り8マスの味方の駒は、相手の魔法を受けない',
-  prompt: '装備を付ける自分の駒を選んでください',
+  id: 'tate', name: '王の盾', kind: 'equip', cost: 3, fx: 'tate',
+  text: '付けた駒と、その周り8マスの味方の駒は、相手の術札と重りの枷を受けない',
+  prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: bareOwnPieces,
   resolve: attach('tate'),
   equip: { magicShield: true },
@@ -50,10 +55,29 @@ export const tate: CardDef = {
 export const idaten: CardDef = {
   id: 'idaten', name: '韋駄天', kind: 'equip', cost: 5, fx: 'idaten',
   text: '付けた駒は、1手で2回動ける。2回目の移動はしなくてもよい。2回目の移動では駒を取れない',
-  prompt: '装備を付ける自分の駒を選んでください',
+  prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: bareOwnPieces,
   resolve: attach('idaten'),
   equip: { doubleMove: true },
 };
 
-export const EQUIP_CARDS: CardDef[] = [tenma, hagane, tate, idaten];
+export const tsuranuki: CardDef = {
+  id: 'tsuranuki', name: '貫きの槍', kind: 'equip', cost: 3, fx: 'tsuranuki',
+  text: '自分の飛車・角・香車（竜・馬も）に付ける。まっすぐ進む動きで、途中の駒を1つだけ飛び越えられる。飛び越えた先の相手の駒は取れる',
+  prompt: '纏札を付ける自分の駒を選んでください',
+  targetSets: (s, side) => barePieces(s, side, p =>
+    p.kind === 'HI' || p.kind === 'KA' || (p.kind === 'KY' && !p.promoted)),
+  resolve: attach('tsuranuki'),
+  equip: { pierce: true },
+};
+
+export const omori: CardDef = {
+  id: 'omori', name: '重りの枷', kind: 'equip', cost: 3, fx: 'omori',
+  text: '相手の王以外の駒に付ける。その駒は、隣8マスのうち、もともと動けるマスにしか動けない。桂馬は動けなくなる',
+  prompt: '重りの枷を付ける相手の駒を選んでください',
+  targetSets: (s, side) => barePieces(s, opponent(side), (p, sq) => p.kind !== 'OU' && !isShielded(s, sq)),
+  resolve: attach('omori'),
+  equip: { shackle: true },
+};
+
+export const EQUIP_CARDS: CardDef[] = [tenma, hagane, tate, tsuranuki, omori, idaten];

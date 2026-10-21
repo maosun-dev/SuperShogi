@@ -1,7 +1,9 @@
 // 対局の進行：行動を受け取り、新しい局面と出来事の記録を返す
-import type { Action, CardId, CardInstance, GameEvent, GameState, HandKind, Piece, SetTrap, Side, Square } from './types';
+import type { Action, CardId, CardInstance, GameEvent, GameState, Handicap, HandKind, Piece, SetTrap, Side, Square } from './types';
 import { IllegalActionError } from './types';
-import { HAND_KINDS, cloneState, emptyHand, idx, initialBoard, opponent, positionKey, sameSq, sqOf } from './board';
+import { HAND_KINDS, applyHandicap, cloneState, emptyHand, idx, initialBoard, opponent, positionKey, sameSq, sqOf } from './board';
+import { pieceValue } from './values';
+import type { TrapTrigger } from '../cards/types';
 import { canPromote, dropTargets, isInCheck, mustPromote, pieceTargets } from './moves';
 import { CARDS, validateDeck } from '../cards';
 import type { CardContext } from '../cards/types';
@@ -9,12 +11,19 @@ import type { CardContext } from '../cards/types';
 const MOVE_LIMIT = 300;
 const REPETITION_LIMIT = 4;
 
-export function createGame(decks: Record<Side, CardId[]>): GameState {
+// 王は1手番、王以外は2手番凍る
+const FREEZE_KING = 1;
+const FREEZE_OTHER = 2;
+
+// 駒落ちがあるときは、駒を落とした側が先に指す
+export function createGame(decks: Record<Side, CardId[]>, opts: { handicap?: Handicap } = {}): GameState {
   for (const side of ['sente', 'gote'] as Side[]) {
     const problem = validateDeck(decks[side]);
     if (problem) throw new IllegalActionError(problem);
   }
   const { board, nextId } = initialBoard();
+  const handicap = opts.handicap && opts.handicap.kind !== 'none' ? opts.handicap : null;
+  if (handicap) applyHandicap(board, handicap);
   const s: GameState = {
     board,
     players: {
@@ -22,9 +31,9 @@ export function createGame(decks: Record<Side, CardId[]>): GameState {
       gote: { hand: emptyHand(), cards: [] },
     },
     traps: [],
-    turn: 'sente',
+    turn: handicap ? handicap.side : 'sente',
     ply: 0,
-    frozen: null,
+    trapSetThisTurn: false,
     seen: {},
     result: null,
     nextId,
@@ -37,8 +46,9 @@ export function createGame(decks: Record<Side, CardId[]>): GameState {
 }
 
 // 移動で選べる「成る／成らない」
+// 成れない駒が、成らないと行き所のないマスへ動く手は出さない（空配列）
 function promoteOptions(p: Piece, from: Square, to: Square): boolean[] {
-  if (!p.promoted && mustPromote(p.kind, p.side, to)) return [true];
+  if (!p.promoted && mustPromote(p.kind, p.side, to)) return p.sealed ? [] : [true];
   if (canPromote(p, from, to)) return [true, false];
   return [false];
 }
@@ -46,7 +56,6 @@ function promoteOptions(p: Piece, from: Square, to: Square): boolean[] {
 export function legalActions(s: GameState): Action[] {
   if (s.result) return [];
   const side = s.turn;
-  const frozen = s.frozen === side;
   const out: Action[] = [];
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
@@ -55,8 +64,6 @@ export function legalActions(s: GameState): Action[] {
     const double = hasEquip(p, 'doubleMove');
     for (const to of pieceTargets(s, from)) {
       const target = s.board[idx(to)];
-      // 凍てつく盤：この手番は相手の駒のマスへ動けない
-      if (frozen && target) continue;
       for (const promote of promoteOptions(p, from, to)) {
         out.push({ type: 'move', from, to, promote });
         // 韋駄天：取らない2回目。1手目で王を取るなら2回目はない
@@ -75,6 +82,7 @@ export function legalActions(s: GameState): Action[] {
   for (const c of s.players[side].cards) {
     if (c.used) continue;
     const def = CARDS[c.cardId];
+    if (def.kind === 'trap' && s.trapSetThisTurn) continue; // 忍札は1手番に1枚まで
     for (const targets of def.targetSets(s, side)) {
       if (def.choices) {
         for (const pick of def.choices(s, side)) out.push({ type: 'card', uid: c.uid, targets, pick });
@@ -155,13 +163,22 @@ export function applyActionUnchecked(s0: GameState, a: Action): { state: GameSta
   } else {
     const inst = s.players[side].cards.find(c => c.uid === a.uid)!;
     useCard(s, events, side, inst, a.targets, a.pick);
+    if (CARDS[inst.cardId].kind === 'trap') {
+      // 忍札は伏せても手番が終わらない。続けて行える行動が無いときだけ手番を回す
+      s.trapSetThisTurn = true;
+      if (!hasAnyAction(s)) {
+        events.push({ type: 'passed', side });
+        endTurn(s, events);
+      }
+      return { state: s, events };
+    }
   }
 
   endTurn(s, events);
   return { state: s, events };
 }
 
-// 駒を1回動かす。鋼の鎧に止められたら 'blocked'
+// 駒を1回動かす。鋼の鎧・身代わりに止められたら 'blocked'
 function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, promote: boolean): 'moved' | 'blocked' {
   const p = s.board[idx(from)]!;
   const side = p.side;
@@ -172,11 +189,13 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
     events.push({ type: 'armorBlocked', defenderId: target.id, attackerId: p.id, at: to });
     return 'blocked';
   }
+  if (target?.kind === 'OU' && guardKing(s, events, target, to, p)) return 'blocked';
   if (promote && !mustPromote(p.kind, side, to)) {
-    // 成り封じ：成らずに動く（成らないと行き所がない手では発動しない）
+    // 成り封じ：成らずに動く（成らないと行き所がない手では発動しない）。その駒は対局の終わりまで成れない
     const t = findTrap(s, opponent(side), 'promote');
     if (t) {
       fireTrap(s, events, t);
+      p.sealed = true;
       events.push({ type: 'promotionBlocked', pieceId: p.id });
       promote = false;
     }
@@ -190,13 +209,54 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
   s.board[idx(to)] = p;
   if (promote) p.promoted = true;
   events.push({ type: 'moved', pieceId: p.id, from, to, promoted: promote });
-  if (target?.kind === 'OU') finish(s, events, { winner: side, reason: 'king-captured' });
-  else enterSquare(s, events, to);
+  if (target?.kind === 'OU') {
+    finish(s, events, { winner: side, reason: 'king-captured' });
+    return 'moved';
+  }
+  if (target && p.kind !== 'OU') {
+    // 相討ち：取った駒も壊す（王で取ったときは発動せず残る）
+    const t = findTrap(s, target.side, 'capture');
+    if (t) {
+      fireTrap(s, events, t);
+      destroyAt(s, events, to, 'aiuchi');
+      return 'moved';
+    }
+  }
+  enterSquare(s, events, to);
   return 'moved';
 }
 
-// side が伏せた罠のうち、trigger で発動するもの（uid が小さい1枚）
-function findTrap(s: GameState, owner: Side, trigger: 'magic' | 'promote'): SetTrap | undefined {
+// 身代わり：王の隣8マスの味方のうちいちばん安い駒（同じなら盤の順で先）を代わりに壊す。発動したら true
+function guardKing(s: GameState, events: GameEvent[], king: Piece, at: Square, attacker: Piece): boolean {
+  const t = findTrap(s, king.side, 'kingCapture');
+  if (!t) return false;
+  let best: { sq: Square; value: number } | null = null;
+  for (let i = 0; i < 81; i++) {
+    const q = s.board[i];
+    const sq = sqOf(i);
+    if (!q || q.side !== king.side || q.id === king.id) continue;
+    if (Math.abs(sq.c - at.c) > 1 || Math.abs(sq.r - at.r) > 1) continue;
+    const v = pieceValue(q);
+    if (!best || v < best.value) best = { sq, value: v };
+  }
+  if (!best) return false;
+  fireTrap(s, events, t);
+  destroyAt(s, events, best.sq, 'migawari');
+  events.push({ type: 'kingGuarded', attackerId: attacker.id, kingId: king.id, at });
+  return true;
+}
+
+// 駒を凍らせる。持ち主の手番の最中なら、その手番の終わりの1減りの分を足しておく
+function freezePiece(s: GameState, events: GameEvent[], sq: Square): void {
+  const p = s.board[idx(sq)];
+  if (!p) return;
+  const turns = p.kind === 'OU' ? FREEZE_KING : FREEZE_OTHER;
+  p.frozen = p.side === s.turn ? turns + 1 : turns;
+  events.push({ type: 'frozen', pieceId: p.id, at: sq, turns });
+}
+
+// side が伏せた札のうち、trigger で発動するもの（uid が小さい1枚）
+function findTrap(s: GameState, owner: Side, trigger: TrapTrigger): SetTrap | undefined {
   return s.traps
     .filter(t => t.owner === owner && t.cardId && CARDS[t.cardId].trap?.trigger === trigger)
     .sort((a, b) => a.uid - b.uid)[0];
@@ -216,16 +276,19 @@ function destroyAt(s: GameState, events: GameEvent[], sq: Square, cause: CardId)
   events.push({ type: 'destroyed', pieceId: p.id, at: sq, cause });
 }
 
-// 駒がマスに入ったとき：駒の持ち主と反対の側の落とし穴があれば発動する。王なら発動せず罠は残る
+// 駒がマスに入ったとき：駒の持ち主と反対の側の、マスに伏せた札があれば発動する。
+// 落とし穴は王には発動せず残る。凍てつく床は王も凍らせる
 function enterSquare(s: GameState, events: GameEvent[], sq: Square): void {
   const p = s.board[idx(sq)];
-  if (!p || p.kind === 'OU') return;
+  if (!p) return;
   const t = s.traps
     .filter(t => t.owner !== p.side && t.at && sameSq(t.at, sq) && t.cardId && CARDS[t.cardId].trap?.trigger === 'enter')
+    .filter(t => !(p.kind === 'OU' && t.cardId === 'otoshiana'))
     .sort((a, b) => a.uid - b.uid)[0];
   if (!t) return;
   fireTrap(s, events, t);
-  destroyAt(s, events, sq, t.cardId!);
+  if (t.cardId === 'itetsuku') freezePiece(s, events, sq);
+  else destroyAt(s, events, sq, t.cardId!);
 }
 
 function cardContext(s: GameState, events: GameEvent[], side: Side): CardContext {
@@ -248,6 +311,18 @@ function cardContext(s: GameState, events: GameEvent[], side: Side): CardContext
       enterSquare(s, events, a);
       enterSquare(s, events, b);
     },
+    promoteInPlace(sq) {
+      const p = s.board[idx(sq)]!;
+      const t = findTrap(s, opponent(p.side), 'promote');
+      if (t) {
+        fireTrap(s, events, t);
+        p.sealed = true;
+        events.push({ type: 'promotionBlocked', pieceId: p.id });
+        return;
+      }
+      p.promoted = true;
+      events.push({ type: 'promotedInPlace', pieceId: p.id, at: sq });
+    },
   };
 }
 
@@ -265,8 +340,8 @@ function useCard(
     return;
   }
   events.push({ type: 'cardUsed', side, cardId: inst.cardId, targets });
-  if (def.kind === 'magic') {
-    // 鏡の結界：効果の前に無効にする。使った側の手番はそのまま終わる
+  if (def.kind === 'magic' && def.cost >= 2) {
+    // 鏡の結界：コスト2以上の術札を、効果の前に打ち消す。使った側の手番はそのまま終わる
     const t = findTrap(s, opponent(side), 'magic');
     if (t) {
       fireTrap(s, events, t);
@@ -285,7 +360,13 @@ function finish(s: GameState, events: GameEvent[], result: NonNullable<GameState
 // 手番の後処理：手番交代・王手の知らせ・千日手・手数の上限
 function endTurn(s: GameState, events: GameEvent[]): void {
   const mover = s.turn;
-  if (s.frozen === mover) s.frozen = null;
+  // 手番を終えた側の凍った駒は、残りを1減らす
+  for (const p of s.board) {
+    if (!p || p.side !== mover || !p.frozen) continue;
+    p.frozen--;
+    if (p.frozen <= 0) delete p.frozen;
+  }
+  s.trapSetThisTurn = false;
   s.turn = opponent(mover);
   s.ply++;
   if (isInCheck(s, s.turn)) events.push({ type: 'check', side: s.turn });
@@ -296,7 +377,7 @@ function endTurn(s: GameState, events: GameEvent[]): void {
   } else if (s.ply > MOVE_LIMIT) {
     finish(s, events, { winner: null, reason: 'move-limit' });
   } else if (!hasAnyAction(s)) {
-    // 指せる行動が1つもない（凍てつく盤で囲まれた王だけ、など）ときは、手番を自動で相手へ回す
+    // 指せる行動が1つもない（凍った王だけ、など）ときは、手番を自動で相手へ回す
     events.push({ type: 'passed', side: s.turn });
     endTurn(s, events);
   }
@@ -304,11 +385,11 @@ function endTurn(s: GameState, events: GameEvent[]): void {
 
 // 行動が1つでもあるか（駒の移動はすぐ見つかることが多いので先に調べる）
 function hasAnyAction(s: GameState): boolean {
-  const frozen = s.frozen === s.turn;
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
     if (!p || p.side !== s.turn) continue;
-    if (pieceTargets(s, sqOf(i)).some(to => !(frozen && s.board[idx(to)]))) return true;
+    const from = sqOf(i);
+    if (pieceTargets(s, from).some(to => promoteOptions(p, from, to).length > 0)) return true;
   }
   return legalActions(s).length > 0;
 }

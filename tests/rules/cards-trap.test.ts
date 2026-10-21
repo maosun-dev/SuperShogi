@@ -32,7 +32,9 @@ test('落とし穴は空きマスにだけ伏せられる', () => {
   // 罠の場所が漏れないよう、罠には cardUsed を出さない
   expect(events.some(e => e.type === 'cardUsed')).toBe(false);
   expect(state.players.sente.cards[0].used).toBe(true);
-  expect(state.turn).toBe('gote');
+  // 忍札は伏せても手番が終わらない
+  expect(state.turn).toBe('sente');
+  expect(state.trapSetThisTurn).toBe(true);
 });
 
 test('自分の落とし穴があるマスには、もう1つ伏せられない', () => {
@@ -187,25 +189,27 @@ test('鏡の結界：相手の落雷が無効になり、相手の手番は終�
   expect(events.some(e => e.type === 'destroyed')).toBe(false);
 });
 
-test('鏡の結界：2枚あっても発動するのは uid が小さい1枚だけ。自分の魔法には発動しない', () => {
+test('鏡の結界：2枚あっても発動するのは uid が小さい1枚だけ。自分の術札には発動しない', () => {
   const s = base();
   const t1 = setTrap(s, 'gote', 'kagami');
   const t2 = setTrap(s, 'gote', 'kagami');
   setTrap(s, 'sente', 'kagami');
-  const uid = giveCard(s, 'sente', 'itetsuku');
-  const { state } = applyAction(s, card(uid, []));
+  s.players.gote.hand.FU = 1;
+  const uid = giveCard(s, 'sente', 'yobimodoshi');
+  const { state } = applyAction(s, { type: 'card', uid, targets: [], pick: 'FU' });
   expect(state.traps.map(t => t.uid)).toContain(t2);
   expect(state.traps.map(t => t.uid)).not.toContain(t1);
   expect(state.traps.filter(t => t.owner === 'sente')).toHaveLength(1);
-  expect(state.frozen).toBeNull();
+  expect(state.players.sente.hand.FU).toBe(0);
 });
 
 test('鏡の結界は装備カードには発動しない', () => {
   const s = base();
   setTrap(s, 'gote', 'kagami');
+  put(s, { c: 5, r: 5 }, 'GI', 'sente');
   const uid = giveCard(s, 'sente', 'hagane');
-  const { state } = applyAction(s, card(uid, [{ c: 8, r: 8 }]));
-  expect(state.board[idx({ c: 8, r: 8 })]!.equip).toEqual({ cardId: 'hagane' });
+  const { state } = applyAction(s, card(uid, [{ c: 5, r: 5 }]));
+  expect(state.board[idx({ c: 5, r: 5 })]!.equip).toEqual({ cardId: 'hagane' });
   expect(state.traps).toHaveLength(1);
 });
 
@@ -247,8 +251,10 @@ test('罠が3枚伏せてあると、4枚目の罠カードは legalActions に�
   const b = giveCard(s, 'sente', 'otoshiana');
   expect(cardActs(s, a)).toHaveLength(1);
   const r1 = applyAction(s, card(a, []));
-  const r2 = applyAction(r1.state, mv({ c: 0, r: 0 }, { c: 0, r: 1 }));
-  expect(cardActs(r2.state, b)).toEqual([]);
+  expect(cardActs(r1.state, b)).toEqual([]);
+  const r2 = applyAction(r1.state, mv({ c: 8, r: 8 }, { c: 8, r: 7 }));
+  const r3 = applyAction(r2.state, mv({ c: 0, r: 0 }, { c: 0, r: 1 }));
+  expect(cardActs(r3.state, b)).toEqual([]);
 });
 
 test('罠の発動は手番に数えない（発動のあとも手番は普通に交代する）', () => {

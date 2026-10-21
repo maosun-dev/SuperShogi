@@ -231,8 +231,8 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
     const lb = labelOf(p);
     o.label.material = labelMat(lb.ch, lb.color);
 
-    // 凍った側の青み
-    o.body.material = view.frozen === p.side ? frozenMat : pieceMat;
+    // 凍った駒の青み
+    o.body.material = p.frozen ? frozenMat : pieceMat;
 
     // 装備の六角形
     const eq = p.equip?.cardId ?? null;

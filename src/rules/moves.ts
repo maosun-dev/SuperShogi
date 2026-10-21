@@ -31,10 +31,11 @@ function vectors(p: Piece): { steps: Vec[]; slides: Vec[] } {
   }
 }
 
-// その駒が動ける先（味方のいるマスは除く。相手の駒のマスは含む）
+// その駒が動ける先（味方のいるマスは除く。相手の駒のマスは含む）。
+// 凍った駒は動けない。重りの枷を付けた駒は隣8マスだけ。貫きの槍は滑る途中の駒を1つ飛び越えられる
 export function pieceTargets(s: GameState, from: Square): Square[] {
   const p = s.board[idx(from)];
-  if (!p) return [];
+  if (!p || p.frozen) return [];
   const f = forward(p.side);
   const { steps, slides } = vectors(p);
   const extra = p.equip?.cardId === 'tenma' ? KNIGHT : [];
@@ -51,15 +52,24 @@ export function pieceTargets(s: GameState, from: Square): Square[] {
     if (q && q.side === p.side) continue;
     add(to);
   }
+  const pierce = p.equip?.cardId === 'tsuranuki';
   for (const [dc, df] of slides) {
     let to = { c: from.c + dc, r: from.r + df * f };
+    let jumped = false;
     while (onBoard(to)) {
       const q = s.board[idx(to)];
-      if (q && q.side === p.side) break;
-      add(to);
-      if (q) break;
+      if (q) {
+        if (q.side !== p.side) add(to);
+        if (!pierce || jumped) break;
+        jumped = true;
+      } else {
+        add(to);
+      }
       to = { c: to.c + dc, r: to.r + df * f };
     }
+  }
+  if (p.equip?.cardId === 'omori') {
+    return out.filter(t => Math.abs(t.c - from.c) <= 1 && Math.abs(t.r - from.r) <= 1);
   }
   return out;
 }
@@ -69,7 +79,7 @@ function inEnemyCamp(side: Side, sq: Square): boolean {
 }
 
 export function canPromote(p: Piece, from: Square, to: Square): boolean {
-  if (p.promoted || p.kind === 'KI' || p.kind === 'OU') return false;
+  if (p.promoted || p.sealed || p.kind === 'KI' || p.kind === 'OU') return false;
   return inEnemyCamp(p.side, from) || inEnemyCamp(p.side, to);
 }
 

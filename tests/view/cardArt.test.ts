@@ -5,9 +5,9 @@ import { CARDS } from '../../src/cards';
 import type { CardId } from '../../src/rules/types';
 
 describe('カードの絵', () => {
-  it('12枚すべてに絵がある', () => {
+  it('18枚すべてに絵がある', () => {
     const ids = Object.keys(CARDS) as CardId[];
-    expect(ids.length).toBe(12);
+    expect(ids.length).toBe(18);
     for (const id of ids) {
       const art = CARD_ART[id];
       expect(art, id).toBeTruthy();

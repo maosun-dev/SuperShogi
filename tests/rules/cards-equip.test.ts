@@ -21,7 +21,7 @@ function base(): GameState {
   return s;
 }
 
-test('装備は付いていない自分の駒にだけ付けられる。装備済みの駒は対象外', () => {
+test('鋼の鎧は纏札の付いていない自分の王以外の駒にだけ付けられる', () => {
   const s = base();
   put(s, { c: 4, r: 4 }, 'KI', 'sente');
   put(s, { c: 5, r: 5 }, 'GI', 'sente', { equip: 'tenma' });
@@ -29,7 +29,7 @@ test('装備は付いていない自分の駒にだけ付けられる。装備�
   const uid = giveCard(s, 'sente', 'hagane');
   const targets = cardActs(s, uid).map(a => a.targets);
   expect(targets).toContainEqual([{ c: 4, r: 4 }]);
-  expect(targets).toContainEqual([{ c: 8, r: 8 }]);
+  expect(targets).not.toContainEqual([{ c: 8, r: 8 }]); // 王には付けられない
   expect(targets).not.toContainEqual([{ c: 5, r: 5 }]);
   expect(targets).not.toContainEqual([{ c: 3, r: 3 }]);
   const ki = s.board[idx({ c: 4, r: 4 })]!;

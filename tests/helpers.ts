@@ -12,7 +12,7 @@ export function emptyState(turn: Side = 'sente'): GameState {
     traps: [],
     turn,
     ply: 0,
-    frozen: null,
+    trapSetThisTurn: false,
     seen: {},
     result: null,
     nextId: 1,
@@ -21,13 +21,15 @@ export function emptyState(turn: Side = 'sente'): GameState {
 
 export function put(
   s: GameState, sq: Square, kind: PieceKind, side: Side,
-  opts: { promoted?: boolean; equip?: CardId } = {},
+  opts: { promoted?: boolean; equip?: CardId; frozen?: number; sealed?: true } = {},
 ): Piece {
   const p: Piece = {
     id: s.nextId++, kind, side,
     promoted: opts.promoted ?? false,
     equip: opts.equip ? { cardId: opts.equip } : null,
   };
+  if (opts.frozen) p.frozen = opts.frozen;
+  if (opts.sealed) p.sealed = true;
   s.board[idx(sq)] = p;
   return p;
 }

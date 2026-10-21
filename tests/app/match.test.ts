@@ -37,6 +37,20 @@ function pendingCpu() {
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 describe('対局の進行役', () => {
+  it('CPU 側に駒落ちを付けると CPU が先に指し、start のあと人間の手番になる', async () => {
+    const { steps, presenter } = fakePresenter();
+    const m = createMatch({
+      level: 'weak', humanDeck: [], cpu: pickingCpu(), presenter, seed: 1,
+      handicap: { side: 'gote', kind: 'kaku' },
+    });
+    expect(m.phase()).toBe('cpu');
+    await m.start();
+    expect(steps).toHaveLength(1);
+    expect(steps[0].actor).toBe('gote');
+    expect(m.phase()).toBe('human');
+    expect(m.view().turn).toBe('sente');
+  });
+
   it('人間の手のあと、CPU の手まで演出してから人間の手番に戻る', async () => {
     const { steps, presenter } = fakePresenter();
     const cpu = pickingCpu();
@@ -77,8 +91,8 @@ describe('対局の進行役', () => {
     put(real, { c: 2, r: 6 }, 'FU', 'sente');
     put(real, { c: 2, r: 5 }, 'KA', 'sente');
     const all: CardId[] = [
-      'oshikaeshi', 'irekae', 'rakurai', 'itetsuku', 'yobimodoshi', 'otoshiana',
-      'kagami', 'narifuuji', 'tenma', 'hagane', 'tate', 'idaten',
+      'oshikaeshi', 'irekae', 'rakurai', 'kakuotoshi', 'shoryu', 'yobimodoshi', 'otoshiana', 'itetsuku',
+      'kagami', 'narifuuji', 'aiuchi', 'migawari', 'tenma', 'hagane', 'tate', 'tsuranuki', 'omori', 'idaten',
     ];
     for (const c of all) giveCard(real, 'sente', c);
     setTrap(real, 'gote', 'otoshiana', { c: 2, r: 4 });

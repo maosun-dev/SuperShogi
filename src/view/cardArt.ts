@@ -65,7 +65,18 @@ function plate(y: number, w: number, grow: number, fill: string): string {
   return `<path d="M${r1(x1)} ${y} Q23 ${y + 3} ${r1(x2)} ${y} L${r1(x2 + grow)} ${y + h} Q23 ${y + h + 3.5} ${r1(x1 - grow)} ${y + h}Z" fill="${fill}" stroke="${P}" stroke-width="1"/>`;
 }
 
+/** 仮の絵：名前の1文字目を大きく書く（計画6で描き直す） */
+function glyph(ch: string): string {
+  return `<text x="23" y="42" text-anchor="middle" font-size="30" fill="${P}" font-family="serif">${ch}</text>`;
+}
+
 export const CARD_ART: Record<CardId, string> = {
+  kakuotoshi: glyph('格'),
+  shoryu: glyph('昇'),
+  aiuchi: glyph('相'),
+  migawari: glyph('身'),
+  tsuranuki: glyph('貫'),
+  omori: glyph('重'),
   // ---- 試作から移したもの（色だけパレットに置き換え） ----
   // 落雷：墨の雲から藍の稲妻
   rakurai: `<circle cx="14" cy="12" r="9" fill="${S}"/><circle cx="26" cy="9" r="10" fill="${S}"/><circle cx="35" cy="15" r="7" fill="${S}"/>

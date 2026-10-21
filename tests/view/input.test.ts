@@ -141,7 +141,7 @@ describe('input', () => {
   it('対象なしのカードはすぐ使う／呼び戻しは種類を選ぶ', () => {
     const s = emptyState();
     kings(s);
-    const u1 = giveCard(s, 'sente', 'itetsuku');
+    const u1 = giveCard(s, 'sente', 'kagami');
     const { res, legal } = run(s, [{ type: 'useCard', uid: u1 }]);
     expect(res.action).toBe(legal.find(a => a.type === 'card' && a.uid === u1)!);
 
@@ -185,10 +185,15 @@ describe('input', () => {
       rakurai: '壊す相手の駒を選んでください',
       yobimodoshi: '呼び戻す駒の種類を選んでください',
       otoshiana: '落とし穴を仕掛けるマスを選んでください',
-      tenma: '装備を付ける自分の駒を選んでください',
-      hagane: '装備を付ける自分の駒を選んでください',
-      tate: '装備を付ける自分の駒を選んでください',
-      idaten: '装備を付ける自分の駒を選んでください',
+      tenma: '纏札を付ける自分の駒を選んでください',
+      hagane: '纏札を付ける自分の駒を選んでください',
+      tate: '纏札を付ける自分の駒を選んでください',
+      idaten: '纏札を付ける自分の駒を選んでください',
+      itetsuku: '凍てつく床を仕掛けるマスを選んでください',
+      kakuotoshi: '成りを戻す相手の駒を選んでください',
+      shoryu: '成らせる自分の駒を選んでください',
+      tsuranuki: '纏札を付ける自分の駒を選んでください',
+      omori: '重りの枷を付ける相手の駒を選んでください',
     };
     for (const [id, text] of Object.entries(want)) expect(CARDS[id as CardId].prompt).toBe(text);
   });

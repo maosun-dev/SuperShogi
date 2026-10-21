@@ -16,7 +16,7 @@ import {
 import { getSound } from './sound';
 
 type MagicCue = Extract<Cue, { kind: 'magic' }>;
-type MagicName = 'oshikaeshi' | 'irekae' | 'rakurai' | 'itetsuku' | 'yobimodoshi';
+type MagicName = 'oshikaeshi' | 'irekae' | 'rakurai' | 'yobimodoshi';
 
 const PIECE_Y = 0.02; // pieces3d と同じ駒の置き高さ
 
@@ -178,7 +178,7 @@ async function rakurai(ctx: FxCtx, cue: MagicCue): Promise<void> {
   }
 }
 
-// ---------- 凍てつく盤 ----------
+// ---------- 霜の模様（凍てつく床で使う） ----------
 let frostSrc: HTMLCanvasElement | null = null;
 const FROST_W = 512, FROST_H = Math.round(512 * BD / BW);
 
@@ -222,72 +222,6 @@ function frostPattern(): HTMLCanvasElement {
   }
   frostSrc = c;
   return c;
-}
-
-async function itetsuku(ctx: FxCtx, cue: MagicCue): Promise<void> {
-  const e = effect(cue, 'frozen');
-  if (!e) return;
-  const src = frostPattern();
-  const c = document.createElement('canvas'); c.width = FROST_W; c.height = FROST_H;
-  const g = c.getContext('2d')!;
-  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
-  const plate = new THREE.Mesh(new THREE.PlaneGeometry(BW, BD), mat);
-  plate.rotation.x = -Math.PI / 2;
-  plate.position.y = 0.004;
-  const kill = transient(ctx, plate, 60000); // 片付けはこの関数の最後で行う（寿命は念のための上限）
-
-  // 霜が丸く広がる（半径は盤の角まで）。輪の先が少し明るい
-  const maxR = Math.hypot(FROST_W, FROST_H) / 2;
-  const draw = (r: number): void => {
-    g.clearRect(0, 0, FROST_W, FROST_H);
-    g.save();
-    g.beginPath(); g.arc(FROST_W / 2, FROST_H / 2, Math.max(0.1, r), 0, Math.PI * 2); g.clip();
-    g.drawImage(src, 0, 0);
-    g.restore();
-    if (r < maxR) {
-      g.strokeStyle = rgba(PAL.gofun, 0.8); g.lineWidth = 6;
-      g.beginPath(); g.arc(FROST_W / 2, FROST_H / 2, Math.max(0.1, r), 0, Math.PI * 2); g.stroke();
-    }
-    tex.needsUpdate = true;
-  };
-
-  // 凍る側の駒：霜の輪が届いたら青白くなる（材質は共有なので複製して色を変える）
-  const tinted: { body: THREE.Mesh; mat: THREE.MeshStandardMaterial; from: THREE.Color; dist: number }[] = [];
-  const pale = new THREE.Color(PAL.mahouPale);
-  ctx.after.board.forEach((p, i) => {
-    if (!p || p.side !== e.side) return;
-    const m = pieceMesh(p.id);
-    const body = m?.children[0] as THREE.Mesh | undefined;
-    if (!body) return;
-    const mat = (body.material as THREE.MeshStandardMaterial).clone();
-    body.material = mat;
-    const sp = squarePos({ c: i % 9, r: Math.floor(i / 9) });
-    tinted.push({ body, mat, from: mat.color.clone(), dist: Math.hypot(sp.x, sp.z) });
-  });
-  const pxPerUnit = FROST_W / BW;
-
-  try {
-    await ctx.tween(1100, (t) => {
-      const r = maxR * t;
-      draw(r);
-      const ru = r / pxPerUnit;
-      for (const x of tinted) x.mat.color.copy(x.from).lerp(pale, Math.min(1, Math.max(0, (ru - x.dist) / 0.9)));
-    }, easeOut);
-    draw(maxR);
-    for (const x of tinted) x.mat.color.copy(pale);
-    flash(ctx, PALS.mahouPale, 0.35, 260);
-    getSound().play('frost');
-    shakeBy(ctx, 0.1);
-    await ctx.wait(600);
-    // 霜は薄れて消える（凍っている間は駒の青みで分かる）
-    await ctx.tween(600, (t) => { mat.opacity = 1 - t; });
-  } finally {
-    kill();
-    // 青みは sync が view.frozen を見て付け直す。複製した材質はここで捨てる
-    ctx.sync();
-    for (const x of tinted) x.mat.dispose();
-  }
 }
 
 // ---------- 呼び戻し（HTML の駒札が飛ぶ） ----------
@@ -365,7 +299,7 @@ async function yobimodoshi(ctx: FxCtx, cue: MagicCue): Promise<void> {
 }
 
 export const MAGIC_FX: Record<MagicName, (ctx: FxCtx, cue: MagicCue) => Promise<void>> = {
-  oshikaeshi, irekae, rakurai, itetsuku, yobimodoshi,
+  oshikaeshi, irekae, rakurai, yobimodoshi,
 };
 
 /** カメラが寄る先（対象のマス。2つなら真ん中）。対象がなければ null */

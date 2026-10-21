@@ -66,9 +66,11 @@ function realWithTraps(): GameState {
   play({ type: 'move', from: { c: 2, r: 6 }, to: { c: 2, r: 5 }, promote: false });
   const pit = s.players.gote.cards.find(c => c.cardId === 'otoshiana')!;
   play({ type: 'card', uid: pit.uid, targets: [{ c: 2, r: 4 }] });
+  play({ type: 'move', from: { c: 6, r: 2 }, to: { c: 6, r: 3 }, promote: false }); // 伏せても手番は続く
   play({ type: 'move', from: { c: 6, r: 6 }, to: { c: 6, r: 5 }, promote: false });
   const mirror = s.players.gote.cards.find(c => c.cardId === 'kagami')!;
   play({ type: 'card', uid: mirror.uid, targets: [] });
+  play({ type: 'move', from: { c: 5, r: 2 }, to: { c: 5, r: 3 }, promote: false });
   return s;
 }
 
