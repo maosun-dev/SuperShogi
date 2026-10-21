@@ -56,6 +56,30 @@ function promoteOptions(p: Piece, from: Square, to: Square): boolean[] {
 export function legalActions(s: GameState): Action[] {
   if (s.result) return [];
   const side = s.turn;
+  const out: Action[] = moveActions(s);
+  for (const kind of HAND_KINDS) {
+    if (s.players[side].hand[kind] <= 0) continue;
+    for (const to of dropTargets(s, side, kind)) out.push({ type: 'drop', kind, to });
+  }
+  for (const c of s.players[side].cards) {
+    if (c.used) continue;
+    const def = CARDS[c.cardId];
+    if (def.kind === 'trap' && s.trapSetThisTurn) continue; // 忍札は1手番に1枚まで
+    for (const targets of def.targetSets(s, side)) {
+      if (def.choices) {
+        for (const pick of def.choices(s, side)) out.push({ type: 'card', uid: c.uid, targets, pick });
+      } else {
+        out.push({ type: 'card', uid: c.uid, targets });
+      }
+    }
+  }
+  return out;
+}
+
+// 盤の駒を動かす行動だけ（legalActions の一部。打つ手・札は入らない）
+export function moveActions(s: GameState): Action[] {
+  if (s.result) return [];
+  const side = s.turn;
   const out: Action[] = [];
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
@@ -72,22 +96,6 @@ export function legalActions(s: GameState): Action[] {
             out.push({ type: 'move', from, to, promote, second });
           }
         }
-      }
-    }
-  }
-  for (const kind of HAND_KINDS) {
-    if (s.players[side].hand[kind] <= 0) continue;
-    for (const to of dropTargets(s, side, kind)) out.push({ type: 'drop', kind, to });
-  }
-  for (const c of s.players[side].cards) {
-    if (c.used) continue;
-    const def = CARDS[c.cardId];
-    if (def.kind === 'trap' && s.trapSetThisTurn) continue; // 忍札は1手番に1枚まで
-    for (const targets of def.targetSets(s, side)) {
-      if (def.choices) {
-        for (const pick of def.choices(s, side)) out.push({ type: 'card', uid: c.uid, targets, pick });
-      } else {
-        out.push({ type: 'card', uid: c.uid, targets });
       }
     }
   }

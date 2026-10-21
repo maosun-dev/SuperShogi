@@ -150,3 +150,38 @@ test('1枚のカードが候補の枠を独占しない', () => {
   expect(cands.length).toBeLessThanOrEqual(4);
   expect(cands.some(c => c.a.type === 'card' && c.a.uid === kagami)).toBe(true);
 });
+
+test('頭金の1手詰め：深さ1でも、王手の延長で金を打つ手を見つける', () => {
+  const s = emptyState();
+  put(s, { c: 8, r: 8 }, 'OU', 'sente');
+  put(s, { c: 4, r: 0 }, 'OU', 'gote');
+  put(s, { c: 4, r: 2 }, 'FU', 'sente');
+  s.players.sente.hand.KI = 1;
+  const r = search(s, 'sente', { ...BASE, maxDepth: 1 });
+  expect(r.action).toEqual({ type: 'drop', kind: 'KI', to: { c: 4, r: 1 } });
+  expect(r.score).toBeGreaterThan(WIN - 100);
+});
+
+test('逃げられる王手は、勝ちと読まない', () => {
+  const s = emptyState();
+  put(s, { c: 8, r: 8 }, 'OU', 'sente');
+  put(s, { c: 4, r: 0 }, 'OU', 'gote');
+  s.players.sente.hand.KI = 1;
+  // 守りの歩がないので、王は金を取るか逃げられる
+  const r = search(s, 'sente', { ...BASE, maxDepth: 2 });
+  expect(r.score).toBeLessThan(WIN - 100);
+});
+
+test('1手で王を取られる局面では、逃げるか守る', () => {
+  const s = emptyState();
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  put(s, { c: 0, r: 0 }, 'OU', 'gote');
+  put(s, { c: 4, r: 3 }, 'HI', 'gote');   // 縦に王を狙う飛車
+  put(s, { c: 0, r: 8 }, 'FU', 'sente');
+  const r = search(s, 'sente', { ...BASE, maxDepth: 2 });
+  expect(r.score).toBeGreaterThan(-(WIN - 100));
+  const after = applyAction(s, r.action).state;
+  expect(after.result).toBeNull();
+  // 指したあと、後手が王を取れる手がない
+  expect(legalActions(after).some(a => a.type === 'move' && after.board[a.to.r * 9 + a.to.c]?.kind === 'OU')).toBe(false);
+});
