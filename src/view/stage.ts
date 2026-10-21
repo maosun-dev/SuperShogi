@@ -25,6 +25,8 @@ const FOV = 38;
 const LOOK = new THREE.Vector3(0, -0.4, 0.35);          // 試作の baseLook
 const VIEW_DIR = new THREE.Vector3(0, 0.9, 0.42).normalize();
 const TITLE_SPEED = 0.12;      // タイトルで回る速さ（ラジアン/秒。1周およそ52秒）
+// タイトルで盤を斜めに回すと横幅が広がるので、そのぶんカメラを引く（盤の対角は横幅の約1.5倍）
+const TITLE_PULL = 1.4;
 const TITLE_STILL_ANGLE = 0.5; // 動きを減らす設定のときは、この角度で止めておく
 
 function reducedMotion(): boolean {
@@ -143,7 +145,7 @@ function createStage(): Stage {
     if (mode === 'title') {
       // 盤の中心のまわりを回る
       titleAngle = reducedMotion() ? TITLE_STILL_ANGLE : titleAngle + dt * TITLE_SPEED;
-      off.copy(s.home.pos).sub(s.home.look).applyAxisAngle(THREE.Object3D.DEFAULT_UP, titleAngle);
+      off.copy(s.home.pos).sub(s.home.look).multiplyScalar(TITLE_PULL).applyAxisAngle(THREE.Object3D.DEFAULT_UP, titleAngle);
       s.cam.pos.copy(s.home.look).add(off);
       s.cam.look.copy(s.home.look);
     }

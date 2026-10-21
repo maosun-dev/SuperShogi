@@ -23,7 +23,14 @@ export function titleScreen(): Screen {
 
       const logo = el('div', 'logo');
       logo.innerHTML = KUMA; // 定数だけでできた文字列
-      const h1 = el('h1', '', '超将棋');
+      // 縦書き（writing-mode）は iPhone の Safari で箱の幅を取り違えて画面の外へはみ出すため、1字ずつ縦に積む
+      const h1 = el('h1');
+      h1.setAttribute('aria-label', '超将棋');
+      for (const ch of '超将棋') {
+        const span = el('span', '', ch);
+        span.setAttribute('aria-hidden', 'true');
+        h1.append(span);
+      }
       logo.append(h1);
 
       const nav = el('nav', 'fuda-row');
