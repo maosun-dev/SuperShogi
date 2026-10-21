@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const [mode = 'levels', games = '30', shards = '7', seed = '1', scale = '0.1'] = process.argv.slice(2);
 mkdirSync(join(here, 'out'), { recursive: true });
-const outPath = join(here, 'out', `${mode}-${seed}.jsonl`);
+const outPath = join(here, 'out', `${mode.replaceAll(":", "-")}-${seed}.jsonl`);
 const out = createWriteStream(outPath, { flags: 'a' });
 let done = 0;
 const started = Date.now();

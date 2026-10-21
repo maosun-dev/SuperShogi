@@ -12,7 +12,7 @@ console.log(`引き分け ${draws}（${pct(draws, recs.length)}）  平均手数
 // 強さどうし
 const pairs = new Map();
 for (const r of recs) {
-  if (r.mode !== 'levels') continue;
+  if (r.mode === 'cards') continue;
   const a = r.sente.level, b = r.gote.level;
   const [lo, hi] = ['weak', 'normal', 'strong'].indexOf(a) < ['weak', 'normal', 'strong'].indexOf(b) ? [a, b] : [b, a];
   const key = `${hi} 対 ${lo}`;

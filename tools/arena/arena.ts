@@ -3,6 +3,7 @@
 // 使い方：npx vite-node tools/arena/arena.ts -- <mode> <games> <shard> <shards> <seed> <timeScale>
 //   mode=levels：強さどうし（weak-normal / normal-strong / weak-strong）。先後は交互
 //   mode=cards ：同じ強さ（normal）どうしで、持ち込みをでたらめに組む
+//   mode=pair:<強さ>:<強さ>：その2つの強さだけ
 import { LEVELS, chooseCpuAction, type Level } from '../../src/ai/levels';
 import { makeRng } from '../../src/ai/random';
 import { applyAction, createGame } from '../../src/rules/game';
@@ -79,8 +80,10 @@ function setup(mode: string, n: number, rand: () => number): Record<Side, { leve
   if (mode === 'cards') {
     return { sente: { level: 'normal', deck: randomDeck(rand) }, gote: { level: 'normal', deck: randomDeck(rand) } };
   }
-  const [a, b] = PAIRS[n % PAIRS.length];
-  const flip = Math.floor(n / PAIRS.length) % 2 === 1;
+  // pair:normal:strong のように書くと、その組だけを指す
+  const pairs: [Level, Level][] = mode.startsWith('pair:') ? [mode.split(':').slice(1, 3) as [Level, Level]] : PAIRS;
+  const [a, b] = pairs[n % pairs.length];
+  const flip = Math.floor(n / pairs.length) % 2 === 1;
   const [x, y] = flip ? [b, a] : [a, b];
   return { sente: { level: x, deck: LEVELS[x].deck }, gote: { level: y, deck: LEVELS[y].deck } };
 }
