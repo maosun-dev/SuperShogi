@@ -25,6 +25,7 @@ export function createCpuClient(
 ): CpuClient {
   const timeoutMs = opts?.timeoutMs ?? ((level: Level) => LEVELS[level].timeLimitMs + 3000);
   let nextId = 1;
+  let disposed = false;
   const waiting = new Map<number, { resolve: (a: Action) => void; reject: (e: Error) => void; timer: unknown }>();
 
   // 待ち一覧から外し、時間切れの見張りも止める
@@ -50,6 +51,8 @@ export function createCpuClient(
 
   return {
     think(view, side, level, seed) {
+      // 止めたあとの頼みは、Worker に送らずすぐ失敗にする
+      if (disposed) return Promise.reject(new Error('CPU を止めました'));
       const id = nextId++;
       return new Promise<Action>((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -60,6 +63,7 @@ export function createCpuClient(
       });
     },
     dispose() {
+      disposed = true;
       rejectAll('CPU を止めました');
       worker.terminate?.();
     },

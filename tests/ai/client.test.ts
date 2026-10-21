@@ -127,3 +127,14 @@ test('dispose で待ちが reject され、あとから来た答えは捨てる'
   // あとから答えが来ても何も起きない
   expect(() => w.onmessage?.({ data: handleThinkRequest(req[0]) })).not.toThrow();
 });
+
+test('dispose のあとの頼みはすぐ reject され、Worker には送られない', async () => {
+  const s = createGame(decks);
+  const w = silentWorker();
+  let posted = 0;
+  w.postMessage = () => { posted++; };
+  const client = createCpuClient(w);
+  client.dispose();
+  await expect(client.think(viewFor(s, 'sente'), 'sente', 'weak', 1)).rejects.toThrow('CPU を止めました');
+  expect(posted).toBe(0);
+});
