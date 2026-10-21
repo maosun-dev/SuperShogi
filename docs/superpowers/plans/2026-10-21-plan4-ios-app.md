@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-21-plan4-ios-app-design.md`
 
+**実装後に変えたこと：** iPhone だけ（TARGETED_DEVICE_FAMILY = 1）・縦向きだけ・上の帯を隠す、を転落牌に合わせて足した。Info.plist に ITSAppUsesNonExemptEncryption = false を足した（TestFlight ごとの暗号の質問をなくすため。ビルド1はこれがなく止まった）。保存の復元に待ち時間の上限（1.5秒）と、手元の壊れた値を Preferences の正常な値で戻す決まりを足した。長いテストに休みを入れて vitest の内部の時間切れ（Unhandled Errors）をなくし、強い CPU の時間テストに retry: 2 を付けた（上限 3200ms はそのまま）。GitHub：maosun-dev/SuperShogi（公開）、App Store Connect のアプリ番号 6825358708、内部テストのグループ「自分」。
+
 ## Global Constraints
 
 - アプリの名前「超将棋」、アプリの ID `com.maosundev.supershogi`、版 `0.1.0`、組み立ての番号は GitHub Actions の `run_number`
