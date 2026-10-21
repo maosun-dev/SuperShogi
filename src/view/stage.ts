@@ -2,7 +2,7 @@
 // renderer は1つだけ作り、画面ごとに attach で描画先を付け替えて使い回す。
 import * as THREE from 'three';
 import { PAL } from './palette';
-import { cameraDistance } from './fit';
+import { cameraDistance, titleCameraDistance, titleViewDir, TITLE_FOV, TITLE_LOOK, TITLE_SWAY } from './fit';
 import { buildBoard } from './board3d';
 
 export interface Stage {
@@ -24,10 +24,8 @@ export const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - M
 const FOV = 38;
 const LOOK = new THREE.Vector3(0, -0.4, 0.35);          // 試作の baseLook
 const VIEW_DIR = new THREE.Vector3(0, 0.9, 0.42).normalize();
-const TITLE_SPEED = 0.12;      // タイトルで回る速さ（ラジアン/秒。1周およそ52秒）
-// タイトルで盤を斜めに回すと横幅が広がるので、そのぶんカメラを引く（盤の対角は横幅の約1.5倍）
-const TITLE_PULL = 1.4;
-const TITLE_STILL_ANGLE = 0.5; // 動きを減らす設定のときは、この角度で止めておく
+const TITLE_SPEED = 0.4;       // タイトルで左右に揺れる速さ（1往復およそ16秒）
+const TITLE_STILL_ANGLE = 0.15; // 動きを減らす設定のときは、この角度で止めておく
 
 function reducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -65,7 +63,8 @@ function createStage(): Stage {
   const tweens: Tw[] = [];
   const frameFns = new Set<(dt: number, now: number) => void>();
   let mode: 'title' | 'match' = 'match';
-  let titleAngle = 0;
+  let titleTime = 0;
+  let titleDist = 30;   // タイトルのカメラの距離（fit で画面の縦横比から決める）
   let host: HTMLElement | null = null;
   const ro = new ResizeObserver(() => fit());
 
@@ -87,6 +86,9 @@ function createStage(): Stage {
     get mode() { return mode; },
     set mode(m) {
       mode = m;
+      // タイトルだけ広角のレンズにする（fit.ts の TITLE_FOV）
+      camera.fov = m === 'title' ? TITLE_FOV : FOV;
+      camera.updateProjectionMatrix();
       if (m === 'match') { s.cam.pos.copy(s.home.pos); s.cam.look.copy(s.home.look); }
     },
     attach(el) {
@@ -108,7 +110,8 @@ function createStage(): Stage {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    const d = cameraDistance(camera.aspect, camera.fov);
+    const d = cameraDistance(camera.aspect, FOV);
+    titleDist = titleCameraDistance(camera.aspect);
     // 今の視点が普段の視点にいるときだけ一緒に動かす（演出中の寄りは邪魔しない）
     const atHome = s.cam.pos.distanceTo(s.home.pos) < 1e-6 && s.cam.look.distanceTo(s.home.look) < 1e-6;
     s.home.pos.copy(LOOK).addScaledVector(VIEW_DIR, d);
@@ -143,11 +146,13 @@ function createStage(): Stage {
       try { fn(dt, now); } catch (e) { console.error('毎フレームの処理で失敗しました', e); }
     }
     if (mode === 'title') {
-      // 盤の中心のまわりを回る
-      titleAngle = reducedMotion() ? TITLE_STILL_ANGLE : titleAngle + dt * TITLE_SPEED;
-      off.copy(s.home.pos).sub(s.home.look).multiplyScalar(TITLE_PULL).applyAxisAngle(THREE.Object3D.DEFAULT_UP, titleAngle);
-      s.cam.pos.copy(s.home.look).add(off);
-      s.cam.look.copy(s.home.look);
+      // 低めの広角から盤を見て、左右にゆっくり揺れる
+      titleTime += dt;
+      const angle = reducedMotion() ? TITLE_STILL_ANGLE : TITLE_SWAY * Math.sin(titleTime * TITLE_SPEED);
+      const dir = titleViewDir(angle);
+      off.set(dir[0], dir[1], dir[2]).multiplyScalar(titleDist);
+      s.cam.look.set(TITLE_LOOK[0], TITLE_LOOK[1], TITLE_LOOK[2]);
+      s.cam.pos.copy(s.cam.look).add(off);
     }
     camera.position.copy(s.cam.pos);
     if (s.shake > 0) {
