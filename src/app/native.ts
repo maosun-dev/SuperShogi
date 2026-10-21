@@ -19,22 +19,30 @@ export function isNativeApp(): boolean {
   try { return Capacitor.isNativePlatform(); } catch { return false; }
 }
 
-// localStorage にない鍵だけ Preferences から戻し、ある鍵は Preferences へ写す（導入前の保存の引き継ぎも兼ねる）。
-// Preferences の失敗は握りつぶす（保存の1件ごとに独立して試す）
-export async function restoreSaves(ls: KeyValueStore, prefs: PrefsLike): Promise<void> {
-  let saved: string[] = [];
-  try { saved = (await prefs.keys()).keys; } catch { /* 無いものとして進める */ }
-  for (const k of SAVE_KEYS) {
-    try {
-      const mine = ls.getItem(k);
-      if (mine !== null) {
-        await prefs.set({ key: k, value: mine });
-      } else if (saved.includes(k)) {
-        const { value } = await prefs.get({ key: k });
-        if (value !== null) ls.setItem(k, value);
-      }
-    } catch { /* この鍵は諦めて次へ */ }
-  }
+const readable = (v: string): boolean => { try { JSON.parse(v); return true; } catch { return false; } };
+
+// localStorage にない鍵（や壊れた JSON の鍵）は Preferences から戻し、正常な鍵は Preferences へ写す（導入前の保存の引き継ぎも兼ねる）。
+// Preferences の失敗は握りつぶす（鍵ごとに独立して試す）。固まったときは timeoutMs で見切って進む（戻せた分はそのまま）
+export async function restoreSaves(ls: KeyValueStore, prefs: PrefsLike, timeoutMs = 1500): Promise<void> {
+  const work = async (): Promise<void> => {
+    let saved: string[] = [];
+    try { saved = (await prefs.keys()).keys; } catch { /* 無いものとして進める */ }
+    for (const k of SAVE_KEYS) {
+      try {
+        const mine = ls.getItem(k);
+        if (mine !== null && readable(mine)) {
+          await prefs.set({ key: k, value: mine });
+        } else if (saved.includes(k)) {
+          const { value } = await prefs.get({ key: k });
+          // 手元が壊れているときは、読める値のときだけ置き換える
+          if (value !== null && (mine === null || readable(value))) ls.setItem(k, value);
+        }
+      } catch { /* この鍵は諦めて次へ */ }
+    }
+  };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<void>(res => { timer = setTimeout(res, timeoutMs); });
+  try { await Promise.race([work(), limit]); } finally { clearTimeout(timer); }
 }
 
 // 読むのは ls から。書くときは ls に書き、保存の鍵なら Preferences にも書く（待たない・失敗は握る）
@@ -50,9 +58,9 @@ export function mirrorStore(ls: KeyValueStore, prefs: PrefsLike): KeyValueStore 
 }
 
 // 起動時に呼ぶ。アプリのときだけ本物の Preferences で戻す。Web では何もしない
-export async function prepareSaves(): Promise<void> {
+export async function prepareSaves(timeoutMs = 1500): Promise<void> {
   if (!isNativeApp()) return;
-  await restoreSaves(safeStoreRaw(), Preferences);
+  await restoreSaves(safeStoreRaw(), Preferences, timeoutMs);
 }
 
 // アプリのときの safeStore が使う本物の Preferences

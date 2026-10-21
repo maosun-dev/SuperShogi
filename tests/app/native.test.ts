@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { isNativeApp, restoreSaves, mirrorStore, prepareSaves, type PrefsLike } from '../../src/app/native';
 import {
   DEFAULT_SETTINGS, SAVE_KEYS, safeStore, loadSettings, saveSettings, type KeyValueStore,
@@ -76,5 +76,27 @@ describe('消えにくい保存', () => {
     const st = safeStore();
     st.setItem('superShogi.test', 'ok');
     expect(st.getItem('superShogi.test')).toBe('ok');
+  });
+  it('壊れた JSON の手元は、Preferences の正常な値で戻す（上書きしない）', async () => {
+    const ls = fakeStore({ [KS]: '{' });
+    const good = JSON.stringify({ fx: 'short', volume: 0.1 });
+    const prefs = fakePrefs({ [KS]: good });
+    await restoreSaves(ls, prefs);
+    expect(ls.m.get(KS)).toBe(good);
+    expect(prefs.m.get(KS)).toBe(good);
+  });
+  it('Preferences が固まっても上限の時間で終わる', async () => {
+    vi.useFakeTimers();
+    try {
+      const hang = new Promise<never>(() => {});
+      const stuck: PrefsLike = { get: () => hang, set: () => hang, keys: () => hang };
+      let done = false;
+      const p = restoreSaves(fakeStore(), stuck, 1500).then(() => { done = true; });
+      await vi.advanceTimersByTimeAsync(1499);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(2);
+      await p;
+      expect(done).toBe(true);
+    } finally { vi.useRealTimers(); }
   });
 });
