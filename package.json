@@ -8,7 +8,8 @@
   "scripts": {
     "test": "vitest run",
     "dev": "vite",
-    "build": "npm run typecheck && vite build",
+    "build": "npm run typecheck && vite build && node tools/strip-woff.mjs",
+    "sync": "npm run build && npx cap sync ios",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.core.json && tsc --noEmit"
   },
@@ -17,6 +18,7 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@types/node": "^22.20.5",
     "@types/three": "^0.186.0",
     "typescript": "^5.9.3",
@@ -25,6 +27,9 @@
   },
   "private": true,
   "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/preferences": "^8.0.1",
     "@fontsource/shippori-mincho-b1": "^5.3.0",
     "@fontsource/yuji-boku": "^5.3.1",
     "three": "^0.186.1"
