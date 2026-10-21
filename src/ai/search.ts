@@ -27,6 +27,7 @@ export const WIN = 1_000_000;
 const CHECK_EVERY = 16;           // 何局面ごとに時計を見るか
 const KING_VICTIM = 100_000;      // 並べ替え用：王を取る手は最優先（取れば勝ち）
 const EXTEND_MORE = 2;            // 王手の延長は、根から maxDepth + これ まで
+const CONTEMPT = 60;              // 同じ局面に戻る（千日手へ向かう）のは、CPU の側から見て少し損とする
 const DROP_NEAR_FOE = 2;          // 根より下では、相手の王からこのマス数以内に打つ手だけ読む
 const DROP_NEAR_ME = 1;           // …または自分の王の隣
 export const CARD_CANDIDATES_PER_CARD = 3; // 1枚のカードから候補に残す行動の数の上限
@@ -119,7 +120,9 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   const start = now();
   if (view.result) throw new Error('対局はもう終わっています');
   if (view.turn !== side) throw new Error('CPU の手番ではありません');
-  const root: GameState = { ...view, seen: {} }; // 読みの中では千日手を考えない
+  // 対局でこれまでに出た局面。読みの中で同じ局面に戻ったら引き分けの点数にする（千日手を避けるため）
+  const history = view.seen;
+  const root: GameState = { ...view, seen: {} };
   const rootActions = legalActions(root);
   if (rootActions.length === 0) throw new Error('指せる行動がありません');
   if (rootActions.length === 1) {
@@ -137,6 +140,13 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   function tick(): void {
     nodes++;
     if (canStop && nodes % CHECK_EVERY === 0 && now() - start >= opts.timeLimitMs) throw new TimeUp();
+  }
+
+  const path = new Set<string>(); // 根からいまの局面までに通った局面
+
+  // 同じ局面に戻ったときの点数（その局面の手番から見る）
+  function drawScore(s: GameState): number {
+    return s.turn === side ? -CONTEMPT : CONTEMPT;
   }
 
   function leaf(s: GameState): number {
@@ -286,6 +296,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     tick();
     if (s.result) return terminal(s, ply);
     const key = positionKey(s);
+    if (path.has(key) || (history[key] ?? 0) > 0) return drawScore(s);
     const hit = tt.get(key);
     if (hit && hit.depth >= depth) {
       if (hit.flag === EXACT) return hit.score;
@@ -297,16 +308,21 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     const alpha0 = alpha;
     let best = -Infinity;
     let bestKey: string | null = null;
-    for (const c of cands) {
-      const child = c.child ?? applyActionUnchecked(s, c.a).state;
-      const d = childDepth(s, child, depth, ply);
-      const v = childScore(s, child, alpha, beta, (n, al, be) => negamax(n, d, al, be, ply + 1));
-      if (v > best) { best = v; bestKey = c.key; }
-      if (v > alpha) alpha = v;
-      if (alpha >= beta) {
-        if (c.a.type === 'move' && !s.board[idx(c.a.to)]) killer(ply, c.key);
-        break;
+    path.add(key);
+    try {
+      for (const c of cands) {
+        const child = c.child ?? applyActionUnchecked(s, c.a).state;
+        const d = childDepth(s, child, depth, ply);
+        const v = childScore(s, child, alpha, beta, (n, al, be) => negamax(n, d, al, be, ply + 1));
+        if (v > best) { best = v; bestKey = c.key; }
+        if (v > alpha) alpha = v;
+        if (alpha >= beta) {
+          if (c.a.type === 'move' && !s.board[idx(c.a.to)]) killer(ply, c.key);
+          break;
+        }
       }
+    } finally {
+      path.delete(key);
     }
     remember(key, depth, best, alpha0, beta, bestKey);
     return best;

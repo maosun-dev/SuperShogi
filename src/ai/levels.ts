@@ -26,8 +26,9 @@ export const LEVELS: Record<Level, LevelConfig> = {
   },
 };
 
-// view は viewFor(本当の局面, side) で作った「見えている情報」だけの局面
-export function chooseCpuAction(view: GameState, side: Side, level: Level, seed: number): SearchResult {
+// view は viewFor(本当の局面, side) で作った「見えている情報」だけの局面。
+// timeScale は考える時間の倍率（CPU 同士を戦わせる道具で短くするため。アプリでは1）
+export function chooseCpuAction(view: GameState, side: Side, level: Level, seed: number, timeScale = 1): SearchResult {
   const { deck: _deck, blunder, ...opts } = LEVELS[level];
   if (blunder > 0) {
     const rng = makeRng(seed ^ 0x5bd1e995);
@@ -40,5 +41,5 @@ export function chooseCpuAction(view: GameState, side: Side, level: Level, seed:
       }
     }
   }
-  return search(view, side, { ...opts, seed });
+  return search(view, side, { ...opts, timeLimitMs: Math.max(20, opts.timeLimitMs * timeScale), seed });
 }

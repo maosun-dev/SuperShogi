@@ -1,2 +1,5 @@
 node_modules/
 dist/
+
+# CPU 同士の対局の記録（道具が書く）
+tools/arena/out/

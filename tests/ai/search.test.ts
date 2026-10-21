@@ -185,3 +185,16 @@ test('1手で王を取られる局面では、逃げるか守る', () => {
   // 指したあと、後手が王を取れる手がない
   expect(legalActions(after).some(a => a.type === 'move' && after.board[a.to.r * 9 + a.to.c]?.kind === 'OU')).toBe(false);
 });
+
+test('対局で前に出た局面へ戻る手は、ほかに同じくらいの手があれば選ばない', () => {
+  const s = emptyState();
+  put(s, { c: 8, r: 8 }, 'OU', 'sente');
+  put(s, { c: 0, r: 0 }, 'OU', 'gote');
+  put(s, { c: 4, r: 6 }, 'KI', 'sente');
+  const first = search(s, 'sente', { ...BASE, maxDepth: 2 });
+  // その手のあとの局面を「前に出た」ことにすると、別の手を選ぶ
+  const after = applyAction(s, first.action).state;
+  const keyAfter = Object.keys(after.seen).find(k => !(k in s.seen))!;
+  const again = search({ ...s, seen: { ...s.seen, [keyAfter]: 1 } }, 'sente', { ...BASE, maxDepth: 2 });
+  expect(again.action).not.toEqual(first.action);
+});
