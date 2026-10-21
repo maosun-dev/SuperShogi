@@ -1,10 +1,13 @@
 // CPU の強さ3段階：読む深さ・わざと迷う度合い・わざと悪い手の割合・持ち込みカード
 import type { CardId, GameState, Side } from '../rules/types';
 import { legalActions } from '../rules/game';
+import { CARDS } from '../cards';
 import { search, type SearchOptions, type SearchResult } from './search';
 import { makeRng } from './random';
 
 export type Level = 'weak' | 'normal' | 'strong';
+export const TRAP_BEFORE_SHARE = 0.6; // 忍札を伏せられるうちは、時間のこの割合で考える
+export const TRAP_AFTER_SHARE = 0.4;  // 伏せたあとの、続けて指す手
 export interface LevelConfig extends Omit<SearchOptions, 'seed' | 'now'> {
   deck: CardId[];
   blunder: number;   // この割合で、読まずに駒を動かす手からでたらめに選ぶ（王を取れるときは除く）
@@ -41,5 +44,9 @@ export function chooseCpuAction(view: GameState, side: Side, level: Level, seed:
       }
     }
   }
-  return search(view, side, { ...opts, timeLimitMs: Math.max(20, opts.timeLimitMs * timeScale), seed });
+  // 忍札は伏せても手番が続くので、伏せる手と続けて指す手で1手番の時間を分ける（合わせて timeLimitMs まで）
+  const canSetTrap = !view.trapSetThisTurn
+    && view.players[side].cards.some(c => !c.used && CARDS[c.cardId].kind === 'trap');
+  const share = view.trapSetThisTurn ? TRAP_AFTER_SHARE : canSetTrap ? TRAP_BEFORE_SHARE : 1;
+  return search(view, side, { ...opts, timeLimitMs: Math.max(20, opts.timeLimitMs * timeScale * share), seed });
 }

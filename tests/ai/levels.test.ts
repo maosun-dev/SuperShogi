@@ -90,3 +90,16 @@ test('どの強さでも、取れる王は取る', () => {
     }
   }
 }, 60_000);
+
+test('忍札を伏せられるうちと伏せたあとで、1手番の時間を分ける（合わせて時間の上限まで）', () => {
+  const s = createGame({ sente: ['otoshiana', 'kagami'], gote: [] });
+  const t0 = Date.now();
+  chooseCpuAction(viewFor(s, 'sente'), 'sente', 'strong', 1);
+  const before = Date.now() - t0;
+  const t = { ...s, trapSetThisTurn: true };
+  const t1 = Date.now();
+  chooseCpuAction(viewFor(t, 'sente'), 'sente', 'strong', 1);
+  const after = Date.now() - t1;
+  expect(before).toBeLessThanOrEqual(LEVELS.strong.timeLimitMs * 0.6 + 200);
+  expect(after).toBeLessThanOrEqual(LEVELS.strong.timeLimitMs * 0.4 + 200);
+}, { timeout: 30_000, retry: 2 });

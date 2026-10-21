@@ -292,6 +292,10 @@ export function installAutoPlay(
   let moves = 0;
   const rng = makeRng(Date.now() ^ 0x5eed);
   const loop = async (): Promise<void> => {
+    // CPU が先に指す（相手の駒落ち）ときは、先手の番が来るまで待つ
+    while (!stopped && (match.phase() === 'cpu' || match.phase() === 'presenting')) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
     while (!stopped && match.phase() === 'human') {
       const legal = match.legal();
       if (legal.length === 0) return;
