@@ -78,9 +78,31 @@ export function applyHandicap(board: (Piece | null)[], h: Handicap): void {
   }
 }
 
-// 深い複製（局面は JSON で表せる値だけでできている）
+function clonePiece(p: Piece): Piece {
+  const q: Piece = { id: p.id, kind: p.kind, side: p.side, promoted: p.promoted, equip: p.equip ? { cardId: p.equip.cardId } : null };
+  if (p.frozen) q.frozen = p.frozen;
+  if (p.sealed) q.sealed = true;
+  return q;
+}
+
+// 深い複製。CPU の読みで何度も呼ぶので、JSON を通さず1段ずつ写す
 export function cloneState(s: GameState): GameState {
-  return JSON.parse(JSON.stringify(s)) as GameState;
+  const players = {} as GameState['players'];
+  for (const side of ['sente', 'gote'] as Side[]) {
+    const pl = s.players[side];
+    players[side] = { hand: { ...pl.hand }, cards: pl.cards.map(c => ({ uid: c.uid, cardId: c.cardId, used: c.used })) };
+  }
+  return {
+    board: s.board.map(p => (p ? clonePiece(p) : null)),
+    players,
+    traps: s.traps.map(t => ({ uid: t.uid, owner: t.owner, cardId: t.cardId, at: t.at ? { c: t.at.c, r: t.at.r } : null })),
+    turn: s.turn,
+    ply: s.ply,
+    trapSetThisTurn: s.trapSetThisTurn,
+    seen: { ...s.seen },
+    result: s.result ? { ...s.result } : null,
+    nextId: s.nextId,
+  };
 }
 
 // 同じ局面かどうかを見分けるキー

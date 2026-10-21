@@ -1,6 +1,7 @@
 import { test, expect } from 'vitest';
 import { initialBoard, idx, cloneState, positionKey } from '../../src/rules/board';
 import { emptyState, put } from '../helpers';
+import { createGame } from '../../src/rules/game';
 
 test('初期配置は40枚で、先手の王は5九＝{c:4,r:8}、後手の王は{c:4,r:0}', () => {
   const { board } = initialBoard();
@@ -51,4 +52,25 @@ test('positionKey は装備と持ち駒の違いも区別する', () => {
   b.players.gote.hand.FU = 1;
   expect(positionKey(a)).not.toBe(positionKey(s));
   expect(positionKey(b)).not.toBe(positionKey(s));
+});
+
+test('cloneState：元と同じ形で、書き換えても元は変わらない', () => {
+  const s = createGame({ sente: ['tenma', 'otoshiana'], gote: [] });
+  s.board[idx({ c: 4, r: 6 })] = { ...s.board[idx({ c: 4, r: 6 })]!, equip: { cardId: 'tenma' }, frozen: 2, sealed: true };
+  s.traps.push({ uid: 99, owner: 'sente', cardId: 'otoshiana', at: { c: 4, r: 4 } });
+  s.players.sente.hand.FU = 2;
+  s.result = { winner: 'sente', reason: 'king-captured' };
+  const c = cloneState(s);
+  expect(c).toEqual(s);
+  c.board[idx({ c: 4, r: 6 })]!.equip!.cardId = 'hagane';
+  c.board[idx({ c: 4, r: 6 })]!.frozen = 1;
+  c.traps[0].at!.c = 0;
+  c.players.sente.hand.FU = 0;
+  c.players.sente.cards[0].used = true;
+  c.seen.x = 5;
+  expect(s.board[idx({ c: 4, r: 6 })]).toMatchObject({ equip: { cardId: 'tenma' }, frozen: 2 });
+  expect(s.traps[0].at).toEqual({ c: 4, r: 4 });
+  expect(s.players.sente.hand.FU).toBe(2);
+  expect(s.players.sente.cards[0].used).toBe(false);
+  expect(s.seen.x).toBeUndefined();
 });
