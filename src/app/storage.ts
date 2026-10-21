@@ -2,6 +2,7 @@
 import type { CardId } from '../rules/types';
 import type { Level } from '../ai/levels';
 import { validateDeck } from '../cards';
+import { isNativeApp, mirrorStore, nativePrefs } from './native';
 
 export interface KeyValueStore { getItem(k: string): string | null; setItem(k: string, v: string): void }
 export interface Settings { fx: 'short' | 'long'; volume: number } // volume は 0〜1
@@ -12,10 +13,18 @@ export const DEFAULT_SETTINGS: Settings = { fx: 'long', volume: 0.7 };
 const KEY_SETTINGS = 'superShogi.settings';
 const KEY_DECK = 'superShogi.deck';
 const KEY_TALLY = 'superShogi.tally';
+// アプリで消えにくい保存領域にも写す鍵の一覧
+export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY] as const;
 const LEVELS_ALL: Level[] = ['weak', 'normal', 'strong'];
 
-// localStorage があればそれ、なければ（例外も含む）メモリの中だけの代わり
+// アプリのときだけ、保存の鍵を Preferences にも書く版を返す（Web ではこれまでどおり）
 export function safeStore(): KeyValueStore {
+  const st = safeStoreRaw();
+  return isNativeApp() ? mirrorStore(st, nativePrefs()) : st;
+}
+
+// localStorage があればそれ、なければ（例外も含む）メモリの中だけの代わり
+export function safeStoreRaw(): KeyValueStore {
   try {
     const ls = (globalThis as { localStorage?: Storage }).localStorage;
     if (ls) {

@@ -14,6 +14,7 @@ import { levelScreen } from './screens/level';
 import { deckScreen } from './screens/deck';
 import { revealScreen } from './screens/reveal';
 import { settingsScreen } from './screens/settings';
+import { prepareSaves } from './native';
 import { autoMatchParams, fxMatchParams } from './dev';
 
 function start(): void {
@@ -41,7 +42,11 @@ function start(): void {
   registerScreen('settings', () => settingsScreen());
   // 開発中に ?fx=<カード> が付いていれば演出の試し口として、?auto=<強さ> なら自動対局として、対局画面から始める
   const dev = fxMatchParams() ?? autoMatchParams();
-  void (dev ? showScreen('match', dev) : showScreen('title'));
+  // アプリでは保存を戻し終わってから最初の画面を出す（失敗しても画面は出す）
+  void prepareSaves().catch(() => { /* 戻せなくても始める */ }).then(() => {
+    sound.setVolume(loadSettings(safeStore()).volume); // 戻した設定の音量を反映
+    return dev ? showScreen('match', dev) : showScreen('title');
+  });
 }
 
 start();
