@@ -1,5 +1,6 @@
 // 設定・前回の持ち込み・戦績の保存（localStorage が使えなくても動く）
-import type { CardId } from '../rules/types';
+import type { CardId, Handicap, HandicapKind } from '../rules/types';
+import { HANDICAP_LABEL } from '../rules/board';
 import type { Level } from '../ai/levels';
 import { validateDeck } from '../cards';
 import { isNativeApp, mirrorStore, nativePrefs } from './native';
@@ -13,8 +14,10 @@ export const DEFAULT_SETTINGS: Settings = { fx: 'long', volume: 0.7 };
 const KEY_SETTINGS = 'superShogi.settings';
 const KEY_DECK = 'superShogi.deck';
 const KEY_TALLY = 'superShogi.tally';
+const KEY_HANDICAP = 'superShogi.handicap';
 // アプリで消えにくい保存領域にも写す鍵の一覧
-export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY] as const;
+export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP] as const;
+export const NO_HANDICAP: Handicap = { side: 'sente', kind: 'none' };
 const LEVELS_ALL: Level[] = ['weak', 'normal', 'strong'];
 
 // アプリのときだけ、保存の鍵を Preferences にも書く版を返す（Web ではこれまでどおり）
@@ -70,6 +73,19 @@ export function loadDeck(st: KeyValueStore): CardId[] | null {
 
 export function saveDeck(st: KeyValueStore, deck: CardId[]): void {
   st.setItem(KEY_DECK, JSON.stringify(deck));
+}
+
+// 駒落ちの設定。壊れていたら「なし」
+export function loadHandicap(st: KeyValueStore): Handicap {
+  const j = readJson(st, KEY_HANDICAP);
+  const o = (j && typeof j === 'object' ? j : {}) as Record<string, unknown>;
+  const kind = typeof o.kind === 'string' && Object.hasOwn(HANDICAP_LABEL, o.kind) ? o.kind as HandicapKind : 'none';
+  const side = o.side === 'gote' ? 'gote' : 'sente';
+  return { side, kind };
+}
+
+export function saveHandicap(st: KeyValueStore, h: Handicap): void {
+  st.setItem(KEY_HANDICAP, JSON.stringify(h));
 }
 
 function count(v: unknown): number {

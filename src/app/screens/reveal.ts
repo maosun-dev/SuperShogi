@@ -7,6 +7,8 @@ import { validateDeck } from '../../cards';
 import { cardHtml } from '../../view/cardArt';
 import { getSound } from '../../fx/sound';
 import { LEVEL_NAME } from '../outcome';
+import { HANDICAP_LABEL } from '../../rules/board';
+import { loadHandicap, safeStore } from '../storage';
 import { showScreen, type Screen } from '../screens';
 import { el, pageHead } from './ui';
 
@@ -35,12 +37,17 @@ export function revealScreen(params: unknown): Screen {
       const box = el('div', 'page reveal');
       box.dataset.screen = 'reveal';
 
+      const h = loadHandicap(safeStore());
       const row = (who: string, ids: CardId[], cls: string): HTMLElement => {
         const sec = el('section', `reveal-row ${cls}`);
         const list = el('div', 'reveal-cards');
         list.innerHTML = ids.map((id) => cardHtml(id)).join(''); // 定数だけでできた文字列
-        if (ids.length === 0) list.append(el('p', 'none', 'カードなし'));
+        if (ids.length === 0) list.append(el('p', 'none', '札なし'));
         sec.append(el('h2', '', who), list);
+        // 駒落ちのある側に、何落ちかを添える（落とした側が先に指す）
+        if (h.kind !== 'none' && (h.side === 'sente') === (cls === 'me')) {
+          sec.append(el('p', 'handi-tag', `${HANDICAP_LABEL[h.kind]}・先に指す`));
+        }
         return sec;
       };
 

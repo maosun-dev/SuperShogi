@@ -1,4 +1,4 @@
-// 罠3枚の演出。伏せる（静かに：札が裏向きで伏せ札の枠へ滑り込む）と、発動の共通の流れ
+// 忍札の演出。伏せる（静かに：札が裏向きで伏せ札の枠へ滑り込む）と、発動の共通の流れ
 // （伏せ札の枠が勢いよくめくれる → 紅い光が画面を横に走る → カットイン → 効果）、カードごとの効果（TRAP_FX）。
 // 時間は「長め」の値で書き、短めでは ctx が半分にする。
 // 決まり：相手の伏せ札は、発動するまで裏だけ見せる（伏せたときの中身・マスは出さない）
@@ -11,14 +11,14 @@ import { CD, CW, decal, ring, squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
 import { cardHtml } from '../view/cardArt';
 import {
-  animateEl, atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, later, lightCap, localRect, overlay, puff, shakeBy, transient,
+  animateEl, atHome, cameraHome, cameraTo, cutIn, dim, easeInOut, easeOut, flash, later, lightCap, localRect, overlay, puff, shakeBy, shatter, transient,
   type FxCtx,
 } from './kit';
 import { getSound } from './sound';
 
 type TrapSetCue = Extract<Cue, { kind: 'trapSet' }>;
 type TrapFireCue = Extract<Cue, { kind: 'trapFire' }>;
-type TrapName = 'otoshiana' | 'kagami' | 'narifuuji';
+type TrapName = 'otoshiana' | 'kagami' | 'narifuuji' | 'itetsuku' | 'aiuchi' | 'migawari';
 
 function effect<T extends GameEvent['type']>(cue: TrapFireCue, type: T): Extract<GameEvent, { type: T }> | undefined {
   return cue.effects.find((e): e is Extract<GameEvent, { type: T }> => e.type === type);
@@ -173,7 +173,7 @@ export async function playTrapFire(ctx: FxCtx, cue: TrapFireCue): Promise<void> 
     await flipSlot(ctx, cue);
     await ctx.wait(80);
     await redSweep(ctx);
-    await cutIn(ctx, def.name, cue.cardId === 'kagami' ? '無効' : '罠・発動', 'wana', 900);
+    await cutIn(ctx, def.name, cue.cardId === 'kagami' ? '無効' : '忍・発動', 'wana', 900);
     const fx = TRAP_FX[def.fx as TrapName];
     if (fx) await fx(ctx, cue);
     await ctx.wait(350);
@@ -442,6 +442,130 @@ async function narifuuji(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
   }
 }
 
+// ---------- 凍てつく床 ----------
+
+/** マス1つぶんの霜：六方の結晶と、まわりに散る細かい結晶 */
+function frostMesh(): THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> {
+  return decal((g) => {
+    const gr = g.createRadialGradient(128, 128, 8, 128, 128, 128);
+    gr.addColorStop(0, rgba(PAL.gofun, 0.85)); gr.addColorStop(0.6, rgba(PAL.mahouPale, 0.6)); gr.addColorStop(1, rgba(PAL.mahouPale, 0));
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+    const arm = (cx: number, cy: number, r: number, w: number, color: string): void => {
+      g.strokeStyle = color; g.lineWidth = w; g.lineCap = 'round';
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2;
+        const ex = cx + Math.cos(a) * r, ey = cy + Math.sin(a) * r;
+        g.beginPath(); g.moveTo(cx, cy); g.lineTo(ex, ey); g.stroke();
+        const bx = cx + Math.cos(a) * r * 0.6, by = cy + Math.sin(a) * r * 0.6;
+        for (const sgn of [-1, 1]) {
+          const b = a + sgn * 0.8;
+          g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + Math.cos(b) * r * 0.32, by + Math.sin(b) * r * 0.32); g.stroke();
+        }
+      }
+    };
+    arm(128, 128, 104, 14, PALS.gofun);
+    arm(128, 128, 104, 6, PALS.mahou);
+    for (let i = 0; i < 7; i++) arm(30 + Math.random() * 196, 30 + Math.random() * 196, 14, 3, PALS.mahou);
+  }, CW * 1.3, CD * 1.3);
+}
+
+async function itetsuku(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
+  const e = effect(cue, 'frozen');
+  if (!e) return;
+  const at = squarePos(e.at);
+  await cameraTo(ctx, at, 450);
+  const frost = frostMesh();
+  frost.position.set(at.x, 0.012, at.z);
+  frost.scale.setScalar(0.01);
+  const kill = transient(ctx, frost, 60000);
+  try {
+    // 霜がマスいっぱいに広がり、駒が青白く凍る（青みは sync が付ける）
+    await ctx.tween(380, (t) => { frost.scale.setScalar(Math.max(0.01, t)); }, easeOut);
+    ctx.sync();
+    flash(ctx, PALS.mahouPale, 0.45, 240);
+    getSound().play('frost');
+    shakeBy(ctx, 0.12);
+    puff(ctx, at, PAL.mahouPale, 36, 1.0);
+    await ctx.wait(650);
+    await ctx.tween(400, (t) => { frost.material.opacity = 1 - t; });
+  } finally {
+    kill();
+  }
+}
+
+// ---------- 相討ち ----------
+
+/** 交わる2本の紅の太刀筋 */
+function slashMesh(): THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> {
+  return decal((g) => {
+    g.lineCap = 'round';
+    for (const [x0, y0, x1, y1] of [[24, 40, 232, 216], [232, 40, 24, 216]]) {
+      g.strokeStyle = rgba(PAL.gofun, 0.9); g.lineWidth = 26;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      g.strokeStyle = PALS.wana; g.lineWidth = 14;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    }
+  }, CW * 1.5, CD * 1.5);
+}
+
+async function aiuchi(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
+  const e = effect(cue, 'destroyed');
+  if (!e) return;
+  const at = squarePos(e.at);
+  await cameraTo(ctx, at, 400);
+  const slash = slashMesh();
+  slash.position.set(at.x, 0.4, at.z);
+  slash.material.depthTest = false;
+  slash.renderOrder = 9;
+  slash.scale.set(0.01, 1, 1);
+  const kill = transient(ctx, slash, 60000);
+  try {
+    // 二つの太刀筋が走り、取った駒が砕ける
+    await ctx.tween(160, (t) => { slash.scale.set(Math.max(0.01, t), 1, 1); }, easeOut);
+    flash(ctx, PALS.wana, 0.5, 200);
+    getSound().play('clang');
+    shatter(ctx, e.pieceId);
+    shakeBy(ctx, 0.4);
+    await ctx.wait(500);
+    await ctx.tween(300, (t) => { slash.material.opacity = 1 - t; });
+  } finally {
+    kill();
+  }
+}
+
+// ---------- 身代わり ----------
+
+async function migawari(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
+  const d = effect(cue, 'destroyed');
+  const g = effect(cue, 'kingGuarded');
+  if (!d || !g) return;
+  const kingAt = squarePos(g.at);
+  await cameraTo(ctx, kingAt, 450);
+  const sub = pieceMesh(d.pieceId);
+  const atk = pieceMesh(g.attackerId);
+  // 取りに来た駒が王へ迫りかけて止まる
+  if (atk) {
+    const from = atk.position.clone();
+    const to = from.clone().lerp(kingAt.clone().setY(from.y), 0.55);
+    await ctx.tween(220, (t) => { atk.position.lerpVectors(from, to, t); }, easeOut);
+    // 身代わりの駒が王の前へ跳び出し、白い紙の光になって砕ける
+    if (sub) {
+      const s0 = sub.position.clone();
+      const mid = kingAt.clone().lerp(to, 0.5).setY(s0.y + 0.6);
+      await ctx.tween(200, (t) => { sub.position.lerpVectors(s0, mid, t); }, easeOut);
+    }
+    flash(ctx, PALS.gofun, 0.7, 220);
+    getSound().play('stamp');
+    shatter(ctx, d.pieceId);
+    puff(ctx, kingAt, PAL.gofun, 60, 1.8);
+    shakeBy(ctx, 0.35);
+    await ctx.tween(260, (t) => { atk.position.lerpVectors(to, from, t); }, easeInOut);
+  } else {
+    shatter(ctx, d.pieceId);
+  }
+  await ctx.wait(400);
+}
+
 export const TRAP_FX: Record<TrapName, (ctx: FxCtx, cue: TrapFireCue) => Promise<void>> = {
-  otoshiana, kagami, narifuuji,
+  otoshiana, kagami, narifuuji, itetsuku, aiuchi, migawari,
 };

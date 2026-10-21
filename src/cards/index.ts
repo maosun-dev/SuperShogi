@@ -16,11 +16,11 @@ export const MAX_COPIES = 2;
 
 // 問題なしなら null、だめならその理由
 export function validateDeck(ids: CardId[]): string | null {
-  if (ids.some(id => !CARDS[id])) return 'ないカードが入っています';
+  if (ids.some(id => !CARDS[id])) return 'ない札が入っています';
   const total = ids.reduce((sum, id) => sum + CARDS[id].cost, 0);
   if (total > COST_LIMIT) return 'コストが10を超えています';
   const counts = new Map<CardId, number>();
   for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
-  if ([...counts.values()].some(n => n > MAX_COPIES)) return '同じカードは2枚までです';
+  if ([...counts.values()].some(n => n > MAX_COPIES)) return '同じ札は2枚までです';
   return null;
 }

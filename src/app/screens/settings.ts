@@ -32,7 +32,7 @@ export function settingsScreen(): Screen {
       short.addEventListener('click', () => { save({ ...s, fx: 'short' }); paint(); });
       long.addEventListener('click', () => { save({ ...s, fx: 'long' }); paint(); });
       seg.append(short, long);
-      fxSec.append(fxHead, seg, el('p', 'note', 'カード・罠・決着の演出に効きます'));
+      fxSec.append(fxHead, seg, el('p', 'note', '札と決着の演出に効きます'));
       paint();
 
       // ---- 音の大きさ ----

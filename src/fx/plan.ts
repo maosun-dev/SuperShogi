@@ -91,12 +91,15 @@ export function planFx(events: GameEvent[], actor: Side): Cue[] {
         trap?.effects.push(e);
         break;
       case 'promotionBlocked':
+      case 'kingGuarded':
         trap?.effects.push(e);
         break;
       case 'destroyed':
       case 'pushed':
       case 'swapped':
       case 'frozen':
+      case 'demoted':
+      case 'promotedInPlace':
       case 'handTransferred':
         sink()?.push(e);
         break;

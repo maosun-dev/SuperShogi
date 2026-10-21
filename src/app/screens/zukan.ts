@@ -22,7 +22,7 @@ export function zukanScreen(): Screen {
   return {
     mount(root) {
       box = el('div', 'zukan');
-      const header = pageHead('カード図鑑', 'title');
+      const header = pageHead('札図鑑', 'title');
 
       // 大きな札と説明（最初は隠す）
       const look = el('div', 'look');

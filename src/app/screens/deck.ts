@@ -1,13 +1,14 @@
 // カード選び：上に残りのコスト（大きな数字）とコストの目盛り10個、中に種類ごとの行、
-// 下に持ち込み中の札の列（タップで外す）と「おまかせ」「対局へ」。
-import type { CardId } from '../../rules/types';
+// 下に持ち込み中の札の列（タップで外す）、駒落ちの選び、「おまかせ」「対局へ」。
+import type { CardId, HandicapKind, Side } from '../../rules/types';
+import { HANDICAP_LABEL } from '../../rules/board';
 import type { CardKind } from '../../cards/types';
 import type { Level } from '../../ai/levels';
 import { CARDS, COST_LIMIT, validateDeck } from '../../cards';
 import { KIND_MARK, cardHtml } from '../../view/cardArt';
 import { makeRng } from '../../ai/random';
 import { addReason, autoDeck, deckCost } from '../deck';
-import { loadDeck, safeStore, saveDeck } from '../storage';
+import { loadDeck, loadHandicap, safeStore, saveDeck, saveHandicap } from '../storage';
 import { costMarks } from '../outcome';
 import { showScreen, type Screen } from '../screens';
 import { button, el, pageHead } from './ui';
@@ -75,13 +76,53 @@ export function deckScreen(params: unknown): Screen {
         msg.textContent = 'おまかせで組みました';
         render();
       });
+      // ---- 駒落ち：種類（iPhone では回す選び方になる）と、どちらに付けるか ----
+      let handicap = loadHandicap(store);
+      const handi = el('div', 'handi');
+      const kindSel = el('select', 'handi-kind');
+      kindSel.id = 'handi-kind';
+      for (const [k, label] of Object.entries(HANDICAP_LABEL)) {
+        const o = el('option', '', label);
+        o.value = k;
+        kindSel.append(o);
+      }
+      kindSel.value = handicap.kind;
+      const kindLab = el('label', 'handi-cap', '駒落ち');
+      kindLab.htmlFor = 'handi-kind';
+      const sideSeg = el('div', 'seg handi-side');
+      sideSeg.setAttribute('role', 'group');
+      sideSeg.setAttribute('aria-label', '駒を落とす側');
+      const sideBtn = (side: Side, text: string): HTMLButtonElement => button('', text, () => {
+        handicap = { ...handicap, side };
+        renderHandi();
+      });
+      const meBtn = sideBtn('sente', '自分');
+      const foeBtn = sideBtn('gote', '相手');
+      sideSeg.append(meBtn, foeBtn);
+      const handiNote = el('p', 'handi-note');
+      kindSel.addEventListener('change', () => {
+        handicap = { ...handicap, kind: kindSel.value as HandicapKind };
+        renderHandi();
+      });
+      handi.append(kindLab, kindSel, sideSeg);
+      function renderHandi(): void {
+        const none = handicap.kind === 'none';
+        for (const [b, side] of [[meBtn, 'sente'], [foeBtn, 'gote']] as const) {
+          b.setAttribute('aria-pressed', String(!none && handicap.side === side));
+          b.disabled = none;
+        }
+        handiNote.textContent = none ? '' : `${handicap.side === 'sente' ? '自分' : '相手'}が${HANDICAP_LABEL[handicap.kind]}で、先に指します`;
+      }
+      renderHandi();
+
       const go = button('primary', '対局へ', () => {
-        if (validateDeck(deck) !== null) return; // カードなしでも始められる
+        if (validateDeck(deck) !== null) return; // 札なしでも始められる
         saveDeck(store, deck);
+        saveHandicap(store, handicap);
         void showScreen('reveal', { level, deck: [...deck] });
       });
       acts.append(auto, go);
-      foot.append(el('h2', 'foot-cap', '持ち込み'), strip, acts);
+      foot.append(el('h2', 'foot-cap', '持ち込み'), strip, handi, handiNote, acts);
 
       function add(id: CardId): void {
         const why = addReason(deck, id);
@@ -123,7 +164,7 @@ export function deckScreen(params: unknown): Screen {
       }
 
       render();
-      box.append(pageHead('カード選び', 'level'), meter, msg, rows, foot);
+      box.append(pageHead('札選び', 'level'), meter, msg, rows, foot);
       root.append(box);
     },
     unmount() {},

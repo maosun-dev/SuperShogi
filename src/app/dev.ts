@@ -15,7 +15,7 @@ export function initialView(): GameState {
 }
 
 /**
- * 盤の見た目を確かめるための局面：成り駒・装備・自分の落とし穴・王手・凍った側をひと通り入れる。
+ * 盤の見た目を確かめるための局面：成り駒・纏札・自分の伏せたマス・王手・凍結・成れない・重りの枷をひと通り入れる。
  * 本物の対局では起きない並びもある（見た目の確認専用）
  */
 export function sampleView(): GameState {
@@ -35,9 +35,16 @@ export function sampleView(): GameState {
   // 自分（先手）の落とし穴と、相手の隠れた罠
   s.traps.push({ uid: 900, owner: 'sente', cardId: 'otoshiana', at: { c: 4, r: 4 } });
   s.traps.push({ uid: 901, owner: 'gote', cardId: 'otoshiana', at: { c: 6, r: 5 } });
-  // 後手の歩を1つ凍らせる
-  const gfu = s.board[at(4, 2)]!;
-  s.board[at(4, 2)] = { ...gfu, frozen: 2 };
+  // 凍った駒（後手の歩は残り2、先手の歩は残り1で成れない印も）・成れない銀・重りの枷・自分の凍てつく床
+  const gfu = s.board[at(5, 2)]!;
+  s.board[at(5, 2)] = { ...gfu, frozen: 2 };
+  const sfu = s.board[at(3, 6)]!;
+  s.board[at(3, 6)] = { ...sfu, frozen: 1, sealed: true };
+  const sgi = s.board[at(6, 8)]!;
+  s.board[at(6, 8)] = { ...sgi, sealed: true };
+  const gki = s.board[at(3, 0)]!;
+  s.board[at(3, 0)] = { ...gki, equip: { cardId: 'omori' } };
+  s.traps.push({ uid: 902, owner: 'sente', cardId: 'itetsuku', at: { c: 2, r: 4 } });
   return viewFor(s, 'sente');
 }
 
@@ -60,10 +67,19 @@ export function titleView(): GameState {
 // ?fx=win          自分の金が相手の王の前にいる。Space で王を取る
 // ?fx=lose         相手の金が自分の王の前にいる。Space で歩を進め、CPU が王を取る
 // ?fx=draw         手数を上限にしておく。Space で歩を進めると手数の上限で引き分け
+// ?fx=itetsuku    相手が 7六 に凍てつく床を伏せた状態。Space で歩がそのマスへ進んで凍る
+// ?fx=aiuchi      相手が相討ちを伏せ、相手の歩が 7六 にいる。Space で自分の歩が取り、取った歩も壊れる
+// ?fx=migawari    相手が身代わりを伏せ、自分の金が相手の王の前にいる。Space で王を取りにいく
+// ?fx=marks       凍結・成れない・重りの枷の印を見るだけの局面
+// ?fx=kakuotoshi  相手の飛車を竜にしておく（格落としの的）
 // &cpu=normal などで相手の持ち込みと強さを変える
 
-type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw';
-const SCENES: FxScene[] = ['otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw'];
+type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw'
+  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks';
+const SCENES: FxScene[] = [
+  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks',
+];
+const TRAP_SCENES = ['otoshiana', 'kagami', 'narifuuji', 'itetsuku', 'aiuchi', 'migawari'];
 const PIT: Square = { c: 2, r: 5 };   // 落とし穴を伏せるマス（7六）
 const PROMO: Square = { c: 4, r: 2 }; // 成り封じ・鋼の鎧で狙うマス（5三）
 
@@ -73,7 +89,7 @@ function fxScene(): { scene: FxScene; card: CardId | null } | null {
   const q = new URLSearchParams(location.search);
   const name = q.get('fx');
   if (!name) return null;
-  const isTrap = name === 'otoshiana' || name === 'kagami' || name === 'narifuuji';
+  const isTrap = TRAP_SCENES.includes(name);
   if ((SCENES as string[]).includes(name) && !(isTrap && q.get('set'))) return { scene: name as FxScene, card: null };
   if (name in CARDS) return { scene: 'card', card: name as CardId };
   return null;
@@ -106,7 +122,32 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       // 呼び戻し：相手に持ち駒を持たせる
       if (fx.card === 'yobimodoshi') { s.players.gote.hand.KI = 1; s.players.gote.hand.FU = 2; }
       if (q.get('kagami')) trap('kagami', null);
+      // 格落とし：相手の飛車を竜にする
+      if (fx.card === 'kakuotoshi') s.board[1 * 9 + 1]!.promoted = true;
       break;
+    case 'itetsuku':
+      trap('itetsuku', PIT);
+      break;
+    case 'aiuchi':
+      trap('aiuchi', null);
+      put(s, { c: 2, r: 2 }, PIT);
+      break;
+    case 'migawari':
+      trap('migawari', null);
+      put(s, { c: 3, r: 8 }, { c: 4, r: 1 });
+      break;
+    case 'marks': {
+      const at = (c: number, r: number) => s.board[r * 9 + c]!;
+      at(2, 6).frozen = 2;
+      at(4, 6).frozen = 1;
+      at(4, 6).sealed = true;
+      at(6, 8).sealed = true;
+      at(3, 0).equip = { cardId: 'omori' };
+      at(5, 2).frozen = 2;
+      s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'itetsuku', at: { c: 4, r: 4 } });
+      s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'otoshiana', at: { c: 6, r: 4 } });
+      break;
+    }
     case 'otoshiana':
       trap('otoshiana', PIT);
       break;
@@ -170,7 +211,13 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
     case 'kagami':
       return pickCardAction(view, legal);
     case 'otoshiana':
+    case 'itetsuku':
+    case 'aiuchi':
       return legal.filter(isMove).find((a) => same(a.to, PIT) && pieceAt(view, a.from)?.kind !== 'OU');
+    case 'migawari':
+      return legal.filter(isMove).find((a) => pieceAt(view, a.to)?.kind === 'OU');
+    case 'marks':
+      return undefined;
     case 'narifuuji':
       return legal.filter(isMove).find((a) => same(a.to, PROMO) && a.promote);
     case 'hagane-block':

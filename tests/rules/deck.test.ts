@@ -12,7 +12,7 @@ test('コスト11は通らない', () => {
 });
 
 test('同じカード3枚は通らない', () => {
-  expect(validateDeck(['narifuuji', 'narifuuji', 'narifuuji'])).toBe('同じカードは2枚までです');
+  expect(validateDeck(['narifuuji', 'narifuuji', 'narifuuji'])).toBe('同じ札は2枚までです');
 });
 
 test('空のデッキは通る', () => {

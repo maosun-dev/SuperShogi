@@ -31,23 +31,23 @@ describe('札の HTML', () => {
     const h = cardHtml('rakurai');
     expect(h).toContain('4');
     expect(h).toContain('落雷');
-    expect(h).toContain('魔');
+    expect(h).toContain('術');
     expect(h).toContain('mahou');
     expect(cardHtml('rakurai', { count: 2 })).toContain('二');
   });
 
   it('種類の印は種類ごとに決まっている', () => {
-    expect(KIND_MARK.magic).toEqual({ mark: '魔', label: '魔法', color: 'mahou' });
-    expect(KIND_MARK.trap).toEqual({ mark: '罠', label: '罠', color: 'wana' });
-    expect(KIND_MARK.equip).toEqual({ mark: '装', label: '装備', color: 'soubi' });
-    expect(cardHtml('kagami')).toContain('罠');
-    expect(cardHtml('tenma')).toContain('装');
+    expect(KIND_MARK.magic).toEqual({ mark: '術', label: '術札', color: 'mahou' });
+    expect(KIND_MARK.trap).toEqual({ mark: '忍', label: '忍札', color: 'wana' });
+    expect(KIND_MARK.equip).toEqual({ mark: '纏', label: '纏札', color: 'soubi' });
+    expect(cardHtml('kagami')).toContain('忍');
+    expect(cardHtml('tenma')).toContain('纏');
   });
 
   it('小さい札は名前を出さず、コストと印だけ', () => {
     const h = cardHtml('rakurai', { size: 'small' });
     expect(h).not.toContain('落雷</');
     expect(h).toContain('>4<');
-    expect(h).toContain('魔');
+    expect(h).toContain('術');
   });
 });

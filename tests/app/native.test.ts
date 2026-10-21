@@ -24,13 +24,13 @@ const brokenPrefs: PrefsLike = {
   set: () => Promise.reject(new Error('x')),
   keys: () => Promise.reject(new Error('x')),
 };
-const [KS, KD, KT] = [
-  'superShogi.settings', 'superShogi.deck', 'superShogi.tally',
+const [KS, KD, KT, KH] = [
+  'superShogi.settings', 'superShogi.deck', 'superShogi.tally', 'superShogi.handicap',
 ];
 
 describe('消えにくい保存', () => {
-  it('保存の鍵は今の3つのまま', () => {
-    expect([...SAVE_KEYS].sort()).toEqual([KD, KS, KT].sort());
+  it('保存の鍵は設定・持ち込み・戦績・駒落ちの4つ', () => {
+    expect([...SAVE_KEYS].sort()).toEqual([KD, KS, KT, KH].sort());
   });
   it('localStorage にない鍵だけ戻す', async () => {
     const ls = fakeStore({ [KS]: 'LS' });

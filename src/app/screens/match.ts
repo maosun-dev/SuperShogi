@@ -12,7 +12,7 @@ import { createHud } from '../../view/hud';
 import { createPresenter } from '../../fx/player';
 import { showScreen, type Screen } from '../screens';
 import { installAutoPlay, installFxKey } from '../dev';
-import { recordResult, safeStore } from '../storage';
+import { loadHandicap, recordResult, safeStore } from '../storage';
 import { outcomeOf, type Outcome } from '../outcome';
 import { button, el } from './ui';
 
@@ -109,7 +109,7 @@ export function matchScreen(params: unknown): Screen {
 
       cpu = createBrowserCpu();
       const m = createMatch({
-        level, humanDeck: deck, cpu, presenter, initial,
+        level, humanDeck: deck, cpu, presenter, initial, handicap: loadHandicap(safeStore()),
         onOver: (result: Result) => {
           record(outcomeOf(result));
           void showScreen('result', { result, level, deck });
@@ -247,8 +247,14 @@ export function matchScreen(params: unknown): Screen {
 
       setHighlights(stage, [], []);
       sync(stage, m.view(), 'sente');
+      // CPU が先に指すとき（相手の駒落ち）は、考え中を出してから始める
+      thinking = m.phase() === 'cpu';
       refresh();
-      void m.start();
+      void m.start().then(() => {
+        if (disposed || m.phase() !== 'human') return;
+        thinking = false;
+        refresh();
+      });
     },
     unmount() {
       disposed = true;

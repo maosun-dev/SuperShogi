@@ -8,7 +8,7 @@ export function deckCost(deck: CardId[]): number {
 
 // 足せない理由。足せるなら null
 export function addReason(deck: CardId[], id: CardId): string | null {
-  if (deck.filter(d => d === id).length >= MAX_COPIES) return '同じカードは2枚までです';
+  if (deck.filter(d => d === id).length >= MAX_COPIES) return '同じ札は2枚までです';
   if (deckCost(deck) + CARDS[id].cost > COST_LIMIT) return '残りのコストが足りません';
   return null;
 }

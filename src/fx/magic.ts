@@ -1,4 +1,4 @@
-// 魔法5枚の演出。共通の流れ（札が飛ぶ → 間と白い光 → 集中線 → カメラが寄る → カットイン → 効果 → 戻る）と、
+// 術札の演出。共通の流れ（札が飛ぶ → 間と白い光 → 集中線 → カメラが寄る → カットイン → 効果 → 戻る）と、
 // カードごとの効果（MAGIC_FX）。時間は「長め」の値（試作の値）で書き、短めでは ctx が半分にする。
 import * as THREE from 'three';
 import type { GameEvent, Square } from '../rules/types';
@@ -6,7 +6,7 @@ import { CARDS } from '../cards';
 import type { Cue } from './plan';
 import type { Stage } from '../view/stage';
 import { PAL, PALS, rgba } from '../view/palette';
-import { BD, BW, squarePos } from '../view/board3d';
+import { squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
 import { HAND_LABEL } from '../view/hud';
 import {
@@ -16,7 +16,7 @@ import {
 import { getSound } from './sound';
 
 type MagicCue = Extract<Cue, { kind: 'magic' }>;
-type MagicName = 'oshikaeshi' | 'irekae' | 'rakurai' | 'yobimodoshi';
+type MagicName = 'oshikaeshi' | 'irekae' | 'rakurai' | 'yobimodoshi' | 'kakuotoshi' | 'shoryu';
 
 const PIECE_Y = 0.02; // pieces3d と同じ駒の置き高さ
 
@@ -178,52 +178,6 @@ async function rakurai(ctx: FxCtx, cue: MagicCue): Promise<void> {
   }
 }
 
-// ---------- 霜の模様（凍てつく床で使う） ----------
-let frostSrc: HTMLCanvasElement | null = null;
-const FROST_W = 512, FROST_H = Math.round(512 * BD / BW);
-
-/** 盤いっぱいの霜の模様（六方の結晶と、中央から伸びるひび） */
-function frostPattern(): HTMLCanvasElement {
-  if (frostSrc) return frostSrc;
-  const c = document.createElement('canvas'); c.width = FROST_W; c.height = FROST_H;
-  const g = c.getContext('2d')!;
-  const cx = FROST_W / 2, cy = FROST_H / 2;
-  const base = g.createRadialGradient(cx, cy, 10, cx, cy, FROST_W * 0.75);
-  base.addColorStop(0, rgba(PAL.gofun, 0.42)); base.addColorStop(1, rgba(PAL.mahouPale, 0.22));
-  g.fillStyle = base; g.fillRect(0, 0, FROST_W, FROST_H);
-  g.lineCap = 'round';
-  // 中央から外へ伸びる、枝分かれする霜のすじ
-  const branch = (x: number, y: number, a: number, len: number, w: number, depth: number): void => {
-    if (depth === 0 || len < 6) return;
-    const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
-    g.strokeStyle = rgba(PAL.gofun, 0.35 + depth * 0.1); g.lineWidth = w;
-    g.beginPath(); g.moveTo(x, y); g.lineTo(x2, y2); g.stroke();
-    branch(x2, y2, a + (Math.random() - 0.5) * 0.5, len * 0.82, w * 0.8, depth - 1);
-    if (Math.random() < 0.7) branch(x2, y2, a + (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 0.4), len * 0.55, w * 0.6, depth - 2);
-  };
-  for (let i = 0; i < 14; i++) branch(cx, cy, (i / 14) * Math.PI * 2 + Math.random() * 0.2, 34 + Math.random() * 16, 3, 7);
-  // 六方の結晶
-  for (let i = 0; i < 70; i++) {
-    const x = Math.random() * FROST_W, y = Math.random() * FROST_H, r = 5 + Math.random() * 13;
-    g.strokeStyle = rgba(i % 3 === 0 ? PAL.mahouPale : PAL.gofun, 0.55 + Math.random() * 0.4);
-    g.lineWidth = 1.2 + Math.random() * 1.4;
-    g.beginPath();
-    for (let k = 0; k < 6; k++) {
-      const ang = (k / 6) * Math.PI * 2;
-      const ex = x + Math.cos(ang) * r, ey = y + Math.sin(ang) * r;
-      g.moveTo(x, y); g.lineTo(ex, ey);
-      const bx = x + Math.cos(ang) * r * 0.58, by = y + Math.sin(ang) * r * 0.58;
-      for (const s of [-1, 1]) {
-        const b = ang + s * 0.85;
-        g.moveTo(bx, by); g.lineTo(bx + Math.cos(b) * r * 0.34, by + Math.sin(b) * r * 0.34);
-      }
-    }
-    g.stroke();
-  }
-  frostSrc = c;
-  return c;
-}
-
 // ---------- 呼び戻し（HTML の駒札が飛ぶ） ----------
 async function yobimodoshi(ctx: FxCtx, cue: MagicCue): Promise<void> {
   const e = effect(cue, 'handTransferred');
@@ -298,8 +252,71 @@ async function yobimodoshi(ctx: FxCtx, cue: MagicCue): Promise<void> {
   }
 }
 
+// ---------- 格落とし ----------
+// 藍の楔が上から落ちて駒を打ち、駒がつぶれて元の字に戻る（字は sync が描き直す）
+async function kakuotoshi(ctx: FxCtx, cue: MagicCue): Promise<void> {
+  const e = effect(cue, 'demoted');
+  if (!e) return;
+  const m = pieceMesh(e.pieceId);
+  if (!m) return;
+  const at = squarePos(e.at);
+  const wedge = new THREE.Mesh(
+    new THREE.ConeGeometry(0.22, 0.9, 4),
+    new THREE.MeshBasicMaterial({ color: PAL.mahou, transparent: true, depthWrite: false }),
+  );
+  wedge.rotation.x = Math.PI; // 先を下へ
+  const kill = transient(ctx, wedge, 60000);
+  try {
+    const top = 4, hit = 0.75;
+    await ctx.tween(260, (t) => { wedge.position.set(at.x, top + (hit - top) * t, at.z); }, (t) => t * t);
+    flash(ctx, PALS.mahouFlash, 0.5, 180);
+    shakeBy(ctx, 0.3);
+    getSound().play('stamp');
+    puff(ctx, at, PAL.mahouPale, 30, 1.2);
+    // 駒がつぶれて戻る
+    const sy = m.scale.y;
+    await ctx.tween(160, (t) => { m.scale.y = sy * (1 - 0.45 * t); }, easeOut);
+    ctx.sync(); // 成りが戻った字にする
+    const m2 = pieceMesh(e.pieceId);
+    if (m2) await ctx.tween(260, (t) => { m2.scale.y = 0.55 + 0.45 * t; }, easeOut);
+    await ctx.tween(240, (t) => { wedge.material.opacity = 1 - t; });
+  } finally {
+    kill();
+  }
+}
+
+// ---------- 昇竜 ----------
+// 駒が金の粒を巻き上げながら浮かび、くるりと回って成る（成り封じに止められたら浮いて戻るだけ）
+async function shoryu(ctx: FxCtx, cue: MagicCue): Promise<void> {
+  const sq = cue.targets[0];
+  if (!sq) return;
+  const id = pieceIdAt(ctx, sq);
+  const m = id === undefined ? undefined : pieceMesh(id);
+  if (!m) return;
+  const at = squarePos(sq);
+  const done = effect(cue, 'promotedInPlace');
+  const y0 = m.position.y, ry = m.rotation.y;
+  const spiral = (t: number): void => { m.position.y = y0 + 0.9 * Math.sin(Math.PI * Math.min(1, t)) ; };
+  puff(ctx, at, PAL.soubiLight, 50, 1.0);
+  await ctx.tween(520, (t) => {
+    spiral(t * 0.5);
+    m.rotation.y = ry + Math.PI * 2 * t;
+  }, easeInOut);
+  if (done) {
+    flash(ctx, PALS.soubiPale, 0.7, 220);
+    getSound().play('chime');
+    ctx.sync(); // 成った字にする
+    const m2 = pieceMesh(done.pieceId) ?? m;
+    await ctx.tween(380, (t) => { m2.position.y = y0 + 0.9 * (1 - t); }, easeOut);
+    puff(ctx, at, PAL.soubiLight, 40, 1.6);
+    shakeBy(ctx, 0.18);
+  } else {
+    await ctx.tween(320, (t) => { m.position.y = y0 + 0.9 * (1 - t); }, easeOut);
+  }
+}
+
 export const MAGIC_FX: Record<MagicName, (ctx: FxCtx, cue: MagicCue) => Promise<void>> = {
-  oshikaeshi, irekae, rakurai, yobimodoshi,
+  oshikaeshi, irekae, rakurai, yobimodoshi, kakuotoshi, shoryu,
 };
 
 /** カメラが寄る先（対象のマス。2つなら真ん中）。対象がなければ null */
@@ -325,7 +342,7 @@ export async function playMagic(ctx: FxCtx, cue: MagicCue): Promise<void> {
     const at = focusOf(cue);
     if (at) await cameraTo(ctx, at, 620);
     else await cameraPush(ctx, 0.28, 620);
-    await cutIn(ctx, def.name, `魔法・コスト${def.cost}`, 'mahou', 1000);
+    await cutIn(ctx, def.name, `術・コスト${def.cost}`, 'mahou', 1000);
     speedLines(ctx, false);
     if (cue.negated) return;
     const fx = MAGIC_FX[def.fx as MagicName];

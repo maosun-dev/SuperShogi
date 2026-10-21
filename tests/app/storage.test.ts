@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_SETTINGS, safeStore, loadSettings, saveSettings, loadDeck, saveDeck,
-  loadTally, recordResult, type KeyValueStore,
+  loadTally, recordResult, loadHandicap, saveHandicap, type KeyValueStore,
 } from '../../src/app/storage';
 
 // Map で作った偽の保存先
@@ -11,6 +11,16 @@ function fakeStore(): KeyValueStore {
 }
 
 describe('保存', () => {
+  it('駒落ちを保存して読み戻せる。何もない・壊れているときは「なし」', () => {
+    const st = fakeStore();
+    expect(loadHandicap(st)).toEqual({ side: 'sente', kind: 'none' });
+    saveHandicap(st, { side: 'gote', kind: 'nimai' });
+    expect(loadHandicap(st)).toEqual({ side: 'gote', kind: 'nimai' });
+    st.setItem('superShogi.handicap', '{"kind":"toString","side":"x"}');
+    expect(loadHandicap(st)).toEqual({ side: 'sente', kind: 'none' });
+    st.setItem('superShogi.handicap', '{');
+    expect(loadHandicap(st)).toEqual({ side: 'sente', kind: 'none' });
+  });
   it('設定を保存して読み戻せる', () => {
     const st = fakeStore();
     saveSettings(st, { fx: 'short', volume: 0.3 });

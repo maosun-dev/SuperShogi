@@ -1,4 +1,4 @@
-// 駒の形と字・sync(局面) で駒・装備の六角形・自分の落とし穴の印・王手の輪・凍った側の青みを揃える。
+// 駒の形と字・sync(局面) で駒・纏札の六角形・自分の伏せたマスの印・王手の輪・凍結と成れないの印を揃える。
 // 駒の形・字の貼り方は試作（docs/mockups/look-mockup.html）の値をそのまま使う。
 import * as THREE from 'three';
 import type { CardId, GameState, Piece, PieceKind, Side } from '../rules/types';
@@ -108,6 +108,7 @@ interface PieceObj {
   side: Side;
   equip: { id: CardId; obj: THREE.Group; stop: () => void } | null;
   check: { obj: THREE.Mesh; stop: () => void } | null;
+  marks: { key: string; obj: THREE.Group } | null;   // 凍結・成れないの印（key が変わったら作り直す）
 }
 
 const objs = new Map<number, PieceObj>();
@@ -122,16 +123,72 @@ function makePiece(p: Piece): PieceObj {
   label.rotation.x = -Math.PI / 2; label.position.set(0, 0.16 * s + 0.026, 0.03 * s);
   grp.add(label);
   grp.userData = { pieceId: p.id, s };
-  return { grp, body, label, kind: p.kind, side: p.side, equip: null, check: null };
+  return { grp, body, label, kind: p.kind, side: p.side, equip: null, check: null, marks: null };
+}
+
+// ---------- 凍結・成れないの印（駒の手前左の盤の上に寝かせる） ----------
+const KANSUJI = ['〇', '一', '二', '三', '四', '五'];
+const markMats = new Map<string, THREE.MeshBasicMaterial>();
+
+/** 印の材質（使い回す）。frozen：藍の丸に胡粉の数字（残りの手番）。sealed：紅の角印に「封」 */
+function markMat(key: string): THREE.MeshBasicMaterial {
+  const hit = markMats.get(key);
+  if (hit) return hit;
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const g = c.getContext('2d')!;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (key === 'sealed') {
+    g.save(); g.translate(64, 64); g.rotate(-0.12);
+    g.fillStyle = PALS.wana; g.fillRect(-50, -50, 100, 100);
+    g.strokeStyle = PALS.gofun; g.lineWidth = 5; g.strokeRect(-40, -40, 80, 80);
+    g.fillStyle = PALS.gofun; g.font = '800 64px "Shippori Mincho B1", serif'; g.fillText('封', 0, 4);
+    g.restore();
+  } else {
+    const n = Number(key.slice(1));
+    g.fillStyle = PALS.mahou; g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = PALS.mahouPale; g.lineWidth = 6; g.beginPath(); g.arc(64, 64, 46, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = PALS.gofun; g.font = '800 66px "Shippori Mincho B1", serif'; g.fillText(KANSUJI[n] ?? String(n), 64, 68);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  // 駒の陰に隠れないよう、いつも上に描く
+  const m = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false });
+  markMats.set(key, m);
+  return m;
+}
+
+const markGeo = new THREE.PlaneGeometry(0.56, 0.56);
+
+/** 駒の印の組。凍結（f+数）と成れない（sealed）を手前左に縦に並べる */
+function makeMarks(keys: string[], side: Side): THREE.Group {
+  const g = new THREE.Group();
+  const flip = side === 'gote' ? -1 : 1;  // 後手の駒は π 回っているので打ち消す
+  keys.forEach((k, i) => {
+    const m = new THREE.Mesh(markGeo, markMat(k));
+    m.renderOrder = 6;
+    m.rotation.x = -Math.PI / 2;
+    if (side === 'gote') m.rotation.z = Math.PI;
+    m.position.set(-0.36 * flip, 0.035 - PIECE_Y, (0.3 - i * 0.56) * flip);
+    g.add(m);
+  });
+  return g;
+}
+
+function removeMarks(o: PieceObj): void {
+  if (!o.marks) return;
+  o.grp.remove(o.marks.obj);
+  o.marks = null; // 形と材質は使い回すので捨てない
 }
 
 /** 装備の六角形（試作の金の輪）と、その札の絵の小さな板 */
 function makeEquip(id: CardId, side: Side): { obj: THREE.Group; stop: () => void } {
   const g = new THREE.Group();
-  const hex = ring(0.5, 0.68, PAL.soubiLight, 6);
+  // 重りの枷は相手に付けられる重荷なので、金の六角形ではなく、回らない墨の四角い枷にする
+  const shackle = id === 'omori';
+  const hex = shackle ? ring(0.5, 0.64, PAL.sumi, 4) : ring(0.5, 0.68, PAL.soubiLight, 6);
   hex.position.y = 0.014 - PIECE_Y;
+  if (shackle) hex.rotation.z = Math.PI / 4;
   g.add(hex);
-  spinning.add(hex);
+  if (!shackle) spinning.add(hex);
   const stopPulse = addPulse(hex.material, 0.55, 0.95, 2.5);
   // 札の絵：駒に隠れないよう、六角形の手前右の角に寝かせて置く（見る側から見て正しい向き）
   const art = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.48),
@@ -171,20 +228,23 @@ function removeCheck(o: PieceObj): void {
 
 function removePiece(stage: Stage, id: number, o: PieceObj): void {
   removeEquip(o);
+  removeMarks(o);
   removeCheck(o);
   stage.scene.remove(o.grp);
   o.grp.parent?.remove(o.grp);
   objs.delete(id);
 }
 
-// ---------- 自分の落とし穴の印 ----------
+// ---------- 自分がマスに伏せた札の印（落とし穴は紅の「穴」、凍てつく床は藍の「氷」） ----------
 const pits = new Map<number, { obj: THREE.Mesh; key: string; stop: () => void }>();
 
-function makePit(): THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> {
+function makePit(cardId: CardId | null): THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> {
+  const frost = cardId === 'itetsuku';
+  const color = frost ? PAL.mahou : PAL.wana;
   return decal((g) => {
-    g.strokeStyle = rgba(PAL.wana, 0.95); g.lineWidth = 10; g.setLineDash([22, 14]); g.strokeRect(18, 18, 220, 220);
-    g.fillStyle = rgba(PAL.wana, 0.9); g.font = '800 92px "Shippori Mincho B1", serif';
-    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('罠', 128, 134);
+    g.strokeStyle = rgba(color, 0.95); g.lineWidth = 10; g.setLineDash([22, 14]); g.strokeRect(18, 18, 220, 220);
+    g.fillStyle = rgba(color, 0.9); g.font = '800 92px "Shippori Mincho B1", serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(frost ? '氷' : '穴', 128, 134);
   }, CW * 0.92, CD * 0.92);
 }
 
@@ -243,6 +303,16 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
       o.equip = { id: eq, ...e };
     }
 
+    // 凍結（残りの手番）と成れないの印
+    const keys = [...(p.frozen ? [`f${p.frozen}`] : []), ...(p.sealed ? ['sealed'] : [])];
+    const mk = keys.join(',');
+    if (o.marks && o.marks.key !== mk) removeMarks(o);
+    if (keys.length > 0 && !o.marks) {
+      const obj = makeMarks(keys, p.side);
+      o.grp.add(obj);
+      o.marks = { key: mk, obj };
+    }
+
     // 王手の輪
     const inCheck = p.kind === 'OU' && checked[p.side];
     if (inCheck && !o.check) {
@@ -263,7 +333,7 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
     let pit = pits.get(t.uid);
     if (pit && pit.key !== key) { pit.obj.position.copy(squarePos(t.at)).setY(0.01); pit.key = key; }
     if (!pit) {
-      const m = makePit();
+      const m = makePit(t.cardId);
       m.position.copy(squarePos(t.at)).setY(0.01);
       pit = { obj: m, key, stop: addPulse(m.material, 0.25, 0.6, 2) };
       pits.set(t.uid, pit);

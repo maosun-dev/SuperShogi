@@ -1,4 +1,4 @@
-// 装備4枚の演出。共通の流れ（札が飛ぶ → 短いカットイン（金の帯 600ms）→ 金の光の柱が駒に降りる（700ms）
+// 纏札の演出。共通の流れ（札が飛ぶ → 短いカットイン（金の帯 600ms）→ 金の光の柱が駒に降りる（700ms）
 // → 足元に金の六角形が現れる。以降の六角形は sync が出し続ける）と、カードごとの飾り（EQUIP_FX）。
 // 鋼の鎧が守った瞬間（playArmor）と、韋駄天の2回目の移動（playSecond）もここ。
 // 決まり：駒の形・材質は共有なので、残像や光は形を複製して作り、材質は新しく作るか複製する
@@ -15,7 +15,7 @@ import { squareOf } from './trap';
 type EquipCue = Extract<Cue, { kind: 'equip' }>;
 type ArmorCue = Extract<Cue, { kind: 'armor' }>;
 type SecondCue = Extract<Cue, { kind: 'second' }>;
-type EquipName = 'tenma' | 'hagane' | 'tate' | 'idaten';
+type EquipName = 'tenma' | 'hagane' | 'tate' | 'idaten' | 'tsuranuki' | 'omori';
 
 const PILLAR_MS = 700;
 const PILLAR_H = 9;
@@ -229,11 +229,39 @@ async function idaten(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
   }
 }
 
+// 貫きの槍：金の光の槍が駒を貫いて、前へまっすぐ走り抜ける
+async function tsuranuki(ctx: FxCtx, at: THREE.Vector3, side: 'sente' | 'gote'): Promise<void> {
+  const dir = side === 'sente' ? -1 : 1; // 先手の前は奥（z が減る向き）
+  const mat = new THREE.MeshBasicMaterial({ color: PAL.soubiLight, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  const spear = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 2.6), mat);
+  const kill = transient(ctx, spear, 60000);
+  try {
+    await ctx.wait(220);
+    await ctx.tween(420, (t) => {
+      spear.position.set(at.x, 0.45, at.z + dir * (-2 + 5 * t));
+      mat.opacity = Math.sin(Math.PI * t) * lightCap(ctx, 0.95);
+    }, easeInOut);
+    getSound().play('clang', { gain: 0.5 });
+  } finally {
+    kill();
+  }
+}
+
+// 重りの枷：墨の重りがずしんと落ちる（揺れと土ぼこり）
+async function omori(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
+  await ctx.wait(PILLAR_MS * 0.6);
+  shakeBy(ctx, 0.35);
+  puff(ctx, at, PAL.sumi, 36, 1.2);
+  getSound().play('drum');
+}
+
 export const EQUIP_FX: Record<EquipName, (ctx: FxCtx, cue: EquipCue) => Promise<void>> = {
   tenma: (ctx, cue) => withAt(ctx, cue, (at) => tenma(ctx, at)),
   hagane: (ctx, cue) => withAt(ctx, cue, (at) => hagane(ctx, at, cue.pieceId)),
   tate: (ctx, cue) => withAt(ctx, cue, (at) => tate(ctx, at)),
   idaten: (ctx, cue) => withAt(ctx, cue, (at) => idaten(ctx, at)),
+  tsuranuki: (ctx, cue) => withAt(ctx, cue, (at) => tsuranuki(ctx, at, cue.side)),
+  omori: (ctx, cue) => withAt(ctx, cue, (at) => omori(ctx, at)),
 };
 
 function withAt(ctx: FxCtx, cue: EquipCue, fn: (at: THREE.Vector3) => Promise<void>): Promise<void> {
@@ -250,7 +278,7 @@ export async function playEquip(ctx: FxCtx, cue: EquipCue): Promise<void> {
     await ctx.wait(220);
     flash(ctx, PALS.soubiPale, 0.5, 180);
     const cam = sq ? later(cameraTo(ctx, squarePos(sq), 520)) : Promise.resolve();
-    await cutIn(ctx, def.name, `装備・コスト${def.cost}`, 'soubi', 600);
+    await cutIn(ctx, def.name, `纏・コスト${def.cost}`, 'soubi', 600);
     await cam;
     if (!sq) return;
     const at = squarePos(sq);

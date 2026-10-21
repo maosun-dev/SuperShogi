@@ -36,7 +36,7 @@ export function titleScreen(): Screen {
       const nav = el('nav', 'fuda-row');
       nav.setAttribute('aria-label', 'はじめる');
       const play = button('fuda wana', '対局', () => { void showScreen('level'); });
-      const zukan = button('fuda mahou', 'カード図鑑', () => { void showScreen('zukan'); });
+      const zukan = button('fuda mahou', '札図鑑', () => { void showScreen('zukan'); });
       nav.append(play, zukan);
 
       const seal = button('kakuin', '設', () => { void showScreen('settings'); });

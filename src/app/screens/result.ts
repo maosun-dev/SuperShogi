@@ -34,7 +34,7 @@ export function resultScreen(params: unknown): Screen {
       const acts = el('nav', 'result-acts');
       acts.append(
         button('primary', 'もう一度', () => { void showScreen('reveal', { level, deck }); }),
-        button('ghost', 'カードを組み直す', () => { void showScreen('deck', { level }); }),
+        button('ghost', '札を組み直す', () => { void showScreen('deck', { level }); }),
         button('text', 'タイトルへ', () => { void showScreen('title'); }),
       );
       box.append(host, center, acts);

@@ -53,6 +53,46 @@ describe('planFx', () => {
     expect(m.effects).toEqual([{ type: 'destroyed', pieceId: foe.id, at: sq(2, 2), cause: 'rakurai' }]);
   });
 
+  it('格落とし・昇竜：magic の effects に demoted・promotedInPlace が入る', () => {
+    const s = base();
+    const u1 = giveCard(s, 'sente', 'kakuotoshi');
+    put(s, sq(3, 3), 'GI', 'gote', { promoted: true });
+    const c1 = cuesOf(s, { type: 'card', uid: u1, targets: [sq(3, 3)] });
+    expect((c1[0] as Extract<Cue, { kind: 'magic' }>).effects.map(e => e.type)).toEqual(['demoted']);
+    const s2 = base();
+    const u2 = giveCard(s2, 'sente', 'shoryu');
+    put(s2, sq(4, 6), 'FU', 'sente');
+    const c2 = cuesOf(s2, { type: 'card', uid: u2, targets: [sq(4, 6)] });
+    expect((c2[0] as Extract<Cue, { kind: 'magic' }>).effects.map(e => e.type)).toEqual(['promotedInPlace']);
+  });
+
+  it('凍てつく床・相討ち・身代わり：trapFire の effects に効果が入る', () => {
+    const s = base();
+    setTrap(s, 'gote', 'itetsuku', sq(4, 5));
+    put(s, sq(4, 6), 'FU', 'sente');
+    const c1 = cuesOf(s, { type: 'move', from: sq(4, 6), to: sq(4, 5), promote: false });
+    expect(c1.map(c => c.kind)).toEqual(['move', 'trapFire']);
+    expect((c1[1] as Extract<Cue, { kind: 'trapFire' }>).effects.map(e => e.type)).toEqual(['frozen']);
+
+    const s2 = base();
+    setTrap(s2, 'gote', 'aiuchi');
+    put(s2, sq(4, 6), 'FU', 'sente');
+    put(s2, sq(4, 5), 'FU', 'gote');
+    const c2 = cuesOf(s2, { type: 'move', from: sq(4, 6), to: sq(4, 5), promote: false });
+    expect(c2.map(c => c.kind)).toEqual(['move', 'trapFire']);
+    expect((c2[1] as Extract<Cue, { kind: 'trapFire' }>).effects.map(e => e.type)).toEqual(['destroyed']);
+
+    const s3 = emptyState();
+    put(s3, sq(8, 8), 'OU', 'sente');
+    put(s3, sq(4, 1), 'OU', 'gote');
+    put(s3, sq(3, 1), 'FU', 'gote');
+    setTrap(s3, 'gote', 'migawari');
+    put(s3, sq(4, 6), 'HI', 'sente');
+    const c3 = cuesOf(s3, { type: 'move', from: sq(4, 6), to: sq(4, 1), promote: false });
+    expect(c3.map(c => c.kind)).toEqual(['trapFire', 'check']); // 飛車は残るので王手のまま
+    expect((c3[0] as Extract<Cue, { kind: 'trapFire' }>).effects.map(e => e.type)).toEqual(['destroyed', 'kingGuarded']);
+  });
+
   it('押し返した先の落とし穴：magic のあとに trapFire', () => {
     const s = base();
     const uid = giveCard(s, 'sente', 'oshikaeshi');

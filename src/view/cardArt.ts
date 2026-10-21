@@ -1,4 +1,4 @@
-// 12枚のカードの絵（自作の SVG）と札の HTML。
+// 18枚の札の絵（自作の SVG）と札の HTML。
 // 絵はすべて viewBox="0 0 46 62" の中身。描き方は「墨の太い線＋種類の色1つ＋金箔をひと差し」。
 // 色は palette.ts の文字列形だけを使う（ここに色の値を直に書かない）。
 // 入れる文字はすべてこのファイルとカード定義の定数だけ（利用者の入力は入らない）。
@@ -65,18 +65,58 @@ function plate(y: number, w: number, grow: number, fill: string): string {
   return `<path d="M${r1(x1)} ${y} Q23 ${y + 3} ${r1(x2)} ${y} L${r1(x2 + grow)} ${y + h} Q23 ${y + h + 3.5} ${r1(x1 - grow)} ${y + h}Z" fill="${fill}" stroke="${P}" stroke-width="1"/>`;
 }
 
-/** 仮の絵：名前の1文字目を大きく書く（計画6で描き直す） */
-function glyph(ch: string): string {
-  return `<text x="23" y="42" text-anchor="middle" font-size="30" fill="${P}" font-family="serif">${ch}</text>`;
+/** 輪の鎖のひとつ（楕円の輪）。(cx,cy) 中心、a 角度 */
+function link(cx: number, cy: number, a: number): string {
+  return `<ellipse cx="${cx}" cy="${cy}" rx="4.2" ry="2.6" transform="rotate(${a} ${cx} ${cy})" fill="none" stroke="${S}" stroke-width="2"/>`;
 }
 
 export const CARD_ART: Record<CardId, string> = {
-  kakuotoshi: glyph('格'),
-  shoryu: glyph('昇'),
-  aiuchi: glyph('相'),
-  migawari: glyph('身'),
-  tsuranuki: glyph('貫'),
-  omori: glyph('重'),
+  // ---- 計画6で描いたもの ----
+  // 格落とし：上から藍の楔が駒を打ち、成りの金の印が二つに割れて飛ぶ
+  kakuotoshi: `${piece(23, 30, 26, 30, 2)}
+    <path d="M23 26 L23 6" stroke="${S}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M23 25 L23 7" stroke="${M}" stroke-width="2.6" stroke-linecap="round"/>
+    ${arrowHead(23, 30, 0, 1, M, 7, 5)}
+    <path d="M10 22 A6 6 0 0 1 10 34 Z" fill="${G}" stroke="${S}" stroke-width="1.2" transform="rotate(-25 10 28)"/>
+    <path d="M37 24 A6 6 0 0 0 37 36 Z" fill="${G}" stroke="${S}" stroke-width="1.2" transform="rotate(20 37 30)"/>
+    <path d="M4 18 L7 21 M42 19 L39 22" stroke="${S}" stroke-width="1.4" stroke-linecap="round"/>`,
+  // 昇竜：駒から墨の竜がうねって昇り、金の珠をつかむ
+  shoryu: `${piece(12, 44, 16, 17)}
+    <path d="M14 46 Q1 36 14 30 Q33 22 22 13 Q16 8 25 5" stroke="${S}" stroke-width="8.5" fill="none" stroke-linecap="round"/>
+    <path d="M14 46 Q1 36 14 30 Q33 22 22 13 Q16 8 25 5" stroke="${M}" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+    <path d="M22 1 L37 3 L33 9 L24 10Z" fill="${S}" stroke="${S}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M27 2 L24 -2 M31 3 L30 -1" stroke="${S}" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="30" cy="5.6" r="1.3" fill="${G}"/>
+    <circle cx="40" cy="15" r="4.5" fill="${G}" stroke="${S}" stroke-width="1.2"/>
+    <path d="M24 54 Q29 47 35 51 Q41 46 45 53" stroke="${M}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+  // 相討ち：交わる二振りの刀、交わる所に紅の火花、金の鍔
+  aiuchi: `<path d="M8 57 L38 9" stroke="${S}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M38 57 L8 9" stroke="${S}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M12 50 L35 14" stroke="${P}" stroke-width="1" stroke-linecap="round"/>
+    <path d="M34 50 L11 14" stroke="${P}" stroke-width="1" stroke-linecap="round"/>
+    <rect x="9" y="45" width="9" height="3.4" rx="1" fill="${G}" stroke="${S}" stroke-width="1" transform="rotate(-57 13.5 46.7)"/>
+    <rect x="28" y="45" width="9" height="3.4" rx="1" fill="${G}" stroke="${S}" stroke-width="1" transform="rotate(57 32.5 46.7)"/>
+    <polygon points="23,21 25.6,29 34,26.5 28,33 34,39.5 25.6,37 23,45 20.4,37 12,39.5 18,33 12,26.5 20.4,29" fill="${W}" stroke="${S}" stroke-width="1.2"/>`,
+  // 身代わり：紙の人形（形代）が紅に裂かれ、後ろの王の駒は無事
+  migawari: `${piece(31, 3, 26, 31, 1.8)}
+    <text x="31" y="27" text-anchor="middle" font-size="13" font-weight="800" font-family="'Shippori Mincho B1', serif" fill="${S}">王</text>
+    <circle cx="17" cy="27" r="5" fill="${P}" stroke="${S}" stroke-width="1.8"/>
+    <path d="M17 32 L4 36 L5 40 L12 39 L11 58 L16 58 L17 47 L18 58 L23 58 L22 39 L29 40 L30 36Z" fill="${P}" stroke="${S}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M6 54 L30 26" stroke="${W}" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="36" cy="40" r="2.4" fill="${G}" stroke="${S}" stroke-width="1"/>`,
+  // 貫きの槍：一本の槍が駒を貫き、穂先は金
+  tsuranuki: `${piece(22, 22, 24, 28, 2)}
+    <path d="M6 58 L36 10" stroke="${S}" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M14 49 L18 43 M26 30 L29 25" stroke="${P}" stroke-width="1" stroke-linecap="round"/>
+    <polygon points="41,2 39,14 33,10" fill="${G}" stroke="${S}" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M30 17 L37 21" stroke="${S}" stroke-width="2" stroke-linecap="round"/>`,
+  // 重りの枷：駒の足に鉄の輪、鎖の先に墨の重り（金の光がひと筋）
+  omori: `${piece(15, 6, 22, 28, 1.8)}
+    <rect x="5" y="31" width="20" height="6" rx="2" fill="${S}"/>
+    <rect x="7" y="32.5" width="16" height="1.4" fill="${G}"/>
+    ${link(25, 40, 40)}${link(29, 45, 40)}${link(32, 50, 40)}
+    <circle cx="36" cy="54" r="8" fill="${S}"/>
+    <path d="M32 50 Q34 48 37 48.5" stroke="${G}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
   // ---- 試作から移したもの（色だけパレットに置き換え） ----
   // 落雷：墨の雲から藍の稲妻
   rakurai: `<circle cx="14" cy="12" r="9" fill="${S}"/><circle cx="26" cy="9" r="10" fill="${S}"/><circle cx="35" cy="15" r="7" fill="${S}"/>
@@ -150,10 +190,10 @@ export const CARD_ART: Record<CardId, string> = {
     <path d="M33 4 Q43 3 44.5 13" stroke="${S}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
 };
 
-export const KIND_MARK: Record<CardKind, { mark: '魔' | '罠' | '装'; label: '魔法' | '罠' | '装備'; color: 'mahou' | 'wana' | 'soubi' }> = {
-  magic: { mark: '魔', label: '魔法', color: 'mahou' },
-  trap: { mark: '罠', label: '罠', color: 'wana' },
-  equip: { mark: '装', label: '装備', color: 'soubi' },
+export const KIND_MARK: Record<CardKind, { mark: '術' | '忍' | '纏'; label: '術札' | '忍札' | '纏札'; color: 'mahou' | 'wana' | 'soubi' }> = {
+  magic: { mark: '術', label: '術札', color: 'mahou' },
+  trap: { mark: '忍', label: '忍札', color: 'wana' },
+  equip: { mark: '纏', label: '纏札', color: 'soubi' },
 };
 
 const KANSUJI = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
