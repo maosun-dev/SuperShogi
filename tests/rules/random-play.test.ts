@@ -36,7 +36,13 @@ function countPieces(s: GameState): number {
 
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 
-test.each(range(200))('でたらめ対局 %i は例外なく決着か引き分けで終わる', seed => {
+// 各対局の前に一瞬休む。200局を休まず続けると vitest の内部の連絡（onTaskUpdate）が60秒で時間切れになり
+// 「Unhandled Errors」が出るため（テストの合間に連絡を処理する機会を作る）
+declare function setTimeout(fn: () => void, ms: number): unknown;
+const breathe = (): Promise<void> => new Promise(r => { setTimeout(r, 0); });
+
+test.each(range(200))('でたらめ対局 %i は例外なく決着か引き分けで終わる', async seed => {
+  await breathe();
   const rand = makeRng(seed + 1);
   let s = createGame({ sente: randomDeck(rand), gote: randomDeck(rand) });
   let destroyed = 0;
