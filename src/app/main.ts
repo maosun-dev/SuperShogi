@@ -14,6 +14,7 @@ import { levelScreen } from './screens/level';
 import { deckScreen } from './screens/deck';
 import { revealScreen } from './screens/reveal';
 import { settingsScreen } from './screens/settings';
+import { armSoundUnlock, watchResume } from './unlock';
 import { prepareSaves } from './native';
 import { autoMatchParams, fxMatchParams } from './dev';
 
@@ -25,13 +26,9 @@ function start(): void {
   const sound = getSound();
   sound.setVolume(loadSettings(safeStore()).volume);
   setClapper(() => sound.play('hyoshigi'));
-  // iOS Safari は touchend / click でしか再開を許さないことがあるので、4種類すべてで試す。音が出せるようになったら外す
-  const kinds = ['pointerdown', 'touchend', 'click', 'keydown'] as const;
-  const unlock = (): void => {
-    sound.unlock();
-    if (sound.running()) for (const k of kinds) window.removeEventListener(k, unlock, { capture: true });
-  };
-  for (const k of kinds) window.addEventListener(k, unlock, { capture: true });
+  // 最初の操作で解錠し、裏から戻って止まっていたら付け直す
+  armSoundUnlock(sound, window);
+  watchResume(sound, window, document);
   registerScreen('title', () => titleScreen());
   registerScreen('zukan', () => zukanScreen());
   registerScreen('match', (p) => matchScreen(p));
