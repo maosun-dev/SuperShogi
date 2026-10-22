@@ -38,6 +38,12 @@ export function kansuji(n: number): string {
   return `${tens === 1 ? '' : DIGITS[tens]}十${DIGITS[n % 10]}`;
 }
 
+/** 前の描き直しより増えた持ち駒の種類（駒台で「ポン」と収める）。前がなければ空 */
+export function arrivedKinds(prev: Record<HandKind, number> | null, next: Record<HandKind, number>): HandKind[] {
+  if (!prev) return [];
+  return HAND_ORDER.filter((k) => next[k] > prev[k]);
+}
+
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -182,7 +188,8 @@ export function createHud(root: HTMLElement): Hud {
     }
   }
 
-  function komadai(box: HTMLElement, view: GameState, side: Side, mine: boolean): void {
+  function komadai(box: HTMLElement, view: GameState, side: Side, mine: boolean, prev: GameState | null): void {
+    const arrived = new Set(arrivedKinds(prev ? prev.players[side].hand : null, view.players[side].hand));
     box.replaceChildren();
     const h = view.players[side].hand;
     const kinds = HAND_ORDER.filter(k => h[k] > 0);
@@ -193,6 +200,7 @@ export function createHud(root: HTMLElement): Hud {
       const token = mine ? button('koma', '') : el('span', 'koma');
       token.append(el('span', 'face', HAND_LABEL[k]));
       if (n > 1) token.append(el('span', 'num', kansuji(n)));
+      if (arrived.has(k)) token.classList.add('arrive');
       token.setAttribute('aria-label', mine ? `持ち駒の${label}を打つ` : `相手の持ち駒 ${label}`);
       if (mine) {
         token.dataset.kind = k;
@@ -234,6 +242,8 @@ export function createHud(root: HTMLElement): Hud {
     root,
     board,
     render(view, side, opts) {
+      // 同じ側から見た続きのときだけ、増えた持ち駒に「ポン」を付ける
+      const prev = last && last.me === side ? last.view : null;
       last = { view, me: side };
       const foeSide: Side = side === 'sente' ? 'gote' : 'sente';
       foeName.textContent = `CPU・${LEVEL_LABEL[opts.level]}`;
@@ -243,8 +253,8 @@ export function createHud(root: HTMLElement): Hud {
       me.classList.toggle('turn', myTurn);
       trapSlots(foeTraps, view, foeSide, false);
       trapSlots(meTraps, view, side, true);
-      komadai(foeHands, view, foeSide, false);
-      komadai(meHands, view, side, true);
+      komadai(foeHands, view, foeSide, false, prev);
+      komadai(meHands, view, side, true, prev);
       handCards(view, side, opts.usable ?? new Set());
       const left = view.players[foeSide].cards.filter(c => !c.used).length;
       restBtn.setAttribute('aria-label', `相手の残り札（${left}枚）を見る`);

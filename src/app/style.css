@@ -455,6 +455,9 @@ button:focus-visible {
   clip-path: polygon(0 0, 100% 0, 86% 83%, 50% 100%, 14% 83%);
 }
 .match .koma .num { font-size: 13px; font-weight: 800; }
+.match .komadai .koma.arrive { animation: koma-arrive .32s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes koma-arrive { from { transform: scale(1.6); filter: brightness(1.4); } to { transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .match .komadai .koma.arrive { animation: none; } }
 .match .komadai.me .koma.sel { transform: translateY(-4px); filter: drop-shadow(0 0 3px var(--kaya)); }
 .match .komadai.me .koma.sel .face { background: var(--kaya); }
 
