@@ -233,8 +233,8 @@ button:focus-visible {
 .zukan .pick .card { pointer-events: none; }
 .zukan .pick:focus-visible { outline: 2px solid var(--kaya); outline-offset: 3px; }
 
-/* 大きな札と説明 */
-.zukan .look {
+/* 大きな札と説明（図鑑と札選びの cardLook） */
+.look {
   position: absolute;
   inset: 0;
   z-index: 5;
@@ -246,8 +246,14 @@ button:focus-visible {
   padding: 16px;
   background: color-mix(in srgb, var(--yoru-deep) 88%, transparent);
 }
-.zukan .look[hidden] { display: none; }
-.zukan .look .about {
+.look[hidden] { display: none; }
+/* 低い画面：札を少し小さくし、それでもはみ出すときは送れるようにする */
+.look { overflow-y: auto; justify-content: safe center; }
+@media (max-height: 720px) {
+  .look { gap: 10px; }
+  .look .card.large { --s: 1.85; width: 137px; height: 207px; }
+}
+.look .about {
   width: 100%;
   max-width: 340px;
   background: var(--gofun);
@@ -256,11 +262,38 @@ button:focus-visible {
   border-radius: 4px;
   padding: 12px 14px;
 }
-.zukan .look .head { display: flex; align-items: baseline; gap: 8px; }
-.zukan .look .head b { font-size: 19px; font-weight: 800; }
-.zukan .look .head span { font-size: 12px; opacity: .7; }
-.zukan .look p { font-size: 14px; line-height: 1.75; margin: 6px 0 10px; }
-.zukan .look .close {
+.look .about.mahou { --c: var(--mahou); }
+.look .about.wana { --c: var(--wana); }
+.look .about.soubi { --c: var(--soubi); }
+.look .head { display: flex; align-items: baseline; gap: 8px; }
+.look .head b { font-size: 19px; font-weight: 800; }
+.look .head span { font-size: 12px; opacity: .7; }
+.look p { font-size: 14px; line-height: 1.75; margin: 6px 0 10px; }
+/* その場でできること：入れる・抜くを大きく、閉じるは控えめに右へ */
+.look-acts { display: flex; align-items: flex-start; gap: 10px; }
+.look-act { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.look-do {
+  min-height: 46px;
+  padding: 8px 16px;
+  border-radius: 3px;
+  border: 1.5px solid var(--sumi);
+  background: transparent;
+  color: var(--sumi);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+/* 入れる：種類の色の地に胡粉の字（札の帯と同じ色） */
+.look-do.primary-do { background: var(--c); border-color: var(--c); color: var(--gofun); }
+.look-do:disabled {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--sumi) 25%, transparent);
+  color: color-mix(in srgb, var(--sumi) 40%, transparent);
+  cursor: not-allowed;
+}
+.look-note { font-size: 12px; font-weight: 800; color: var(--wana-deep); }
+.look .close {
+  min-height: 46px;
   padding: 8px 18px;
   border: 1px solid color-mix(in srgb, var(--sumi) 33%, transparent);
   border-radius: 4px;
@@ -268,6 +301,8 @@ button:focus-visible {
   color: var(--sumi);
   font-weight: 800;
 }
+.look-acts .close { margin-left: auto; }
+.look :is(.look-do, .close):focus-visible { outline: 2px solid var(--yoru); outline-offset: 2px; }
 .zukan .mahou { --c: var(--mahou); }
 .zukan .wana { --c: var(--wana); }
 .zukan .soubi { --c: var(--soubi); }
@@ -858,6 +893,29 @@ input:focus-visible {
 /* 枚数の丸は札の名前（右上の縦書き）にかからないよう、外へ出す */
 .deckb .pick .card .count { right: -9px; top: -14px; width: 20px; height: 20px; font-size: 11px; }
 .deckb .pick.full .card { opacity: .45; }
+.deckb .pick { position: relative; }
+/* 持ち込みに入っている札：少し沈めて暗くし、朱の「入」の判を斜めに押す */
+.deckb .pick.in .card { transform: translateY(5px); filter: brightness(.62) saturate(.7); }
+.deckb .pick .stamp {
+  position: absolute;
+  left: 38%;
+  top: 60%;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 3px;
+  background: var(--wana);
+  color: var(--gofun);
+  box-shadow: inset 0 0 0 2px var(--wana), inset 0 0 0 3.5px var(--gofun);
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+.deckb .pick:focus-visible, .deckb .chosen:focus-visible { outline: 2px solid var(--kaya); outline-offset: 3px; }
 .deckb .chosen .card { pointer-events: none; }
 .deck-foot {
   flex: none;

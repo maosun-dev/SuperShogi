@@ -1,5 +1,6 @@
 // カード選び：上に残りのコスト（大きな数字）とコストの目盛り10個、中に種類ごとの行、
-// 下に持ち込み中の札の列（タップで外す）、駒落ちの選び、「おまかせ」「対局へ」。
+// 下に持ち込み中の札の列、駒落ちの選び、「おまかせ」「対局へ」。
+// どの札も押すと大きな札と説明が出て、そこで「入れる」「抜く」を選ぶ（図鑑と同じ部品 cardLook）
 import type { CardId, HandicapKind, Side } from '../../rules/types';
 import { HANDICAP_LABEL } from '../../rules/board';
 import type { CardKind } from '../../cards/types';
@@ -7,7 +8,8 @@ import type { Level } from '../../ai/levels';
 import { CARDS, COST_LIMIT, validateDeck } from '../../cards';
 import { KIND_MARK, cardHtml } from '../../view/cardArt';
 import { makeRng } from '../../ai/random';
-import { addReason, autoDeck, deckCost } from '../deck';
+import { addReason, autoDeck, deckCost, lookActions } from '../deck';
+import { createCardLook, type CardLook } from './cardLook';
 import { loadDeck, loadHandicap, safeStore, saveDeck, saveHandicap } from '../storage';
 import { costMarks } from '../outcome';
 import { showScreen, type Screen } from '../screens';
@@ -24,8 +26,11 @@ function levelOf(p: unknown): Level {
 
 export function deckScreen(params: unknown): Screen {
   const level = levelOf(params);
+  let look: CardLook | null = null;
   return {
     mount(root) {
+      const lk = createCardLook();
+      look = lk;
       const store = safeStore();
       let deck: CardId[] = [...(loadDeck(store) ?? [])];
 
@@ -58,7 +63,7 @@ export function deckScreen(params: unknown): Screen {
         h2.append(el('span', 'seal', k.mark), document.createTextNode(k.label));
         const row = el('div', 'row');
         for (const id of mine) {
-          const b = button('pick', '', () => add(id));
+          const b = button('pick', '', () => openLook(id, b));
           pickBtns.set(id, b);
           row.append(b);
         }
@@ -126,19 +131,33 @@ export function deckScreen(params: unknown): Screen {
 
       function add(id: CardId): void {
         const why = addReason(deck, id);
-        if (why) { msg.textContent = `${CARDS[id].name}は足せません。${why}`; return; }
+        if (why) { msg.textContent = `${CARDS[id].name}は入れられません。${why}`; return; }
         deck.push(id);
-        msg.textContent = '';
+        msg.textContent = `${CARDS[id].name}を入れました`;
         render();
       }
 
-      function remove(i: number): void {
-        deck.splice(i, 1);
-        msg.textContent = '';
+      function remove(id: CardId): void {
+        deck = deck.filter((d) => d !== id);
+        msg.textContent = `${CARDS[id].name}を抜きました`;
         render();
-        // 外したあとは、同じ位置の札（なければ「おまかせ」）に枠を移す
-        const next = strip.querySelectorAll<HTMLButtonElement>('button')[Math.min(i, deck.length - 1)];
-        (next ?? auto).focus();
+      }
+
+      // 大きな札と説明を出し、その札でできること（入れる・抜く）を添える
+      function openLook(id: CardId, from: HTMLElement): void {
+        const la = lookActions(deck, id);
+        lk.open(id, from, [{
+          label: la.kind === 'add' ? '入れる' : '抜く',
+          primary: la.kind === 'add',
+          disabled: la.disabled,
+          note: la.note,
+          run: () => {
+            if (la.kind === 'add') add(id); else remove(id);
+            lk.close();
+            // 下の列の札は描き直しで消えるので、上の一覧の同じ札に枠を移す
+            pickBtns.get(id)?.focus();
+          },
+        }]);
       }
 
       function render(): void {
@@ -147,26 +166,31 @@ export function deckScreen(params: unknown): Screen {
         left.setAttribute('aria-label', `残りのコスト ${COST_LIMIT - cost}（10のうち）`);
         costMarks(deck).forEach((kind, i) => { dotEls[i].className = kind ? KIND_MARK[kind].color : ''; });
         for (const [id, b] of pickBtns) {
-          const n = deck.filter((d) => d === id).length;
-          b.innerHTML = cardHtml(id, { count: n }); // 定数だけでできた文字列
-          b.setAttribute('aria-label', `${CARDS[id].name}を足す（コスト${CARDS[id].cost}、${n}枚選択中）`);
-          b.classList.toggle('full', addReason(deck, id) !== null);
+          const inDeck = deck.includes(id);
+          // 入っている札には朱の「入」の判を重ねる
+          b.innerHTML = cardHtml(id) + (inDeck ? '<span class="stamp" aria-hidden="true">入</span>' : ''); // 定数だけでできた文字列
+          b.setAttribute('aria-label', `${CARDS[id].name}（コスト${CARDS[id].cost}、${inDeck ? '持ち込み中' : '入っていない'}）の説明を見る`);
+          b.classList.toggle('in', inDeck);
+          b.classList.toggle('full', !inDeck && addReason(deck, id) !== null);
         }
         strip.replaceChildren();
-        if (deck.length === 0) strip.append(el('p', 'none', '札なしでも対局できます。上の札を押すと足せます'));
-        deck.forEach((id, i) => {
-          const b = button('chosen', '', () => remove(i));
+        if (deck.length === 0) strip.append(el('p', 'none', '札なしでも対局できます。上の札を押すと説明が出て、入れられます'));
+        deck.forEach((id) => {
+          const b = button('chosen', '', () => openLook(id, b));
           b.innerHTML = cardHtml(id, { size: 'small' }); // 定数だけでできた文字列
-          b.setAttribute('aria-label', `${CARDS[id].name}を外す`);
+          b.setAttribute('aria-label', `${CARDS[id].name}の説明を見る（抜ける）`);
           strip.append(b);
         });
         go.disabled = validateDeck(deck) !== null;
       }
 
       render();
-      box.append(pageHead('札選び', 'level'), meter, msg, rows, foot);
+      box.append(pageHead('札選び', 'level'), meter, msg, rows, foot, lk.el);
       root.append(box);
     },
-    unmount() {},
+    unmount() {
+      look?.destroy();
+      look = null;
+    },
   };
 }

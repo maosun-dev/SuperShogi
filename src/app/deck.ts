@@ -26,3 +26,10 @@ export function autoDeck(rng: () => number): CardId[] {
   for (const id of pool) if (addReason(deck, id) === null) deck.push(id);
   return deck;
 }
+
+// 大きな札の下に出すボタン：入っていれば「抜く」、いなければ「入れる」（入れられないときは押せず、理由を添える）
+export function lookActions(deck: CardId[], id: CardId): { kind: 'add' | 'remove'; disabled: boolean; note: string } {
+  if (deck.includes(id)) return { kind: 'remove', disabled: false, note: '' };
+  const why = addReason(deck, id);
+  return { kind: 'add', disabled: why !== null, note: why ?? '' };
+}

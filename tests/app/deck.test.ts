@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deckCost, addReason, autoDeck } from '../../src/app/deck';
+import { deckCost, addReason, autoDeck, lookActions } from '../../src/app/deck';
 import { validateDeck } from '../../src/cards';
 import { makeRng } from '../../src/ai/random';
 
@@ -18,5 +18,17 @@ describe('カード選びの計算', () => {
       expect(new Set(d).size).toBe(d.length);
     }
     expect(autoDeck(makeRng(7))).toEqual(autoDeck(makeRng(7)));
+  });
+});
+
+describe('大きな札のボタン（入れる・抜く）', () => {
+  it('入っていない札は「入れる」', () => {
+    expect(lookActions([], 'rakurai')).toEqual({ kind: 'add', disabled: false, note: '' });
+  });
+  it('入っている札は「抜く」', () => {
+    expect(lookActions(['rakurai'], 'rakurai')).toEqual({ kind: 'remove', disabled: false, note: '' });
+  });
+  it('コストが足りない札は「入れる」を押せず、理由を添える', () => {
+    expect(lookActions(['idaten', 'rakurai'], 'tsuranuki')).toEqual({ kind: 'add', disabled: true, note: '残りのコストが足りません' });
   });
 });

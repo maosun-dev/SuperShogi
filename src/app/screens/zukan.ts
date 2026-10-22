@@ -1,69 +1,24 @@
-// カード図鑑：種類ごとの行に12枚。タップで大きな札と説明文を出す。
+// カード図鑑：種類ごとの行に札を並べる。タップで大きな札と説明文を出す（cardLook）
 import type { CardId } from '../../rules/types';
 import type { CardKind } from '../../cards/types';
 import { CARDS } from '../../cards';
 import { KIND_MARK, cardHtml } from '../../view/cardArt';
 import { type Screen } from '../screens';
-import { pageHead } from './ui';
+import { createCardLook, type CardLook } from './cardLook';
+import { el, pageHead } from './ui';
 
 const KINDS: CardKind[] = ['magic', 'trap', 'equip'];
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
-}
-
 export function zukanScreen(): Screen {
   let box: HTMLElement | null = null;
-  let onKey: ((e: KeyboardEvent) => void) | null = null;
+  let look: CardLook | null = null;
 
   return {
     mount(root) {
       box = el('div', 'zukan');
       const header = pageHead('札図鑑', 'title');
-
-      // 大きな札と説明（最初は隠す）
-      const look = el('div', 'look');
-      look.hidden = true;
-      look.setAttribute('role', 'dialog');
-      look.setAttribute('aria-modal', 'true');
-      const bigSlot = el('div');
-      const about = el('div', 'about');
-      const head = el('div', 'head');
-      const nameEl = el('b');
-      const metaEl = el('span');
-      head.append(nameEl, metaEl);
-      const textEl = el('p');
-      const close = el('button', 'close', '閉じる');
-      close.type = 'button';
-      about.append(head, textEl, close);
-      look.append(bigSlot, about);
-
-      let opener: HTMLElement | null = null;
-      const hide = (): void => {
-        look.hidden = true;
-        opener?.focus();
-        opener = null;
-      };
-      const open = (id: CardId, from: HTMLElement): void => {
-        const c = CARDS[id];
-        const k = KIND_MARK[c.kind];
-        opener = from;
-        about.className = `about ${k.color}`;
-        bigSlot.innerHTML = cardHtml(id, { size: 'large' }); // 定数だけでできた文字列
-        nameEl.textContent = c.name;
-        metaEl.textContent = `${k.label}・コスト${c.cost}`;
-        textEl.textContent = c.text;
-        look.hidden = false;
-        close.focus();
-      };
-      close.addEventListener('click', hide);
-      // 札の外側（暗い所）をタップしても閉じる
-      look.addEventListener('click', (e) => { if (e.target === look) hide(); });
-      onKey = (e) => { if (e.key === 'Escape' && !look.hidden) hide(); };
-      window.addEventListener('keydown', onKey);
+      const lk = createCardLook();
+      look = lk;
 
       // 種類ごとの行
       const rows = el('div', 'rows');
@@ -80,19 +35,19 @@ export function zukanScreen(): Screen {
           b.type = 'button';
           b.innerHTML = cardHtml(id); // 定数だけでできた文字列
           b.setAttribute('aria-label', `${CARDS[id].name}の説明を見る`);
-          b.addEventListener('click', () => open(id, b));
+          b.addEventListener('click', () => lk.open(id, b));
           row.append(b);
         }
         sec.append(h2, row);
         rows.append(sec);
       }
 
-      box.append(header, rows, look);
+      box.append(header, rows, lk.el);
       root.append(box);
     },
     unmount() {
-      if (onKey) window.removeEventListener('keydown', onKey);
-      onKey = null;
+      look?.destroy();
+      look = null;
       box?.remove();
       box = null;
     },
