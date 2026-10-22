@@ -3,3 +3,6 @@ dist/
 
 # CPU 同士の対局の記録（道具が書く）
 tools/arena/out/
+
+# 作業用（設計の見本など）
+.superpowers/
