@@ -49,12 +49,12 @@ export function titleScreen(): Screen {
       h1.setAttribute('aria-label', '超将棋');
       // 字は衡山毛筆の形（titleGlyphs.ts）。超は墨に胡粉の縁、将棋は胡粉に墨の縁
       const cho = el('span', 'cho');
-      cho.innerHTML = brushChar('超', 'cho-svg', 'var(--sumi)', 'var(--gofun)', 80, 34); // 定数だけでできた文字列
+      cho.innerHTML = brushChar('超', 'cho-svg', 'var(--sumi)', 'var(--gofun)', 80, 18); // 定数だけでできた文字列
       const shogi = el('span', 'shogi');
-      shogi.innerHTML = brushChar('将', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 40) + brushChar('棋', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 40); // 同上
+      shogi.innerHTML = brushChar('将', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 24) + brushChar('棋', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 24); // 同上
       h1.append(cho, shogi);
-      // 何が「超」なのかを一言で（ストアの副題と同じ言葉）
-      const tag = el('p', 'tagline', '札が盤をひっくり返す将棋');
+      // 何が「超」なのかを、説明ではなく啖呵の一言で
+      const tag = el('p', 'tagline', '定跡なんぞ、札で破れ。');
       logo.append(h1, tag);
 
       const nav = el('nav', 'fuda-row');
