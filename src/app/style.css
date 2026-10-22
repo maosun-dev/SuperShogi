@@ -754,25 +754,12 @@ input:focus-visible {
   font-weight: 400;
   line-height: 1;
 }
-/* 題字の主役：墨の大きな「超」。胡粉の細い縁で、明るい舞台の上でも沈まない */
-.title-screen .logo .cho {
-  font-size: clamp(132px, 40vw, 176px);
-  color: var(--sumi);
-  -webkit-text-stroke: 7px var(--gofun);
-  paint-order: stroke fill;
-  transform: rotate(-4deg);
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .3));
-}
-/* 添えの「将棋」：小さな胡粉の字を縦に積み、「超」の左下に */
-.title-screen .logo .shogi {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 6px;
-  font-size: clamp(34px, 10vw, 44px);
-  color: var(--gofun);
-  -webkit-text-stroke: 5px var(--sumi);
-  paint-order: stroke fill;
-}
+/* 題字の主役：衡山毛筆の大きな墨の「超」。胡粉の縁で、明るい舞台の上でも沈まない */
+.title-screen .logo .cho { display: block; transform: rotate(-4deg); filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .3)); }
+.title-screen .logo .cho-svg { display: block; width: clamp(150px, 46vw, 200px); height: auto; }
+/* 添えの「将棋」：胡粉の字に墨の縁、縦に積んで「超」の左下に */
+.title-screen .logo .shogi { display: flex; flex-direction: column; margin-bottom: 4px; }
+.title-screen .logo .sho-svg { display: block; width: clamp(56px, 16vw, 70px); height: auto; margin-top: -8px; }
 /* 一言の短冊：題字の下に、右へ寄せて */
 .title-screen .tagline {
   width: fit-content;

@@ -7,6 +7,15 @@ import { setHighlights } from '../../view/board3d';
 import { titleView } from '../dev';
 import { showScreen, type Screen } from '../screens';
 import { button, el } from './ui';
+import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
+
+/** 筆の字1文字の SVG。縁（rim）を太い線で先に描き、その上に字を塗る。thick で字そのものも太らせる */
+function brushChar(ch: keyof typeof TITLE_GLYPHS, cls: string, fill: string, rim: string, rimW: number, thick: number): string {
+  const d = TITLE_GLYPHS[ch];
+  return `<svg class="${cls}" viewBox="-40 -40 ${TITLE_EM + 80} ${TITLE_EM + 80}" aria-hidden="true">`
+    + `<path d="${d}" style="fill:${rim};stroke:${rim}" stroke-width="${rimW}" stroke-linejoin="round"/>`
+    + `<path d="${d}" style="fill:${fill};stroke:${fill}" stroke-width="${thick}" stroke-linejoin="round"/></svg>`;
+}
 
 // 朱の払い：左上から右下へ、入りは太く、終わりはかすれて細る筆の一払い（自作の形）。
 // かすれは feTurbulence のゆらぎで縁を荒らして出す。まわりに墨のしぶきを少し
@@ -38,11 +47,11 @@ export function titleScreen(): Screen {
       // 「超」を大きく、「将棋」は小さく左下に縦に積む（writing-mode は iPhone の Safari で幅を取り違えるため使わない）
       const h1 = el('h1');
       h1.setAttribute('aria-label', '超将棋');
-      const cho = el('span', 'cho', '超');
-      cho.setAttribute('aria-hidden', 'true');
+      // 字は衡山毛筆の形（titleGlyphs.ts）。超は墨に胡粉の縁、将棋は胡粉に墨の縁
+      const cho = el('span', 'cho');
+      cho.innerHTML = brushChar('超', 'cho-svg', 'var(--sumi)', 'var(--gofun)', 80, 34); // 定数だけでできた文字列
       const shogi = el('span', 'shogi');
-      shogi.setAttribute('aria-hidden', 'true');
-      for (const ch of '将棋') shogi.append(el('span', '', ch));
+      shogi.innerHTML = brushChar('将', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 40) + brushChar('棋', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 40); // 同上
       h1.append(cho, shogi);
       // 何が「超」なのかを一言で（ストアの副題と同じ言葉）
       const tag = el('p', 'tagline', '札が盤をひっくり返す将棋');
