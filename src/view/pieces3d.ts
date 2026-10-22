@@ -156,6 +156,19 @@ function syncBack(o: PieceObj, p: Piece): void {
   o.back.visible = true;
 }
 
+/**
+ * 成りの裏返しが終わった駒を、その駒だけ成った見た目に整える（表の字を裏の字に替え、向きと高さを戻す）。
+ * 盤全体を揃える sync は、同じ手番のあとに続く演出のために最後まで待つ。成れない駒・盤にない駒は何もしない
+ */
+export function settleFlipped(id: number): void {
+  const o = objs.get(id);
+  if (!o || !o.back) return;
+  o.label.material = o.back.material;
+  o.back.visible = false;
+  o.grp.rotation.set(0, o.grp.rotation.y, 0);
+  o.grp.position.y = PIECE_Y;
+}
+
 // ---------- 選んだ駒を浮かせる ----------
 /** 選んだ駒が浮く高さ（盤からの上乗せ） */
 export const LIFT_Y = 0.22;

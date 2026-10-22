@@ -18,6 +18,11 @@ export interface Stage {
   attach(el: HTMLElement): void;                         // 画面ごとに描画先を付け替える
 }
 
+/** 動きの進み具合（0〜1）。描画の時刻は登録した時刻より少し前を指すことがあるので、0 より小さくしない */
+export function tweenProgress(now: number, t0: number, dur: number): number {
+  return Math.min(1, Math.max(0, (now - t0) / dur));
+}
+
 export const easeOut = (t: number): number => 1 - Math.pow(1 - t, 3);
 export const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
@@ -130,7 +135,7 @@ function createStage(): Stage {
     last = now;
     for (let i = tweens.length - 1; i >= 0; i--) {
       const tw = tweens[i];
-      const p = Math.min(1, (now - tw.t0) / tw.dur);
+      const p = tweenProgress(now, tw.t0, tw.dur);
       try {
         tw.fn(tw.ease(p));
       } catch (e) {

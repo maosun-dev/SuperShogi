@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import type { Square } from '../rules/types';
 import type { Cue } from './plan';
 import { BD, ring, screenToBoard, squarePos } from '../view/board3d';
-import { PIECE_Y, pieceMesh } from '../view/pieces3d';
+import { PIECE_Y, pieceMesh, settleFlipped } from '../view/pieces3d';
 import { PAL } from '../view/palette';
 import { getSound } from './sound';
 import { easeInOut, easeOut, later, puff, shakeBy, transient, type FxCtx } from './kit';
@@ -174,9 +174,10 @@ export async function playMove(ctx: FxCtx, cue: MoveCue): Promise<void> {
       getSound().play('kaesu');
     } else {
       await flip(ctx, m, b, T.flip);
+      // 盤全体はまだ揃えない（このあとに罠などの演出が続くことがある）。この駒だけ成った見た目にする
+      if (ctx.alive()) settleFlipped(cue.pieceId);
     }
   }
-  ctx.sync();
 }
 
 export async function playDrop(ctx: FxCtx, cue: DropCue): Promise<void> {

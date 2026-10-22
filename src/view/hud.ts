@@ -38,10 +38,14 @@ export function kansuji(n: number): string {
   return `${tens === 1 ? '' : DIGITS[tens]}十${DIGITS[n % 10]}`;
 }
 
-/** 前の描き直しより増えた持ち駒の種類（駒台で「ポン」と収める）。前がなければ空 */
-export function arrivedKinds(prev: Record<HandKind, number> | null, next: Record<HandKind, number>): HandKind[] {
-  if (!prev) return [];
-  return HAND_ORDER.filter((k) => next[k] > prev[k]);
+/**
+ * 駒台で「ポン」と収める持ち駒の種類：前の描き直しより増えた種類と、描き直しの直前にまだ「ポン」の途中だった種類（still）。
+ * still があるのは、CPU に取られた直後にすぐ次の描き直しが来ても、動きを消さないため。前がなければ still だけ
+ */
+export function arrivedKinds(
+  prev: Record<HandKind, number> | null, next: Record<HandKind, number>, still: HandKind[] = [],
+): HandKind[] {
+  return HAND_ORDER.filter((k) => next[k] > 0 && ((prev !== null && next[k] > prev[k]) || still.includes(k)));
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -189,7 +193,11 @@ export function createHud(root: HTMLElement): Hud {
   }
 
   function komadai(box: HTMLElement, view: GameState, side: Side, mine: boolean, prev: GameState | null): void {
-    const arrived = new Set(arrivedKinds(prev ? prev.players[side].hand : null, view.players[side].hand));
+    // まだ「ポン」の途中の駒（描き直しで消さずに、新しい駒で続ける）
+    const still = [...box.querySelectorAll<HTMLElement>('.koma.arrive')]
+      .filter((t) => t.getAnimations?.().some((a) => a.playState === 'running'))
+      .map((t) => t.dataset.kind as HandKind);
+    const arrived = new Set(arrivedKinds(prev ? prev.players[side].hand : null, view.players[side].hand, still));
     box.replaceChildren();
     const h = view.players[side].hand;
     const kinds = HAND_ORDER.filter(k => h[k] > 0);
@@ -200,6 +208,7 @@ export function createHud(root: HTMLElement): Hud {
       const token = mine ? button('koma', '') : el('span', 'koma');
       token.append(el('span', 'face', HAND_LABEL[k]));
       if (n > 1) token.append(el('span', 'num', kansuji(n)));
+      token.dataset.kind = k;
       if (arrived.has(k)) token.classList.add('arrive');
       token.setAttribute('aria-label', mine ? `持ち駒の${label}を打つ` : `相手の持ち駒 ${label}`);
       if (mine) {

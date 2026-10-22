@@ -15,4 +15,8 @@ describe('arrivedKinds', () => {
     expect(arrivedKinds(H({ FU: 1 }), H({ FU: 1 }))).toEqual([]);
     expect(arrivedKinds(null, H({ FU: 1 }))).toEqual([]);
   });
+  it('描き直しの直前にまだ「ポン」の途中だった種類は残す（CPU に取られた直後の描き直しで消さない）', () => {
+    expect(arrivedKinds(H({ FU: 1 }), H({ FU: 1 }), ['FU'])).toEqual(['FU']);
+    expect(arrivedKinds(H({ GI: 0 }), H({ GI: 1 }), ['GI'])).toEqual(['GI']);
+  });
 });
