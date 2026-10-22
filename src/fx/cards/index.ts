@@ -7,11 +7,19 @@ import { shoryu } from './shoryu';
 import { yobimodoshi } from './yobimodoshi';
 import { kakuotoshi } from './kakuotoshi';
 import { rakurai } from './rakurai';
+import { itetsuku } from './itetsuku';
+import { otoshiana } from './otoshiana';
+import { narifuuji } from './narifuuji';
+import { kagami } from './kagami';
+import { aiuchi } from './aiuchi';
+import { migawari } from './migawari';
 
 export const MAGIC_FX: Partial<Record<CardId, CardFx<MagicCue>>> = {
   oshikaeshi, irekae, shoryu, yobimodoshi, kakuotoshi, rakurai,
 };
 
-export const TRAP_FX: Partial<Record<CardId, CardFx<TrapFireCue>>> = {};
+export const TRAP_FX: Partial<Record<CardId, CardFx<TrapFireCue>>> = {
+  itetsuku, otoshiana, narifuuji, kagami, aiuchi, migawari,
+};
 
 export const EQUIP_FX: Partial<Record<CardId, EquipFx>> = {};

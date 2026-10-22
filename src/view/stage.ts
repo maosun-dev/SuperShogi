@@ -46,6 +46,7 @@ function createStage(): Stage {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap; // PCFSoftShadowMap は three 0.186 で廃止（使うと警告が出て PCFShadowMap に替わる）
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.localClippingEnabled = true; // 相討ちで駒を真っ二つにする（材質ごとの切り口）
   renderer.setClearColor(0x000000, 0);
   const canvas = renderer.domElement;
   canvas.style.display = 'block';

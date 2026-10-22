@@ -1,7 +1,7 @@
 // 札ごとの演出の形。どの札も「前振り（名前ドンの前）→ 見せ場 → 余韻」の3つの段を持つ。
 // 名前ドン（cutIn）は共通の流れ（magic.ts・trap.ts・equip.ts）が前振りと見せ場のあいだに挟む。
 // 纏札は、付けるとき（main）に加えて、付けたあとの出番（onMove・onArmor・onBreak・onSecond）を持てる
-import type { GameEvent, Square } from '../../rules/types';
+import type { GameEvent, GameState, Square } from '../../rules/types';
 import type { Cue } from '../plan';
 import type { FxCtx } from '../kit';
 
@@ -42,6 +42,12 @@ export function effect<T extends GameEvent['type']>(
   cue: { effects: GameEvent[] }, type: T,
 ): Extract<GameEvent, { type: T }> | undefined {
   return cue.effects.find((e): e is Extract<GameEvent, { type: T }> => e.type === type);
+}
+
+/** 局面の中で、その駒がいるマス */
+export function squareOf(s: GameState, pieceId: number): Square | null {
+  const i = s.board.findIndex((p) => p?.id === pieceId);
+  return i < 0 ? null : { c: i % 9, r: Math.floor(i / 9) };
 }
 
 /** 前の局面で、そのマスにいた駒の id */

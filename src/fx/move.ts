@@ -148,9 +148,13 @@ export async function playMove(ctx: FxCtx, cue: MoveCue): Promise<void> {
   const b = squarePos(cue.to);
   const y0 = a.y;
 
-  if (cue.side !== ctx.me) await glow(ctx, m, T.foeGlow);
+  // 先に流れた演出（成り封じ）が駒を行き先まで運んでいたら、動かさずに着いたところから
+  const arrived = Math.hypot(b.x - a.x, b.z - a.z) < 0.01;
+  if (cue.side !== ctx.me && !arrived) await glow(ctx, m, T.foeGlow);
 
-  if (T.calm) {
+  if (arrived) {
+    m.position.set(b.x, PIECE_Y, b.z);
+  } else if (T.calm) {
     await run(ctx, T.travel, (t) => {
       m.position.set(a.x + (b.x - a.x) * t, y0 + (PIECE_Y - y0) * t, a.z + (b.z - a.z) * t);
     }, easeOut);

@@ -8,7 +8,9 @@ describe('札の演出の表', () => {
   it('術札はすべて MAGIC_FX にある', () => {
     expect(Object.keys(MAGIC_FX).sort()).toEqual(ids('magic'));
   });
-  it.todo('忍札はすべて TRAP_FX にある');
+  it('忍札はすべて TRAP_FX にある', () => {
+    expect(Object.keys(TRAP_FX).sort()).toEqual(ids('trap'));
+  });
   it.todo('纏札はすべて EQUIP_FX にある');
   it('表の札はどれも見せ場（main）を持つ', () => {
     for (const fx of [...Object.values(MAGIC_FX), ...Object.values(TRAP_FX), ...Object.values(EQUIP_FX)]) {
