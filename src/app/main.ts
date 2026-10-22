@@ -6,7 +6,8 @@ import './style.css';
 import { initScreens, registerScreen, showScreen, setClapper } from './screens';
 import { getSound } from '../fx/sound';
 import { loadSettings, safeStore } from './storage';
-import { applyStage } from './stageTheme';
+import { applyStage, effectiveMotion, prefersReducedMotion } from './stageTheme';
+import { mountBackdrop } from '../view/backdrop';
 import { zukanScreen } from './screens/zukan';
 import { titleScreen } from './screens/title';
 import { matchScreen } from './screens/match';
@@ -27,6 +28,7 @@ function start(): void {
   const settings = loadSettings(safeStore());
   // 舞台（背景と色の決まり）を最初に決める
   applyStage(document.documentElement, settings);
+  mountBackdrop(document.body, settings.stage, effectiveMotion(settings.motion, prefersReducedMotion()));
   const sound = getSound();
   sound.setVolume(settings.volume);
   setClapper(() => sound.play('hyoshigi'));

@@ -14,6 +14,8 @@
   --kaya-light: #F2D594;
   --yoru-night: #060d22;   /* 演出で暗くなる空 */
 
+  /* 舞台の地（背景の絵が読めないときに見える色）。舞台ごとに下で差し替える */
+  --ground: radial-gradient(120% 80% at 50% 40%, #E7B87A 0%, #A8572C 55%, #4A2A18 100%);
   --font-body: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --font-display: "Yuji Boku", "Shippori Mincho B1", serif;
 }
@@ -22,11 +24,25 @@
 
 html, body { height: 100%; }
 
+/* ---- 舞台ごとの色：板（--yoru 系）を舞台の深い色に、地を舞台の色に ----
+   歌舞伎＝墨茶の漆、浮世絵＝藍、金屏風＝黒漆。板の上の字は胡粉のまま */
+:root[data-stage="kabuki"], :root:not([data-stage]) {
+  --yoru: #2E1D14; --yoru-light: #4E3020; --yoru-deep: #21140D; --yoru-night: #140B06;
+}
+:root[data-stage="ukiyoe"] {
+  --yoru: #1E3E72; --yoru-light: #2D5B9C; --yoru-deep: #15305C; --yoru-night: #0B1C3A;
+  --ground: linear-gradient(#24508E 0%, #7CC0DE 45%, #F6EEDB 80%);
+}
+:root[data-stage="byobu"] {
+  --yoru: #2B2117; --yoru-light: #4A3A27; --yoru-deep: #1E170F; --yoru-night: #120D07;
+  --ground: linear-gradient(#E6D8B8 0%, #D9AE3C 45%, #CFC98F 75%);
+}
+
 body {
   font-family: var(--font-body);
   font-weight: 500;
   color: var(--gofun);
-  background: radial-gradient(120% 70% at 50% 42%, var(--yoru-light) 0%, var(--yoru) 58%, var(--yoru-deep) 100%);
+  background: var(--ground);
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
@@ -53,6 +69,26 @@ button:focus-visible {
   outline: 2px solid var(--kaya);
   outline-offset: 2px;
 }
+
+/* ---- 層0：舞台の背景の絵（全画面、いちばん奥） ---- */
+#backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+#backdrop img {
+  position: absolute;
+  /* ずらしても端が見えないよう、少し大きく敷く */
+  inset: -20px;
+  width: calc(100% + 40px);
+  height: calc(100% + 40px);
+  object-fit: cover;
+  object-position: 50% 50%;
+  will-change: transform;
+}
+#app { z-index: 1; }
 
 /* 3D の舞台を置く場所（画面いっぱい、文字やボタンの後ろ） */
 .stage-host {
@@ -1124,4 +1160,37 @@ input:focus-visible {
   .reveal.on .iza { animation: still-fade .2s ease-out forwards; }
   .hanko { animation: still-fade .2s ease-out both; }
   .cost-meter .dots i:is(.mahou, .wana, .soubi) { transform: none; }
+}
+
+/* ======== 舞台の上の板（計画10） ========
+   背景が明るい絵になったので、絵の上にじかに乗る文字は漆の板に載せる。
+   見出しの帯と、その下に続く説明・残りのコストは一続きの板にし、下の縁に金の線を引く */
+.page-head, .page-head ~ .lead, .deckb .cost-meter, .deckb .msg {
+  background: color-mix(in srgb, var(--yoru) 90%, transparent);
+}
+.page-head { box-shadow: 0 2px 0 var(--soubi), 0 6px 14px rgba(0, 0, 0, .28); }
+.page-head:has(~ .lead), .deckb .page-head { box-shadow: none; }
+.page-head ~ .lead { margin: 0; padding: 2px 16px 10px; opacity: 1; box-shadow: 0 2px 0 var(--soubi), 0 6px 14px rgba(0, 0, 0, .28); }
+.deckb .cost-meter { padding-bottom: 4px; }
+.deckb .msg { box-shadow: 0 2px 0 var(--soubi), 0 6px 14px rgba(0, 0, 0, .28); }
+/* 行の見出し（術札・忍札・纏札）は小さな札の板 */
+.zukan h2, .deckb h2 {
+  width: fit-content;
+  margin-left: 12px;
+  padding: 3px 12px 3px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--yoru) 88%, transparent);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .25);
+}
+.zukan .page-head + .rows { padding-top: 10px; }
+/* 対局：上の帯（相手）と下の帯（自分・手札）も漆の板。盤と舞台の絵は真ん中で見せる */
+.match .side.foe {
+  background: color-mix(in srgb, var(--yoru) 90%, transparent);
+  box-shadow: 0 2px 0 var(--soubi), 0 6px 14px rgba(0, 0, 0, .28);
+}
+.match .mine-area {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(color-mix(in srgb, var(--yoru) 88%, transparent), color-mix(in srgb, var(--yoru) 62%, transparent));
+  box-shadow: 0 -2px 0 var(--soubi), 0 -6px 14px rgba(0, 0, 0, .28);
 }
