@@ -1,6 +1,6 @@
 // タップ → 行動の変換テスト（Node で動く純粋な計算）
 import { describe, expect, it } from 'vitest';
-import { reduceInput, cardUsable, type InputState, type InputEvent } from '../../src/view/input';
+import { reduceInput, cardUsable, liftedSquare, type InputState, type InputEvent } from '../../src/view/input';
 import { legalActions, createGame } from '../../src/rules/game';
 import { CARDS } from '../../src/cards';
 import type { Action, CardId, GameState, Square } from '../../src/rules/types';
@@ -196,5 +196,14 @@ describe('input', () => {
       omori: '重りの枷を付ける相手の駒を選んでください',
     };
     for (const [id, text] of Object.entries(want)) expect(CARDS[id as CardId].prompt).toBe(text);
+  });
+});
+
+describe('liftedSquare', () => {
+  it('駒を選んでいるときだけ、そのマス', () => {
+    expect(liftedSquare({ mode: 'piece', from: sq(2, 6) })).toEqual(sq(2, 6));
+    expect(liftedSquare(IDLE)).toBeNull();
+    expect(liftedSquare({ mode: 'promote', from: sq(2, 3), to: sq(2, 2) })).toBeNull();
+    expect(liftedSquare({ mode: 'drop', kind: 'FU' })).toBeNull();
   });
 });

@@ -23,6 +23,13 @@ function labelOf(p: Piece): { ch: string; color: string } {
   return { ch: LABEL[p.kind], color: PALS.sumi };
 }
 
+/** 駒の裏に書く字（成ったときの字・紅）。成れない駒（金・王）と、もう成った駒は null */
+export function backLabelOf(p: Piece): { ch: string; color: string } | null {
+  if (p.promoted) return null;
+  const ch = PROMOTED[p.kind];
+  return ch ? { ch, color: PALS.wana } : null;
+}
+
 // ---------- 形と材質（使い回す） ----------
 const pieceMat = new THREE.MeshStandardMaterial({ color: PAL.kayaLight, roughness: 0.45 });
 const frozenMat = new THREE.MeshStandardMaterial({ color: PAL.mahouPale, roughness: 0.4 });
@@ -104,6 +111,7 @@ interface PieceObj {
   grp: THREE.Group;
   body: THREE.Mesh;
   label: THREE.Mesh;
+  back: THREE.Mesh | null;  // 裏の字（成りで裏返すと見える）。成れない駒は null
   kind: PieceKind;
   side: Side;
   equip: { id: CardId; obj: THREE.Group; stop: () => void } | null;
@@ -123,7 +131,73 @@ function makePiece(p: Piece): PieceObj {
   label.rotation.x = -Math.PI / 2; label.position.set(0, 0.16 * s + 0.026, 0.03 * s);
   grp.add(label);
   grp.userData = { pieceId: p.id, s };
-  return { grp, body, label, kind: p.kind, side: p.side, equip: null, check: null, marks: null };
+  const o: PieceObj = { grp, body, label, back: null, kind: p.kind, side: p.side, equip: null, check: null, marks: null };
+  syncBack(o, p);
+  return o;
+}
+
+/**
+ * 裏の字を局面に合わせる。底の面のすぐ下に下向きに貼り、駒を前後の軸（z 軸）まわりに π 回したとき
+ * 正しく読める向きにする（字の右が -x・上が -z・面が -y。回すと右 +x・上 -z・面 +y で表の字と同じ向きになる）
+ */
+function syncBack(o: PieceObj, p: Piece): void {
+  const lb = backLabelOf(p);
+  if (!lb) { if (o.back) o.back.visible = false; return; }
+  const s = SIZE[p.kind];
+  if (!o.back) {
+    o.back = new THREE.Mesh(labelGeo(s), labelMat(lb.ch, lb.color));
+    o.grp.add(o.back);
+  }
+  o.back.material = labelMat(lb.ch, lb.color);
+  o.back.position.set(0, -0.026, 0.03 * s);
+  o.back.rotation.set(Math.PI / 2, Math.PI, 0, 'YXZ');
+  o.back.scale.set(1, 1, 1);
+  o.back.visible = true;
+}
+
+// ---------- 選んだ駒を浮かせる ----------
+/** 選んだ駒が浮く高さ（盤からの上乗せ） */
+export const LIFT_Y = 0.22;
+const LIFT_MS = 120;
+let lifted: { id: number; age: number } | null = null;
+const lowering = new Map<number, { from: number; age: number }>();
+let liftOff: (() => void) | null = null;
+
+/** その駒を浮かせ、かすかに上下させる。前に浮いていた駒は滑らかに下ろす。null なら下ろすだけ */
+export function setLifted(stage: Stage, id: number | null): void {
+  if ((lifted?.id ?? null) === id) return;
+  if (!liftOff) {
+    liftOff = stage.onFrame((dt) => {
+      if (lifted) {
+        const o = objs.get(lifted.id);
+        if (!o) { lifted = null; } else {
+          lifted.age += dt * 1000;
+          const k = Math.min(1, lifted.age / LIFT_MS);
+          const up = 1 - Math.pow(1 - k, 3);
+          o.grp.position.y = PIECE_Y + LIFT_Y * up + Math.sin(lifted.age / 250) * 0.015 * up;
+        }
+      }
+      for (const [lid, l] of [...lowering]) {
+        const o = objs.get(lid);
+        l.age += dt * 1000;
+        const k = Math.min(1, l.age / LIFT_MS);
+        if (o) o.grp.position.y = l.from + (PIECE_Y - l.from) * (1 - Math.pow(1 - k, 3));
+        if (k >= 1 || !o) lowering.delete(lid);
+      }
+    });
+  }
+  if (lifted) {
+    const o = objs.get(lifted.id);
+    if (o) lowering.set(lifted.id, { from: o.grp.position.y, age: 0 });
+  }
+  lifted = id === null ? null : { id, age: 0 };
+  if (id !== null) lowering.delete(id);
+}
+
+/** 浮いている駒を、今の高さのまま手放す（下ろす動きもやめる）。このあと演出が位置を引き継ぐ */
+export function releaseLift(): void {
+  lifted = null;
+  lowering.clear();
 }
 
 // ---------- 凍結・成れないの印（駒の手前左の盤の上に寝かせる） ----------
@@ -266,6 +340,8 @@ export function pieceMesh(id: number): THREE.Object3D | undefined {
  */
 export function sync(stage: Stage, view: GameState, me: Side): void {
   watchFont();
+  // 下ろす途中の駒は、ここで局面の高さに揃う（浮いている駒はこのあとも浮かせ続ける）
+  lowering.clear();
   if (!spinOff) {
     spinOff = stage.onFrame((dt) => { for (const o of spinning) o.rotation.z += dt * 0.6; });
   }
@@ -292,6 +368,7 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
     const s = SIZE[p.kind];
     o.label.position.set(0, 0.16 * s + 0.026, 0.03 * s); o.label.rotation.set(-Math.PI / 2, 0, 0); o.label.scale.set(1, 1, 1);
     o.label.visible = true;
+    syncBack(o, p);
 
     // 字（成り）。演出が差し替えていても、いつも共有の字の材質へ戻す
     const lb = labelOf(p);

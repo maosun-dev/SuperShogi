@@ -4,10 +4,11 @@ import type { Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
 import { createMatch, type Match, type Presenter } from '../match';
 import { createBrowserCpu } from '../cpu';
-import { reduceInput, type InputEvent, type InputState } from '../../view/input';
+import { liftedSquare, reduceInput, type InputEvent, type InputState } from '../../view/input';
 import { getStage } from '../../view/stage';
 import { setHighlights, squareAt } from '../../view/board3d';
-import { sync } from '../../view/pieces3d';
+import { releaseLift, setLifted, sync } from '../../view/pieces3d';
+import { getSound } from '../../fx/sound';
 import { createHud } from '../../view/hud';
 import { createPresenter } from '../../fx/player';
 import { showScreen, type Screen } from '../screens';
@@ -128,7 +129,12 @@ export function matchScreen(params: unknown): Screen {
 
       // 入力の状態に合わせて、光るマス・案内の帯・選んでいる札を出す
       function show(res: ReturnType<typeof reduceInput>): void {
+        const was = liftedSquare(st);
         st = res.state;
+        // 選んだ駒を浮かせる（行き先を待つ間だけ）。別の駒を選んだ瞬間に小さく鳴らす
+        const at = liftedSquare(st);
+        setLifted(stage, at ? m.view().board[at.r * 9 + at.c]?.id ?? null : null);
+        if (at && !(was && was.c === at.c && was.r === at.r)) getSound().play('tick');
         setHighlights(stage, res.highlights, lastMove);
         if (st.mode === 'promote') hud.askPromote();
         else hud.setPrompt(res.prompt ?? null, { stop: st.mode === 'second', choices: res.choices });
@@ -140,6 +146,8 @@ export function matchScreen(params: unknown): Screen {
 
       async function submit(action: NonNullable<ReturnType<typeof reduceInput>['action']>): Promise<void> {
         st = { mode: 'idle' };
+        // 浮いている駒は今の高さのまま演出に引き継ぐ
+        releaseLift();
         hud.setPrompt(null);
         hud.select({});
         hud.lock(true);
@@ -198,6 +206,7 @@ export function matchScreen(params: unknown): Screen {
         () => host.removeEventListener('pointerup', onUp),
         () => window.removeEventListener('keydown', onKey),
         () => setHighlights(stage, [], []),
+        () => setLifted(stage, null),
       ];
       if (import.meta.env.DEV && fxKey) cleanup.push(installFxKey(m, (a) => { void submit(a); }));
       if (import.meta.env.DEV && auto) {

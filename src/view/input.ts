@@ -34,6 +34,11 @@ type DropAction = Extract<Action, { type: 'drop' }>;
 type CardAction = Extract<Action, { type: 'card' }>;
 
 const IDLE: InputState = { mode: 'idle' };
+
+/** 浮かせて見せる駒のマス：盤の駒を選んで、行き先を待っているときだけ（成るかを聞く間は下ろしておく） */
+export function liftedSquare(st: InputState): Square | null {
+  return st.mode === 'piece' ? st.from : null;
+}
 const PROMPT_PROMOTE = '成りますか？';
 const PROMPT_SECOND = 'もう1回動かせます（動かさなくても終われます）';
 
