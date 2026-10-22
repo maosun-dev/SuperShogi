@@ -51,7 +51,7 @@ export const kagami: CardDef = {
 
 export const narifuuji: CardDef = {
   id: 'narifuuji', name: '成り封じ', kind: 'trap', cost: 2, fx: 'narifuuji',
-  text: '相手が成ろうとしたとき（昇竜も含む）、成れなくする。その駒は対局の終わりまで成れない。成らないと行き所がなくなる場合は発動しない',
+  text: '相手が成ろうとしたとき（成り上がりも含む）、成れなくする。その駒は対局の終わりまで成れない。成らないと行き所がなくなる場合は発動しない',
   targetSets: slotTargets,
   trap: { placement: 'slot', trigger: 'promote' },
 };

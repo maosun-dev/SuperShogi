@@ -209,6 +209,21 @@ test('昇竜：自分の駒をその場で成らせる。金・王・成った�
   expect(events).toContainEqual({ type: 'promotedInPlace', pieceId: fu.id, at: { c: 4, r: 6 } });
 });
 
+test('成り上がり（もと昇竜）：飛車・角は選べず、歩・香・桂・銀だけ。コスト2', () => {
+  const s = base();
+  put(s, { c: 1, r: 6 }, 'HI', 'sente');
+  put(s, { c: 2, r: 6 }, 'KA', 'sente');
+  put(s, { c: 3, r: 6 }, 'FU', 'sente');
+  put(s, { c: 4, r: 6 }, 'KY', 'sente');
+  put(s, { c: 5, r: 6 }, 'KE', 'sente');
+  put(s, { c: 6, r: 6 }, 'GI', 'sente');
+  const uid = giveCard(s, 'sente', 'shoryu');
+  const ts = cardActs(s, uid).map(a => a.targets[0].c).sort();
+  expect(ts).toEqual([3, 4, 5, 6]);
+  expect(CARDS.shoryu.name).toBe('成り上がり');
+  expect(CARDS.shoryu.cost).toBe(2);
+});
+
 test('昇竜：相手の成り封じが発動すると成れず、その駒は成れなくなる', () => {
   const s = base();
   setTrap(s, 'gote', 'narifuuji');

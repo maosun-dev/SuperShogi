@@ -285,7 +285,7 @@ async function kakuotoshi(ctx: FxCtx, cue: MagicCue): Promise<void> {
   }
 }
 
-// ---------- 昇竜 ----------
+// ---------- 成り上がり（もと昇竜） ----------
 // 駒が金の粒を巻き上げながら浮かび、くるりと回って成る（成り封じに止められたら浮いて戻るだけ）
 async function shoryu(ctx: FxCtx, cue: MagicCue): Promise<void> {
   const sq = cue.targets[0];

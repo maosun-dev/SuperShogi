@@ -116,12 +116,13 @@ export const kakuotoshi: CardDef = {
 };
 
 export const shoryu: CardDef = {
-  id: 'shoryu', name: '昇竜', kind: 'magic', cost: 3, fx: 'shoryu',
-  text: '自分の駒1つを、どこにいてもその場で成らせる。金・王・成った駒・成れない駒は選べない。相手の成り封じは発動する',
+  id: 'shoryu', name: '成り上がり', kind: 'magic', cost: 2, fx: 'shoryu',
+  text: '自分の歩・香車・桂馬・銀1つを、どこにいてもその場で成らせる。成った駒・成り封じを受けた駒は選べない。相手の成り封じは発動する',
   prompt: '成らせる自分の駒を選んでください',
   targetSets(s, side) {
     return piecesOf(s, side)
-      .filter(({ p }) => !p.promoted && !p.sealed && p.kind !== 'KI' && p.kind !== 'OU')
+      .filter(({ p }) => !p.promoted && !p.sealed
+        && (p.kind === 'FU' || p.kind === 'KY' || p.kind === 'KE' || p.kind === 'GI'))
       .map(({ sq }) => [sq]);
   },
   resolve(ctx, [sq]) {
