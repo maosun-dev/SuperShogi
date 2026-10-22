@@ -74,16 +74,23 @@ export function titleView(): GameState {
 // ?fx=kakuotoshi  相手の飛車を竜にしておく（格落としの的）
 // ?fx=spear-break 自分の飛車に貫きの槍。Space で前の歩を飛び越えて進み、槍が外れる
 // ?fx=omori-break 相手の 3一 の銀に残り1の重りの枷。Space で歩を進め、CPU が指し終えると枷が外れる
+// ?fx=move        初期配置のまま。Space で歩を1つ進める（ふだんの1手）
+// ?fx=capture     相手の歩が 7五、自分の歩が 7六。Space で取る（CPU が取り返すと、相手の手の光りも見られる）
+// ?fx=promote     自分の歩が 5四、相手の 5三 は空き。Space で 5三 へ成る
+// ?fx=drop        自分に持ち駒の歩（7七 の歩は外す）。Space で 7五 に打つ
 // &cpu=normal などで相手の持ち込みと強さを変える
 
 type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw'
-  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'spear-break' | 'omori-break';
+  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'spear-break' | 'omori-break'
+  | 'move' | 'capture' | 'promote' | 'drop';
 const SCENES: FxScene[] = [
   'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'spear-break', 'omori-break',
+  'move', 'capture', 'promote', 'drop',
 ];
 const TRAP_SCENES = ['otoshiana', 'kagami', 'narifuuji', 'itetsuku', 'aiuchi', 'migawari'];
 const PIT: Square = { c: 2, r: 5 };   // 落とし穴を伏せるマス（7六）
 const PROMO: Square = { c: 4, r: 2 }; // 成り封じ・鋼の鎧で狙うマス（5三）
+const MEET: Square = { c: 2, r: 4 };  // ふだんの1手の試し口で、取る・打つマス（7五）
 
 /** URL から試し口の場面を読む。開発中でなければ、または場面がなければ null */
 function fxScene(): { scene: FxScene; card: CardId | null } | null {
@@ -184,6 +191,20 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
     case 'omori-break':
       s.board[0 * 9 + 6]!.equip = { cardId: 'omori', left: 1 };
       break;
+    case 'move':
+      break;
+    case 'capture':
+      put(s, { c: 2, r: 2 }, MEET);
+      put(s, { c: 2, r: 6 }, PIT);
+      break;
+    case 'promote':
+      s.board[PROMO.r * 9 + PROMO.c] = null;
+      put(s, { c: 4, r: 6 }, { c: 4, r: 3 });
+      break;
+    case 'drop':
+      s.board[6 * 9 + 2] = null;
+      s.players.sente.hand.FU = 1;
+      break;
   }
   return { level, deck, initial: s, fxKey: true };
 }
@@ -236,6 +257,13 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
       return legal.find((a) => eventsOf(view, a).some((e) => e.type === 'gameOver' && e.result.winner === 'sente'));
     case 'spear-break':
       return legal.filter(isMove).find((a) => eventsOf(view, a).some((e) => e.type === 'equipBroken'));
+    case 'capture':
+      return legal.filter(isMove).find((a) => same(a.to, MEET));
+    case 'promote':
+      return legal.filter(isMove).find((a) => same(a.to, PROMO) && a.promote);
+    case 'drop':
+      return legal.find((a) => a.type === 'drop' && a.kind === 'FU' && same(a.to, MEET));
+    case 'move':
     case 'lose':
     case 'draw':
     case 'omori-break':

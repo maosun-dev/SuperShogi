@@ -136,6 +136,17 @@ export function squareAt(stage: Stage, clientX: number, clientY: number): Square
   return { c, r };
 }
 
+/** 画面の点を、盤の上の高さ y の平らな面に当てた点（演出で、画面の駒台の方へ物を飛ばすため）。当たらなければ null */
+export function screenToBoard(stage: Stage, clientX: number, clientY: number, y: number): THREE.Vector3 | null {
+  const b = stage.canvas.getBoundingClientRect();
+  if (b.width === 0 || b.height === 0) return null;
+  ptr.set(((clientX - b.left) / b.width) * 2 - 1, -((clientY - b.top) / b.height) * 2 + 1);
+  stage.camera.updateMatrixWorld();
+  ray.setFromCamera(ptr, stage.camera);
+  const out = new THREE.Vector3();
+  return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), out);
+}
+
 // ---------- 光るマス ----------
 let hlGroup: THREE.Group | null = null;
 const hlStops: (() => void)[] = [];

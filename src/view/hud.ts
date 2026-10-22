@@ -19,6 +19,8 @@ export interface Hud {
   /** カードの説明の板を開く。usable が false なら「使う」を押せなくする */
   showDetail(uid: number, usable: boolean): void;
   hideDetail(): void;
+  /** 駒台の箱の画面上の四角（取った駒を飛ばす先）。見えていなければ null */
+  komadaiRect(side: 'me' | 'foe'): DOMRect | null;
   root: HTMLElement;
   board: HTMLElement;          // 3D の盤を置く場所
 }
@@ -317,6 +319,10 @@ export function createHud(root: HTMLElement): Hud {
       detail.hidden = false;
       hud.select({ card: uid });
       (usable ? useBtn : dCancel).focus();
+    },
+    komadaiRect(side) {
+      const r = (side === 'me' ? meHands : foeHands).getBoundingClientRect();
+      return r.width > 0 && r.height > 0 ? r : null;
     },
     hideDetail() {
       if (detail.hidden) return;

@@ -8,7 +8,8 @@ import { PAL, PALS, rgba } from './palette';
 import { CW, CD, addPulse, decal, disposeTree, ring, squarePos } from './board3d';
 import { CARD_ART } from './cardArt';
 
-const PIECE_Y = 0.02;
+/** 盤の上の駒の高さ（駒の物の原点の y） */
+export const PIECE_Y = 0.02;
 
 // 駒の大きさ（試作の SIZE を種類ごとに）
 const SIZE: Record<PieceKind, number> = { OU: 1, HI: 0.95, KA: 0.95, KI: 0.93, GI: 0.93, KE: 0.88, KY: 0.86, FU: 0.82 };
