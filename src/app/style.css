@@ -744,29 +744,57 @@ input:focus-visible {
   isolation: isolate;
 }
 .title-screen .logo h1 {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 1em;
+  align-items: flex-end;
+  flex-direction: row-reverse;
+  gap: 2px;
+  margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(64px, 22vw, 92px);
   line-height: 1;
-  letter-spacing: .02em;
+}
+/* 題字の主役：墨の大きな「超」。胡粉の細い縁で、明るい舞台の上でも沈まない */
+.title-screen .logo .cho {
+  font-size: clamp(132px, 40vw, 176px);
+  color: var(--sumi);
+  -webkit-text-stroke: 7px var(--gofun);
+  paint-order: stroke fill;
+  transform: rotate(-4deg);
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .3));
+}
+/* 添えの「将棋」：小さな胡粉の字を縦に積み、「超」の左下に */
+.title-screen .logo .shogi {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+  font-size: clamp(34px, 10vw, 44px);
   color: var(--gofun);
-  -webkit-text-stroke: 6px var(--sumi);
+  -webkit-text-stroke: 5px var(--sumi);
   paint-order: stroke fill;
 }
-/* 隈取の一筆：字の後ろ、少し左へずらして */
-.title-screen .kuma {
+/* 一言の短冊：題字の下に、右へ寄せて */
+.title-screen .tagline {
+  width: fit-content;
+  margin: 6px 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--yoru) 90%, transparent);
+  box-shadow: 0 2px 0 var(--soubi), 0 4px 10px rgba(0, 0, 0, .3);
+  color: var(--gofun);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+/* 朱の払い：「超」の後ろを左上から右下へ */
+.title-screen .fude {
   position: absolute;
   z-index: -1;
-  top: -6%;
-  left: -18%;
-  width: 70%;
-  height: 112%;
+  top: -14%;
+  right: -10%;
+  width: 118%;
   color: var(--wana);
-  transform: rotate(4deg);
+  transform: rotate(8deg);
 }
 .title-screen .fuda-row {
   position: absolute;
@@ -1235,3 +1263,5 @@ input:focus-visible {
 /* 駒台の上の駒札：木の上でも浮くよう、輪郭の影を付ける */
 .match :is(.side.foe, .mine-area) .koma { filter: drop-shadow(0 1px 0 rgba(90, 50, 10, .7)); }
 .match :is(.side.foe, .mine-area) .komadai .none, .match .mine-area .hand .none { color: var(--dai-ink); opacity: .6; }
+/* 歌舞伎の舞台は上の幕が紅なので、払いは金にして沈ませない */
+:root[data-stage="kabuki"] .title-screen .fude, :root:not([data-stage]) .title-screen .fude { color: var(--soubi); }
