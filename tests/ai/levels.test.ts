@@ -9,7 +9,7 @@ import { applyAction, createGame, legalActions } from '../../src/rules/game';
 import { viewFor } from '../../src/rules/view';
 import { idx } from '../../src/rules/board';
 import type { GameState } from '../../src/rules/types';
-import { giveCard, put } from '../helpers';
+import { emptyState, giveCard, put } from '../helpers';
 
 const LV: Level[] = ['weak', 'normal', 'strong'];
 
@@ -112,3 +112,17 @@ test('忍札を伏せられるうちと伏せたあとで、1手番の時間を�
   expect(before).toBeLessThanOrEqual(LEVELS.strong.timeLimitMs * 0.6 + 200);
   expect(after).toBeLessThanOrEqual(LEVELS.strong.timeLimitMs * 0.4 + 200);
 }, { timeout: 30_000, retry: 2 });
+
+test('押し返しの風で相手の角を自分の桂の利きへ押し込み、続けて取る（ふつう）', () => {
+  const s = emptyState();
+  put(s, { c: 8, r: 8 }, 'OU', 'sente');
+  put(s, { c: 0, r: 0 }, 'OU', 'gote');
+  put(s, { c: 4, r: 3 }, 'KA', 'gote');
+  put(s, { c: 3, r: 4 }, 'KE', 'sente');
+  const uid = giveCard(s, 'sente', 'oshikaeshi');
+  const r1 = chooseCpuAction(viewFor(s, 'sente'), 'sente', 'normal', 1);
+  expect(r1.action).toEqual({ type: 'card', uid, targets: [{ c: 4, r: 3 }] });
+  const s2 = applyAction(s, r1.action).state;
+  const r2 = chooseCpuAction(viewFor(s2, 'sente'), 'sente', 'normal', 1);
+  expect(r2.action).toMatchObject({ type: 'move', from: { c: 3, r: 4 }, to: { c: 4, r: 2 } });
+}, 30_000);
