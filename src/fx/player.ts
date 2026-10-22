@@ -14,7 +14,7 @@ import { fxTiming, planFx, type Cue, type FxTiming } from './plan';
 import { FxCancelled, atHome, cameraHome, clearLayers, clearTransients, makeCtx, showNotice, type FxCtx } from './kit';
 import { playMagic, prepareMagic } from './magic';
 import { playTrapFire, playTrapSet } from './trap';
-import { playArmor, playEquip, playSecond } from './equip';
+import { playArmor, playEquip, playEquipBreak, playSecond } from './equip';
 import { playCheck, playGameOver } from './finale';
 import { getSound } from './sound';
 
@@ -88,6 +88,9 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
       return;
     case 'armor':
       await playArmor(ctx, cue);
+      return;
+    case 'equipBreak':
+      await playEquipBreak(ctx, cue);
       return;
     case 'check':
       await playCheck(ctx, cue);

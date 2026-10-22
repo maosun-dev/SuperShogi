@@ -70,15 +70,16 @@ export const CARD_ART: Record<CardId, string> = {
     <path d="M10 22 A6 6 0 0 1 10 34 Z" fill="${G}" stroke="${S}" stroke-width="1.2" transform="rotate(-25 10 28)"/>
     <path d="M37 24 A6 6 0 0 0 37 36 Z" fill="${G}" stroke="${S}" stroke-width="1.2" transform="rotate(20 37 30)"/>
     <path d="M4 18 L7 21 M42 19 L39 22" stroke="${S}" stroke-width="1.4" stroke-linecap="round"/>`,
-  // 昇竜：駒から墨の竜がうねって昇り、金の珠をつかむ
-  shoryu: `${piece(12, 44, 16, 17)}
-    <path d="M14 46 Q1 36 14 30 Q33 22 22 13 Q16 8 25 5" stroke="${S}" stroke-width="8.5" fill="none" stroke-linecap="round"/>
-    <path d="M14 46 Q1 36 14 30 Q33 22 22 13 Q16 8 25 5" stroke="${M}" stroke-width="3.6" fill="none" stroke-linecap="round"/>
-    <path d="M22 1 L37 3 L33 9 L24 10Z" fill="${S}" stroke="${S}" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M27 2 L24 -2 M31 3 L30 -1" stroke="${S}" stroke-width="1.6" stroke-linecap="round"/>
-    <circle cx="30" cy="5.6" r="1.3" fill="${G}"/>
-    <circle cx="40" cy="15" r="4.5" fill="${G}" stroke="${S}" stroke-width="1.2"/>
-    <path d="M24 54 Q29 47 35 51 Q41 46 45 53" stroke="${M}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+  // 成り上がり（計画9）：宙に浮いた3段の石段。下の段の小さな駒が、藍の弧を描いて最上段で金の駒になる
+  shoryu: `<rect x="2" y="52" width="14" height="4" rx="1" fill="${S}"/>
+    <rect x="15" y="42" width="14" height="4" rx="1" fill="${S}"/>
+    <rect x="28" y="32" width="16" height="4" rx="1" fill="${S}"/>
+    ${piece(9, 39, 11, 13, 1.6)}
+    <path d="M10 35 Q12 12 27 15" stroke="${P}" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <path d="M10 35 Q12 12 27 15" stroke="${M}" stroke-width="3" fill="none" stroke-linecap="round"/>
+    ${arrowHead(30.5, 16, 1, 0.25, M, 5.5, 4)}
+    ${piece(36, 8, 17, 24, 2).replace(`fill="${K}"`, `fill="${G}"`)}
+    <path d="M36 1 L36 -2 M45 9 L48 7 M27 9 L25 7 M46 20 L49 21" stroke="${S}" stroke-width="1.6" stroke-linecap="round"/>`,
   // 相討ち：交わる二振りの刀、交わる所に紅の火花、金の鍔
   aiuchi: `<path d="M8 57 L38 9" stroke="${S}" stroke-width="5" stroke-linecap="round"/>
     <path d="M38 57 L8 9" stroke="${S}" stroke-width="5" stroke-linecap="round"/>
@@ -165,8 +166,16 @@ export const CARD_ART: Record<CardId, string> = {
     <path d="M11 17 Q23 9 35 17" stroke="${S}" stroke-width="2" fill="none"/>
     ${plate(46, 34, 2, S)}${plate(39, 31, 1.6, S)}${plate(32, 28, 1.6, S)}${plate(25, 25, 1.6, S)}${plate(17, 23, 1.2, G)}
     <path d="M17 29 L17 33 M29 29 L29 33 M16 36 L16 40 M30 36 L30 40 M15 43 L15 47 M31 43 L31 47 M14 50 L14 54 M32 50 L32 54" stroke="${G}" stroke-width="1.6" stroke-linecap="round"/>`,
-  // 退き陣の旗（仮：計画9の Task 10 で描く）
-  hikijin: `<text x="23" y="40" text-anchor="middle" font-size="26" font-weight="800" font-family="'Shippori Mincho B1', serif" fill="${S}">退</text>`,
+  // 退き陣の旗（計画9）：金ののぼり旗に墨の下向きの山形2つ。横の駒の足元から、後ろへ下がる墨の矢
+  hikijin: `<path d="M11 6 L11 59" stroke="${S}" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="11" cy="4" r="2.4" fill="${G}" stroke="${S}" stroke-width="1.2"/>
+    <path d="M11 9 L31 9" stroke="${S}" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M13 9 L30 9 L30 41 Q26 38 22 41.5 Q18 45 13 42 Z" fill="${G}" stroke="${S}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M10 14 L14 14 M10 22 L14 22 M10 30 L14 30 M10 38 L14 38" stroke="${S}" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M16 16 L21.5 21 L27 16 M16 25 L21.5 30 L27 25" stroke="${S}" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    ${piece(38, 24, 12, 15, 1.6)}
+    <path d="M38 42 L38 53" stroke="${S}" stroke-width="2.6" stroke-linecap="round"/>
+    ${arrowHead(38, 59, 0, 1, S, 6, 4)}`,
   // 韋駄天：前へ傾いて風を切る金の草鞋と、後ろへ流れる2本の速さの線
   idaten: `<path d="M4.6 36.6 L13 28.2 M17.4 49.4 L25.8 41 M8 46 L13 41" stroke="${S}" stroke-width="2.8" stroke-linecap="round"/>
     <g transform="rotate(45 30 24)">

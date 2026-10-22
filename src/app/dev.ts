@@ -72,12 +72,14 @@ export function titleView(): GameState {
 // ?fx=migawari    相手が身代わりを伏せ、自分の金が相手の王の前にいる。Space で王を取りにいく
 // ?fx=marks       凍結・成れない・重りの枷の印を見るだけの局面
 // ?fx=kakuotoshi  相手の飛車を竜にしておく（格落としの的）
+// ?fx=spear-break 自分の飛車に貫きの槍。Space で前の歩を飛び越えて進み、槍が外れる
+// ?fx=omori-break 相手の 3一 の銀に残り1の重りの枷。Space で歩を進め、CPU が指し終えると枷が外れる
 // &cpu=normal などで相手の持ち込みと強さを変える
 
 type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw'
-  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks';
+  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'spear-break' | 'omori-break';
 const SCENES: FxScene[] = [
-  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks',
+  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'spear-break', 'omori-break',
 ];
 const TRAP_SCENES = ['otoshiana', 'kagami', 'narifuuji', 'itetsuku', 'aiuchi', 'migawari'];
 const PIT: Square = { c: 2, r: 5 };   // 落とし穴を伏せるマス（7六）
@@ -142,7 +144,7 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       at(4, 6).frozen = 1;
       at(4, 6).sealed = true;
       at(6, 8).sealed = true;
-      at(3, 0).equip = { cardId: 'omori' };
+      at(3, 0).equip = { cardId: 'omori', left: 3 };
       at(5, 2).frozen = 2;
       s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'itetsuku', at: { c: 4, r: 4 } });
       s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'otoshiana', at: { c: 6, r: 4 } });
@@ -175,6 +177,12 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       break;
     case 'draw':
       s.ply = 300;
+      break;
+    case 'spear-break':
+      s.board[7 * 9 + 7]!.equip = { cardId: 'tsuranuki' };
+      break;
+    case 'omori-break':
+      s.board[0 * 9 + 6]!.equip = { cardId: 'omori', left: 1 };
       break;
   }
   return { level, deck, initial: s, fxKey: true };
@@ -226,8 +234,11 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
       return legal.find((a) => eventsOf(view, a).some((e) => e.type === 'check' && e.side === 'gote'));
     case 'win':
       return legal.find((a) => eventsOf(view, a).some((e) => e.type === 'gameOver' && e.result.winner === 'sente'));
+    case 'spear-break':
+      return legal.filter(isMove).find((a) => eventsOf(view, a).some((e) => e.type === 'equipBroken'));
     case 'lose':
     case 'draw':
+    case 'omori-break':
       return quietPawnMove(view, legal);
   }
 }

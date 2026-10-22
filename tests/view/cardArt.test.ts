@@ -26,6 +26,18 @@ describe('カードの絵', () => {
   });
 });
 
+describe('計画9の絵', () => {
+  it('成り上がり・退き陣の旗は文字だけの仮の絵ではなく、形で描いてある', () => {
+    for (const id of ['shoryu', 'hikijin'] as const) {
+      expect(CARD_ART[id], id).not.toContain('<text');
+      expect((CARD_ART[id].match(/<(path|polygon|rect|circle)/g) ?? []).length, id).toBeGreaterThanOrEqual(4);
+    }
+  });
+  it('成り上がりは竜の絵ではない（昇竜の絵を描き直した）', () => {
+    expect(CARD_ART.shoryu).not.toContain('Q1 36 14 30');
+  });
+});
+
 describe('札の HTML', () => {
   it('札の HTML にコスト・名前・種類の印が入る', () => {
     const h = cardHtml('rakurai');

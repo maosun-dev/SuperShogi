@@ -13,6 +13,7 @@ export type Cue =
   | { kind: 'equip'; side: Side; pieceId: number; cardId: CardId }
   | { kind: 'armor'; defenderId: number; attackerId: number; at: Square }
   | { kind: 'second'; pieceId: number; from: Square; to: Square; promoted: boolean }   // 韋駄天の2回目
+  | { kind: 'equipBreak'; pieceId: number; at: Square; cardId: CardId }              // 纏札が外れた（槍・枷）
   | { kind: 'notice'; text: string }                                                   // 小さな知らせ
   | { kind: 'check'; side: Side }
   | { kind: 'gameOver'; result: Result };
@@ -110,7 +111,7 @@ export function planFx(events: GameEvent[], actor: Side): Cue[] {
         cues.push({ kind: 'notice', text: '2回目の移動はできませんでした' });
         break;
       case 'equipBroken':
-        cues.push({ kind: 'notice', text: `${CARDS[e.cardId].name}が外れました` });
+        cues.push({ kind: 'equipBreak', pieceId: e.pieceId, at: e.at, cardId: e.cardId });
         break;
       case 'passed':
         cues.push({

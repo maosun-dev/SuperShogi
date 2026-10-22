@@ -8,7 +8,7 @@ import type { Cue } from './plan';
 import { PAL, PALS, rgba } from '../view/palette';
 import { ring, squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
-import { cameraHome, cameraTo, cardFly, cutIn, easeInOut, easeOut, flash, later, lightCap, puff, shakeBy, transient, type FxCtx } from './kit';
+import { cameraHome, cameraTo, cardFly, cutIn, easeInOut, easeOut, flash, later, lightCap, puff, shakeBy, showNotice, transient, type FxCtx } from './kit';
 import { getSound } from './sound';
 import { squareOf } from './trap';
 
@@ -216,6 +216,41 @@ async function tsuranuki(ctx: FxCtx, at: THREE.Vector3, side: 'sente' | 'gote'):
   }
 }
 
+/** 退き陣の旗の旗の模様：金の地に墨の下向きの山形2つ（札の絵と同じ） */
+function bannerTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 128;
+  const g = c.getContext('2d')!;
+  g.fillStyle = PALS.soubi;
+  g.beginPath(); g.moveTo(4, 4); g.lineTo(60, 4); g.lineTo(60, 112); g.quadraticCurveTo(46, 102, 32, 114); g.quadraticCurveTo(18, 124, 4, 114); g.closePath(); g.fill();
+  g.strokeStyle = PALS.sumi; g.lineWidth = 6; g.stroke();
+  g.lineWidth = 9; g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const y of [30, 62]) { g.beginPath(); g.moveTo(14, y); g.lineTo(32, y + 16); g.lineTo(50, y); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// 退き陣の旗：駒の真後ろに金ののぼり旗がすっと立ち、風にはためいて消える
+async function hikijin(ctx: FxCtx, at: THREE.Vector3, side: 'sente' | 'gote'): Promise<void> {
+  const back = side === 'sente' ? 1 : -1; // 先手の後ろは手前（z が増える向き）
+  const tex = bannerTexture();
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.84), mat);
+  const kill = transient(ctx, flag, 60000);
+  try {
+    await ctx.wait(PILLAR_MS * 0.4);
+    await ctx.tween(320, (t) => {
+      flag.position.set(at.x, 0.1 + 0.55 * t, at.z + back * 0.55);
+      mat.opacity = t;
+    }, easeOut);
+    getSound().play('tick');
+    await ctx.tween(520, (t) => { flag.rotation.y = Math.sin(t * Math.PI * 3) * 0.35 * (1 - t); });
+    await ctx.tween(260, (t) => { mat.opacity = 1 - t; });
+  } finally {
+    kill();
+    tex.dispose();
+  }
+}
+
 // 重りの枷：墨の重りがずしんと落ちる（揺れと土ぼこり）
 async function omori(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
   await ctx.wait(PILLAR_MS * 0.6);
@@ -227,7 +262,7 @@ async function omori(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
 export const EQUIP_FX: Record<EquipName, (ctx: FxCtx, cue: EquipCue) => Promise<void>> = {
   tenma: (ctx, cue) => withAt(ctx, cue, (at) => tenma(ctx, at)),
   hagane: (ctx, cue) => withAt(ctx, cue, (at) => hagane(ctx, at, cue.pieceId)),
-  hikijin: (ctx, cue) => withAt(ctx, cue, (at) => tenma(ctx, at)), // 仮：計画9の Task 10 で作る
+  hikijin: (ctx, cue) => withAt(ctx, cue, (at) => hikijin(ctx, at, cue.side)),
   idaten: (ctx, cue) => withAt(ctx, cue, (at) => idaten(ctx, at)),
   tsuranuki: (ctx, cue) => withAt(ctx, cue, (at) => tsuranuki(ctx, at, cue.side)),
   omori: (ctx, cue) => withAt(ctx, cue, (at) => omori(ctx, at)),
@@ -266,17 +301,18 @@ export async function playEquip(ctx: FxCtx, cue: EquipCue): Promise<void> {
 
 // ---------- 鋼の鎧が守った ----------
 
-/** 六角形が6つのかけらに割れて飛び散る */
-function hexShatter(ctx: FxCtx, at: THREE.Vector3): void {
+/** 足元の輪（金の六角形・墨の四角い枷）が、辺ごとのかけらに割れて飛び散る */
+function hexShatter(ctx: FxCtx, at: THREE.Vector3, color: number = PAL.soubiLight, sides = 6, turn = 0): void {
   const grp = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color: PAL.soubiLight, transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide });
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide });
   const parts: { m: THREE.Mesh; v: THREE.Vector3; av: number }[] = [];
-  for (let k = 0; k < 6; k++) {
-    const th = (k * Math.PI) / 3;
-    const m = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.68, 1, 1, th, Math.PI / 3), mat);
+  const arc = (Math.PI * 2) / sides;
+  for (let k = 0; k < sides; k++) {
+    const th = turn + k * arc;
+    const m = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.68, 1, 1, th, arc), mat);
     m.rotation.x = -Math.PI / 2;
     grp.add(m);
-    const mid = th + Math.PI / 6; // 板を寝かせると (x, y) → (x, 0, -y)
+    const mid = th + arc / 2; // 板を寝かせると (x, y) → (x, 0, -y)
     const dir = new THREE.Vector3(Math.cos(mid), 0, -Math.sin(mid));
     parts.push({ m, v: dir.multiplyScalar(2 + Math.random() * 1.5).setY(2.5 + Math.random() * 2), av: (Math.random() - 0.5) * 14 });
   }
@@ -352,6 +388,54 @@ export async function playArmor(ctx: FxCtx, cue: ArmorCue): Promise<void> {
   } finally {
     await cameraHome(ctx, 600);
   }
+}
+
+// ---------- 纏札が外れた（貫きの槍を使い切った・重りの枷の手番が尽きた） ----------
+
+type BreakCue = Extract<Cue, { kind: 'equipBreak' }>;
+
+/** 槍が二つに折れ、金の破片が左右へ跳ねて落ちる */
+function spearSnap(ctx: FxCtx, at: THREE.Vector3): void {
+  const mat = new THREE.MeshBasicMaterial({ color: PAL.soubiLight, transparent: true, opacity: 1, depthWrite: false });
+  const grp = new THREE.Group();
+  const halves = [-1, 1].map((s) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.6), mat);
+    m.position.set(s * 0.16, 0.5, 0);
+    grp.add(m);
+    return { m, v: new THREE.Vector3(s * 1.6, 2.4, 0), av: s * 9 };
+  });
+  grp.position.set(at.x, 0, at.z);
+  const LIFE = 800;
+  transient(ctx, grp, LIFE, (dt, age) => {
+    for (const h of halves) {
+      h.v.y -= 9 * dt;
+      h.m.position.addScaledVector(h.v, dt);
+      h.m.position.y = Math.max(0.03, h.m.position.y);
+      h.m.rotation.y += h.av * dt;
+    }
+    mat.opacity = Math.max(0, 1 - age / LIFE);
+  });
+}
+
+/** 纏札が外れた：足元の輪が割れて消え、札の名前で知らせる */
+export async function playEquipBreak(ctx: FxCtx, cue: BreakCue): Promise<void> {
+  const at = squarePos(cue.at);
+  const m = pieceMesh(cue.pieceId);
+  const eqGrp = m?.children.find((c) => (c as THREE.Group).isGroup);
+  if (eqGrp) eqGrp.visible = false; // 片付けは sync（外れた局面で消える）
+  if (cue.cardId === 'omori') {
+    hexShatter(ctx, at, PAL.sumi, 4, Math.PI / 4);
+    puff(ctx, at, PAL.gofun, 24, 0.8);
+    getSound().play('stamp');
+  } else {
+    hexShatter(ctx, at);
+    spearSnap(ctx, at);
+    sparks(ctx, at.clone().setY(0.5), new THREE.Vector3(0, 1, 0));
+    getSound().play('clang', { gain: 0.6 });
+  }
+  await ctx.wait(420);
+  ctx.sync();
+  await showNotice(ctx, `${CARDS[cue.cardId].name}が外れました`);
 }
 
 // ---------- 韋駄天の2回目 ----------
