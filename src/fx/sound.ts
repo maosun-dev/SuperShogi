@@ -7,7 +7,8 @@ import { loadSettings, safeStore } from '../app/storage';
 
 export type SoundName =
   | 'hyoshigi' | 'tick' | 'whoosh' | 'thunder' | 'shatter' | 'wind'
-  | 'frost' | 'flip' | 'stamp' | 'clang' | 'chime' | 'drum';
+  | 'frost' | 'flip' | 'stamp' | 'clang' | 'chime' | 'drum'
+  | 'koma' | 'komaHard' | 'kaesu';
 
 export interface Sound {
   unlock(): void;
@@ -90,11 +91,30 @@ function clack(k: Kit, at: number, gain: number): void {
 
 type Recipe = (k: Kit, t: number, g: number) => void;
 
+/** 駒を盤に打つ「パチン」：乾いた木の打撃と短い響き。鳴らすたびに高さを ±4% 揺らして機械っぽさを消す */
+function pachin(k: Kit, t: number, g: number): void {
+  const j = 1 + (Math.random() - 0.5) * 0.08;
+  noiseBurst(k, { at: t, dur: 0.035, gain: 0.8 * g, type: 'bandpass', f0: 1800 * j, q: 4 });
+  tone(k, t, 820 * j, 0.07, 0.25 * g, 600 * j);
+}
+
 const RECIPES: Record<SoundName, Recipe> = {
   // 拍子木：2回、90ms 空けて
   hyoshigi: (k, t, g) => { clack(k, t, 0.9 * g); clack(k, t + 0.09, 0.9 * g); },
-  // 駒の音：拍子木の1回を小さく
+  // 駒を選ぶ音：拍子木の1回を小さく
   tick: (k, t, g) => clack(k, t, 0.35 * g),
+  // 駒を打つ音（ふつうの手）
+  koma: (k, t, g) => pachin(k, t, g),
+  // 取る手・打つ手の強めの「パチン」：低い響きを足す
+  komaHard: (k, t, g) => {
+    pachin(k, t, 1.2 * g);
+    tone(k, t, 160, 0.16, 0.45 * g, 90);
+  },
+  // 成りの裏返し「カッ」：高く短い
+  kaesu: (k, t, g) => {
+    noiseBurst(k, { at: t, dur: 0.025, gain: 0.6 * g, type: 'bandpass', f0: 3200, q: 6 });
+    tone(k, t, 1400, 0.05, 0.2 * g, 1100);
+  },
   // 雷：低域を残した雑音のうなり 1.6 秒。ごく低い正弦波で腹に響かせる
   thunder: (k, t, g) => {
     noiseBurst(k, { at: t, dur: 1.6, gain: 1.0 * g, type: 'lowpass', f0: 520, f1: 90, q: 0.8, attack: 0.03 });
