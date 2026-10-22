@@ -13,6 +13,12 @@ import { narifuuji } from './narifuuji';
 import { kagami } from './kagami';
 import { aiuchi } from './aiuchi';
 import { migawari } from './migawari';
+import { hikijin } from './hikijin';
+import { tenma } from './tenma';
+import { hagane } from './hagane';
+import { omori } from './omori';
+import { tsuranuki } from './tsuranuki';
+import { idaten } from './idaten';
 
 export const MAGIC_FX: Partial<Record<CardId, CardFx<MagicCue>>> = {
   oshikaeshi, irekae, shoryu, yobimodoshi, kakuotoshi, rakurai,
@@ -22,4 +28,6 @@ export const TRAP_FX: Partial<Record<CardId, CardFx<TrapFireCue>>> = {
   itetsuku, otoshiana, narifuuji, kagami, aiuchi, migawari,
 };
 
-export const EQUIP_FX: Partial<Record<CardId, EquipFx>> = {};
+export const EQUIP_FX: Partial<Record<CardId, EquipFx>> = {
+  hikijin, tenma, hagane, omori, tsuranuki, idaten,
+};

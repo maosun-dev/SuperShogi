@@ -11,7 +11,9 @@ describe('札の演出の表', () => {
   it('忍札はすべて TRAP_FX にある', () => {
     expect(Object.keys(TRAP_FX).sort()).toEqual(ids('trap'));
   });
-  it.todo('纏札はすべて EQUIP_FX にある');
+  it('纏札はすべて EQUIP_FX にある', () => {
+    expect(Object.keys(EQUIP_FX).sort()).toEqual(ids('equip'));
+  });
   it('表の札はどれも見せ場（main）を持つ', () => {
     for (const fx of [...Object.values(MAGIC_FX), ...Object.values(TRAP_FX), ...Object.values(EQUIP_FX)]) {
       expect(typeof fx?.main).toBe('function');

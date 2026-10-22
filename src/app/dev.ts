@@ -71,6 +71,7 @@ export function titleView(): GameState {
 // ?fx=aiuchi      相手が相討ちを伏せ、相手の歩が 7六 にいる。Space で自分の歩が取り、取った歩も壊れる
 // ?fx=migawari    相手が身代わりを伏せ、自分の金が相手の王の前にいる。Space で王を取りにいく
 // ?fx=marks       凍結・成れない・重りの枷の印を見るだけの局面
+// ?fx=equips      6種類の纏札の印（旗・蹄の跡・鎧・鎖と鉄球・槍・炎）を見るだけの局面（後手の駒にも付ける）
 // ?fx=kakuotoshi  相手の飛車を竜にしておく（格落としの的）
 // ?fx=spear-break 自分の飛車に貫きの槍。Space で前の歩を飛び越えて進み、槍が外れる
 // ?fx=omori-break 相手の 3一 の銀に残り1の重りの枷。Space で歩を進め、CPU が指し終えると枷が外れる
@@ -81,10 +82,10 @@ export function titleView(): GameState {
 // &cpu=normal などで相手の持ち込みと強さを変える
 
 type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw'
-  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'spear-break' | 'omori-break'
+  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'equips' | 'spear-break' | 'omori-break'
   | 'move' | 'capture' | 'promote' | 'drop';
 const SCENES: FxScene[] = [
-  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'spear-break', 'omori-break',
+  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'equips', 'spear-break', 'omori-break',
   'move', 'capture', 'promote', 'drop',
 ];
 const TRAP_SCENES = ['otoshiana', 'kagami', 'narifuuji', 'itetsuku', 'aiuchi', 'migawari'];
@@ -155,6 +156,21 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       at(5, 2).frozen = 2;
       s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'itetsuku', at: { c: 4, r: 4 } });
       s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'otoshiana', at: { c: 6, r: 4 } });
+      break;
+    }
+    case 'equips': {
+      const at = (c: number, r: number) => s.board[r * 9 + c]!;
+      at(2, 6).equip = { cardId: 'hikijin' };
+      at(1, 8).equip = { cardId: 'tenma' };
+      at(2, 8).equip = { cardId: 'hagane' };
+      at(7, 7).equip = { cardId: 'tsuranuki' };
+      at(5, 8).equip = { cardId: 'idaten' };
+      at(6, 6).equip = { cardId: 'omori', left: 3 };
+      // 後手の駒（向きが合っているか）
+      at(6, 2).equip = { cardId: 'hikijin' };
+      at(6, 0).equip = { cardId: 'hagane' };
+      at(1, 1).equip = { cardId: 'tsuranuki' };
+      at(5, 0).equip = { cardId: 'idaten' };
       break;
     }
     case 'otoshiana':
@@ -246,6 +262,7 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
     case 'migawari':
       return legal.filter(isMove).find((a) => pieceAt(view, a.to)?.kind === 'OU');
     case 'marks':
+    case 'equips':
       return undefined;
     case 'narifuuji':
       return legal.filter(isMove).find((a) => same(a.to, PROMO) && a.promote);

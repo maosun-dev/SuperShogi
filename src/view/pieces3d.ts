@@ -1,4 +1,4 @@
-// 駒の形と字・sync(局面) で駒・纏札の六角形・自分の伏せたマスの印・王手の輪・凍結と成れないの印を揃える。
+// 駒の形と字・sync(局面) で駒・纏札の印（札ごとの小さな物）・自分の伏せたマスの印・王手の輪・凍結と成れないの印を揃える。
 // 駒の形・字の貼り方は試作（docs/mockups/look-mockup.html）の値をそのまま使う。
 import * as THREE from 'three';
 import type { CardId, GameState, Piece, PieceKind, Side } from '../rules/types';
@@ -6,6 +6,7 @@ import { isInCheck } from '../rules/moves';
 import type { Stage } from './stage';
 import { PAL, PALS, rgba } from './palette';
 import { CW, CD, addPulse, decal, disposeTree, ring, squarePos } from './board3d';
+import { armorPlate, banner, chainRing, flame, flutter, hoofprint, ironBall, spear } from './equipProps';
 import { CARD_ART } from './cardArt';
 
 /** 盤の上の駒の高さ（駒の物の原点の y） */
@@ -122,7 +123,9 @@ interface PieceObj {
 
 const objs = new Map<number, PieceObj>();
 let spinOff: (() => void) | null = null;
-const spinning = new Set<THREE.Object3D>();
+// 纏札の印のうち動く物（はためく旗など）。毎フレーム、経った秒数を渡す
+const animating = new Set<(t: number) => void>();
+let animTime = 0;
 
 function makePiece(p: Piece): PieceObj {
   const s = SIZE[p.kind], grp = new THREE.Group();
@@ -273,18 +276,78 @@ function removeMarks(o: PieceObj): void {
   o.marks = null; // 形と材質は使い回すので捨てない
 }
 
-/** 装備の六角形（試作の金の輪）と、その札の絵の小さな板 */
-function makeEquip(id: CardId, side: Side): { obj: THREE.Group; stop: () => void } {
+/** 纏札の印：札ごとの小さな物（旗・蹄の跡・鎧の板・鎖と鉄球・槍・炎）と、その札の絵の小さな板。
+ *  物は駒の組の中に置くので、後手の駒では向きも一緒に回る。動く物（はためく旗・瞬く跡・揺れる炎）は anim で動かす */
+function makeEquip(id: CardId, side: Side, s: number): { obj: THREE.Group; stop: () => void } {
   const g = new THREE.Group();
-  // 重りの枷は相手に付けられる重荷なので、金の六角形ではなく、回らない墨の四角い枷にする
-  const shackle = id === 'omori';
-  const hex = shackle ? ring(0.5, 0.64, PAL.sumi, 4) : ring(0.5, 0.68, PAL.soubiLight, 6);
-  hex.position.y = 0.014 - PIECE_Y;
-  if (shackle) hex.rotation.z = Math.PI / 4;
-  g.add(hex);
-  if (!shackle) spinning.add(hex);
-  const stopPulse = addPulse(hex.material, 0.55, 0.95, 2.5);
-  // 札の絵：駒に隠れないよう、六角形の手前右の角に寝かせて置く（見る側から見て正しい向き）
+  const floor = 0.012 - PIECE_Y; // 盤の面の高さ（駒の組の中で）
+  let step: ((t: number) => void) | null = null;
+  switch (id) {
+    case 'hikijin': {
+      // 駒の左わきの小旗（旗は外へはためく。駒の手前に立てると、見る側から字が隠れるため）
+      const b = banner(0.72, false);
+      b.position.set(-0.4 * s, 0.02, 0.1 * s);
+      b.rotation.y = Math.PI;
+      g.add(b);
+      const flag = b.userData.flag as THREE.Mesh;
+      step = (t) => flutter(flag, t, 0.8);
+      break;
+    }
+    case 'tenma': {
+      // 足元に光る蹄の跡（ゆっくり瞬く）
+      const prints = [hoofprint(0.34, false), hoofprint(0.34, false)];
+      prints[0].position.set(-0.36 * s, floor + 0.004, 0.36 * s);
+      prints[1].position.set(-0.4 * s, floor + 0.004, -0.1 * s);
+      prints[1].rotation.z = 0.3;
+      g.add(...prints);
+      step = (t) => { prints.forEach((p, i) => { p.material.opacity = 0.55 + 0.4 * Math.sin(t * 2.4 + i * 1.6); }); };
+      break;
+    }
+    case 'hagane': {
+      // 駒の両わきに鎧の板
+      for (const k of [-1, 1]) {
+        const plate = armorPlate(s);
+        plate.position.set(k * 0.39 * s, 0.1 * s, 0.02 * s);
+        // 鋲の側を外へ向け、上を駒へ寄せて斜めに立てかける
+        plate.rotation.set(0, k > 0 ? 0 : Math.PI, 0.5);
+        g.add(plate);
+      }
+      break;
+    }
+    case 'omori': {
+      // 足元の鎖と、小さな鉄球
+      const chain = chainRing(0.46 * s, 14);
+      chain.position.y = floor + 0.045;
+      const ball = ironBall(0.13);
+      ball.position.set(0.5 * s, floor + 0.13, -0.2 * s);
+      g.add(chain, ball);
+      break;
+    }
+    case 'tsuranuki': {
+      // 駒の後ろに担いだ細い槍（穂先が前を向く）
+      const sp = spear(1.35 * s);
+      sp.position.set(-0.36 * s, 0.3 * s, 0.1 * s);
+      sp.rotation.x = 0.35;
+      g.add(sp);
+      break;
+    }
+    case 'idaten': {
+      // 足元の小さな炎（ゆらめく）
+      const fl = [flame(0.5, false), flame(0.4, false)];
+      fl[0].position.set(-0.38 * s, floor, 0.3 * s);
+      fl[1].position.set(-0.4 * s, floor, -0.15 * s);
+      g.add(...fl);
+      step = (t) => {
+        fl.forEach((f, i) => {
+          const k = 1 + Math.sin(t * 13 + i * 2) * 0.12 + Math.sin(t * 7.3 + i) * 0.08;
+          const h = (i ? 0.4 : 0.5) * k;
+          f.scale.set(h * 0.5, h, 1);
+        });
+      };
+      break;
+    }
+  }
+  // 札の絵：駒に隠れないよう、手前右の角に寝かせて置く（見る側から見て正しい向き）
   const art = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.48),
     new THREE.MeshBasicMaterial({ map: artTexture(id), transparent: true, depthWrite: false }));
   art.rotation.x = -Math.PI / 2;
@@ -292,9 +355,11 @@ function makeEquip(id: CardId, side: Side): { obj: THREE.Group; stop: () => void
   art.position.set(0.4 * flip, 0.03 - PIECE_Y, 0.4 * flip);
   if (side === 'gote') art.rotation.z = Math.PI;
   g.add(art);
+  if (step) animating.add(step);
+  const st = step;
   return {
     obj: g,
-    stop: () => { stopPulse(); spinning.delete(hex); },
+    stop: () => { if (st) animating.delete(st); },
   };
 }
 
@@ -305,6 +370,7 @@ function removeEquip(o: PieceObj): void {
   // 札の絵の模様は使い回すので捨てない
   o.equip.obj.traverse((x) => {
     const m = x as THREE.Mesh;
+    if ((x as THREE.Sprite).isSprite) { (m.material as THREE.Material).dispose(); return; } // 板の形は three の中で共有
     if (!m.isMesh) return;
     m.geometry.dispose();
     (m.material as THREE.Material).dispose();
@@ -362,7 +428,10 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
   // 下ろす途中の駒は、ここで局面の高さに揃う（浮いている駒はこのあとも浮かせ続ける）
   lowering.clear();
   if (!spinOff) {
-    spinOff = stage.onFrame((dt) => { for (const o of spinning) o.rotation.z += dt * 0.6; });
+    spinOff = stage.onFrame((dt) => {
+      animTime += dt;
+      for (const f of animating) f(animTime);
+    });
   }
   const checked: Record<Side, boolean> = { sente: isInCheck(view, 'sente'), gote: isInCheck(view, 'gote') };
   const seen = new Set<number>();
@@ -400,7 +469,7 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
     const eq = p.equip?.cardId ?? null;
     if (o.equip && o.equip.id !== eq) removeEquip(o);
     if (eq && !o.equip) {
-      const e = makeEquip(eq, p.side);
+      const e = makeEquip(eq, p.side, SIZE[p.kind]);
       o.grp.add(e.obj);
       o.equip = { id: eq, ...e };
     }

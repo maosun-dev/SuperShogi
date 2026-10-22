@@ -1,5 +1,6 @@
 // 演出役（Presenter の本体）。出来事の記録を planFx で段取りにし、順に流して、最後に必ず sync する。
-// 魔法は magic.ts、罠は trap.ts、装備・鋼の鎧・韋駄天の2回目は equip.ts、王手・決着は finale.ts。
+// 術札は magic.ts、忍札は trap.ts、纏札（付ける・鎧・外れる・韋駄天の2回目・札の力を使う手）は equip.ts、王手・決着は finale.ts。
+// 札ごとの中身は src/fx/cards。
 // ふだんの駒の移動・取る・成る・打つは move.ts。王を取る手の移動だけは、決着の演出がゆっくり流す。
 // 決まり：present は決して reject しない。失敗は段取りごとに握って console.error し、最後に必ず sync して resolve する。
 import type { GameState, Side, Square } from '../rules/types';
@@ -13,7 +14,7 @@ import { FxCancelled, atHome, cameraHome, clearLayers, clearTransients, makeCtx,
 import { playMagic, prepareMagic } from './magic';
 import { resetStagecraft } from './stagecraft';
 import { playTrapFire, playTrapSet } from './trap';
-import { playArmor, playEquip, playEquipBreak, playSecond } from './equip';
+import { playArmor, playEquip, playEquipBreak, playEquipMove, playSecond } from './equip';
 import { playCheck, playGameOver } from './finale';
 import { playDrop, playMove } from './move';
 
@@ -45,6 +46,8 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
     case 'move':
       // 王を取る手は、決着の演出（playGameOver）がゆっくり動かす
       if (kingAt && step.after.result && cue.to.c === kingAt.c && cue.to.r === kingAt.r) return;
+      // 纏札の力を使う手（退き陣で下がる・天馬で跳ぶ・槍で飛び越える）は、札の飾りを足す
+      await playEquipMove(ctx, cue);
       await playMove(ctx, cue);
       return;
     case 'second':
