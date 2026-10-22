@@ -25,7 +25,7 @@ export const LEVELS: Record<Level, LevelConfig> = {
   },
   strong: {
     maxDepth: 6, timeLimitMs: 3000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
-    deck: ['itetsuku', 'aiuchi', 'tsuranuki', 'hagane', 'oshikaeshi'],
+    deck: ['itetsuku', 'aiuchi', 'tsuranuki', 'hagane'],
   },
 };
 

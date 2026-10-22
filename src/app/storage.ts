@@ -2,7 +2,7 @@
 import type { CardId, Handicap, HandicapKind } from '../rules/types';
 import { HANDICAP_LABEL } from '../rules/board';
 import type { Level } from '../ai/levels';
-import { validateDeck } from '../cards';
+import { sanitizeDeck } from '../cards';
 import { isNativeApp, mirrorStore, nativePrefs } from './native';
 
 export interface KeyValueStore { getItem(k: string): string | null; setItem(k: string, v: string): void }
@@ -68,7 +68,7 @@ export function saveSettings(st: KeyValueStore, s: Settings): void {
 export function loadDeck(st: KeyValueStore): CardId[] | null {
   const j = readJson(st, KEY_DECK);
   if (!Array.isArray(j) || !j.every(x => typeof x === 'string')) return null;
-  return validateDeck(j as CardId[]) === null ? (j as CardId[]) : null;
+  return sanitizeDeck(j as string[]);
 }
 
 export function saveDeck(st: KeyValueStore, deck: CardId[]): void {

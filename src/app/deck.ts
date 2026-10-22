@@ -8,12 +8,12 @@ export function deckCost(deck: CardId[]): number {
 
 // 足せない理由。足せるなら null
 export function addReason(deck: CardId[], id: CardId): string | null {
-  if (deck.filter(d => d === id).length >= MAX_COPIES) return '同じ札は2枚までです';
+  if (deck.filter(d => d === id).length >= MAX_COPIES) return '同じ札は1枚までです';
   if (deckCost(deck) + CARDS[id].cost > COST_LIMIT) return '残りのコストが足りません';
   return null;
 }
 
-// 12種を2枚ずつ並べて rng で混ぜ、前から「入れてもコスト10以内」のものを足す
+// 全種類を1枚ずつ並べて rng で混ぜ、前から「入れてもコスト10以内」のものを足す
 export function autoDeck(rng: () => number): CardId[] {
   const pool: CardId[] = [];
   for (const id of Object.keys(CARDS) as CardId[]) for (let i = 0; i < MAX_COPIES; i++) pool.push(id);

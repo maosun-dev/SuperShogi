@@ -12,7 +12,7 @@ export const CARDS = Object.fromEntries(
 ) as Record<CardId, CardDef>;
 
 export const COST_LIMIT = 10;
-export const MAX_COPIES = 2;
+export const MAX_COPIES = 1;
 
 // 問題なしなら null、だめならその理由
 export function validateDeck(ids: CardId[]): string | null {
@@ -21,6 +21,20 @@ export function validateDeck(ids: CardId[]): string | null {
   if (total > COST_LIMIT) return 'コストが10を超えています';
   const counts = new Map<CardId, number>();
   for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
-  if ([...counts.values()].some(n => n > MAX_COPIES)) return '同じ札は2枚までです';
+  if ([...counts.values()].some(n => n > MAX_COPIES)) return '同じ札は1枚までです';
   return null;
+}
+
+// 保存してあった持ち込みを今の決まりに合わせる：知らない札・2枚目以降・前から足してコスト10を超える札を外す
+export function sanitizeDeck(ids: string[]): CardId[] {
+  const out: CardId[] = [];
+  let total = 0;
+  for (const id of ids) {
+    if (!Object.prototype.hasOwnProperty.call(CARDS, id)) continue;
+    const c = id as CardId;
+    if (out.includes(c) || total + CARDS[c].cost > COST_LIMIT) continue;
+    out.push(c);
+    total += CARDS[c].cost;
+  }
+  return out;
 }

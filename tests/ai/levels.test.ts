@@ -26,6 +26,7 @@ function midgame(): GameState {
 
 test('どの強さの持ち込みも validateDeck を通る', () => {
   for (const l of LV) expect(validateDeck(LEVELS[l].deck)).toBeNull();
+  expect(LEVELS.strong.deck).toEqual(['itetsuku', 'aiuchi', 'tsuranuki', 'hagane']);
 });
 
 test('強い方が深く・迷いが少ない', () => {
