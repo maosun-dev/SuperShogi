@@ -11,6 +11,7 @@ import { loadSettings, safeStore } from '../app/storage';
 import { fxTiming, planFx, type Cue, type FxTiming } from './plan';
 import { FxCancelled, atHome, cameraHome, clearLayers, clearTransients, makeCtx, showNotice, type FxCtx } from './kit';
 import { playMagic, prepareMagic } from './magic';
+import { resetStagecraft } from './stagecraft';
 import { playTrapFire, playTrapSet } from './trap';
 import { playArmor, playEquip, playEquipBreak, playSecond } from './equip';
 import { playCheck, playGameOver } from './finale';
@@ -96,6 +97,8 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 
       cancelled = true;
       // 舞台に残した演出の物と揺れは、次の画面に持ち越さない
       try { clearTransients(); } catch (e) { console.error('演出の物を片付けられませんでした', e); }
+      // 暗転・スポットライト・点の光は、次の画面に持ち越さない
+      try { resetStagecraft(); } catch (e) { console.error('照明を戻せませんでした', e); }
       stage.shake = 0;
     },
     async present(step) {

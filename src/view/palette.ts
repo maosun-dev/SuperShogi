@@ -41,6 +41,10 @@ export const PAL = {
   soubiPale: 0xfff1bf, // 光の柱の芯（金箔をいちばん明るくしたもの）
   haganeSteel: 0xb7c0cf, // 鋼の鎧の鉄色（胡粉を夜の藍へ寄せたもの）
   sumiHole: 0x050403, // 落とし穴の穴の底
+  // 札の演出（2026-10-23）：雷雲・煙玉
+  stormCloud: 0x2b2932, // 雷雲（墨を夜の藍へ寄せたもの）
+  stormLit: 0x8f96c8, // 雲の中で稲妻が光ったときの雲
+  smokeShade: 0xc9c4d8, // 煙玉の陰（胡粉を藍へ寄せたもの）
 } as const;
 
 export type PalName = keyof typeof PAL;

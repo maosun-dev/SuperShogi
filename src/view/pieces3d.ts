@@ -17,8 +17,8 @@ const LABEL: Record<PieceKind, string> = { OU: '玉', HI: '飛', KA: '角', KI: 
 // 成り駒は1文字にする（成香・成桂・成銀は 杏・圭・全）
 const PROMOTED: Partial<Record<PieceKind, string>> = { FU: 'と', KY: '杏', KE: '圭', GI: '全', KA: '馬', HI: '竜' };
 
-/** 駒に書く字と、その色（成り駒は紅） */
-function labelOf(p: Piece): { ch: string; color: string } {
+/** 駒に書く字と、その色（成り駒は紅）。演出でも使う */
+export function labelOf(p: Piece): { ch: string; color: string } {
   if (p.kind === 'OU') return { ch: p.side === 'sente' ? '玉' : '王', color: PALS.sumi };
   if (p.promoted && PROMOTED[p.kind]) return { ch: PROMOTED[p.kind]!, color: PALS.wana };
   return { ch: LABEL[p.kind], color: PALS.sumi };
@@ -340,6 +340,11 @@ function makePit(cardId: CardId | null): THREE.Mesh<THREE.PlaneGeometry, THREE.M
     g.fillStyle = rgba(color, 0.9); g.font = '800 92px "Shippori Mincho B1", serif';
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(frost ? '氷' : '穴', 128, 134);
   }, CW * 0.92, CD * 0.92);
+}
+
+/** 駒の表の字の板（演出で光らせるため。材質は共有なので、変えるときは複製を差し替える） */
+export function pieceLabel(id: number): THREE.Mesh | undefined {
+  return objs.get(id)?.label;
 }
 
 /** 駒の物（演出で動かすため）。盤にない駒は undefined */

@@ -27,3 +27,11 @@ describe('getSound（AudioContext のない Node）', () => {
     expect(() => { s.play('koma'); s.play('komaHard'); s.play('kaesu'); }).not.toThrow();
   });
 });
+
+describe('札の演出の仮の音', () => {
+  it('13個とも例外を出さない', () => {
+    const s = getSound();
+    const names = ['ice', 'trapdoor', 'thud', 'paper', 'glass', 'slash', 'poof', 'reel', 'armor', 'chain', 'hoof', 'flame', 'tsuke'] as const;
+    expect(() => { for (const n of names) s.play(n); }).not.toThrow();
+  });
+});

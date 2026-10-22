@@ -8,7 +8,13 @@ import { loadSettings, safeStore } from '../app/storage';
 export type SoundName =
   | 'hyoshigi' | 'tick' | 'whoosh' | 'thunder' | 'shatter' | 'wind'
   | 'frost' | 'flip' | 'stamp' | 'clang' | 'chime' | 'drum'
-  | 'koma' | 'komaHard' | 'kaesu';
+  | 'koma' | 'komaHard' | 'kaesu'
+  | CardSoundName;
+
+/** 札の演出の音（2026-10-23。すべて仮の音。docs/sound-wishlist.md におすすめの差し替え先） */
+type CardSoundName =
+  | 'ice' | 'trapdoor' | 'thud' | 'paper' | 'glass' | 'slash' | 'poof'
+  | 'reel' | 'armor' | 'chain' | 'hoof' | 'flame' | 'tsuke';
 
 export interface Sound {
   unlock(): void;
@@ -98,7 +104,7 @@ function pachin(k: Kit, t: number, g: number): void {
   tone(k, t, 820 * j, 0.07, 0.25 * g, 600 * j);
 }
 
-const RECIPES: Record<SoundName, Recipe> = {
+const BASE_RECIPES: Record<Exclude<SoundName, CardSoundName>, Recipe> = {
   // 拍子木：2回、90ms 空けて
   hyoshigi: (k, t, g) => { clack(k, t, 0.9 * g); clack(k, t + 0.09, 0.9 * g); },
   // 駒を選ぶ音：拍子木の1回を小さく
@@ -161,6 +167,88 @@ const RECIPES: Record<SoundName, Recipe> = {
     noiseBurst(k, { at: t + 0.34, dur: 0.3, gain: 0.5 * g, type: 'lowpass', f0: 350, f1: 90 });
   },
 };
+
+// ---------- 札の演出の仮の音 ----------
+const CARD_RECIPES: Record<CardSoundName, Recipe> = {
+  // 氷が伸びる：高い雑音のバリバリが重なり、澄んだ短い響きで終わる
+  ice: (k, t, g) => {
+    for (let i = 0; i < 7; i++) {
+      noiseBurst(k, { at: t + i * 0.045 + Math.random() * 0.02, dur: 0.06, gain: (0.25 + Math.random() * 0.2) * g, type: 'bandpass', f0: 4200 + Math.random() * 2500, q: 4 });
+    }
+    tone(k, t + 0.32, 3136, 0.5, 0.18 * g);
+    tone(k, t + 0.36, 4699, 0.4, 0.1 * g);
+  },
+  // 床板が開く：木のきしみ（帯域の狭い雑音の上下）＋低いドン
+  trapdoor: (k, t, g) => {
+    noiseBurst(k, { at: t, dur: 0.22, gain: 0.35 * g, type: 'bandpass', f0: 700, f1: 1300, q: 9, attack: 0.05 });
+    tone(k, t + 0.16, 120, 0.3, 0.7 * g, 60);
+    noiseBurst(k, { at: t + 0.16, dur: 0.12, gain: 0.35 * g, type: 'lowpass', f0: 800 });
+  },
+  // 低いドスン
+  thud: (k, t, g) => {
+    tone(k, t, 70, 0.45, 1.0 * g, 36);
+    noiseBurst(k, { at: t, dur: 0.25, gain: 0.45 * g, type: 'lowpass', f0: 380, f1: 80 });
+  },
+  // お札が貼り付く：短い紙のこすれ＋ペタッ
+  paper: (k, t, g) => {
+    noiseBurst(k, { at: t, dur: 0.1, gain: 0.35 * g, type: 'highpass', f0: 2500, attack: 0.03 });
+    noiseBurst(k, { at: t + 0.1, dur: 0.04, gain: 0.6 * g, type: 'bandpass', f0: 900, q: 2 });
+    tone(k, t + 0.1, 240, 0.08, 0.3 * g, 140);
+  },
+  // 割れる：高い雑音の割れ＋きらきらした響き
+  glass: (k, t, g) => {
+    noiseBurst(k, { at: t, dur: 0.18, gain: 0.6 * g, type: 'highpass', f0: 3800, q: 0.8 });
+    for (let i = 0; i < 6; i++) tone(k, t + 0.02 + i * 0.05, 2600 + Math.random() * 3200, 0.35, 0.08 * g);
+  },
+  // 斬撃：速い風切り＋金属の鋭い響き
+  slash: (k, t, g) => {
+    noiseBurst(k, { at: t, dur: 0.18, gain: 0.8 * g, type: 'bandpass', f0: 5000, f1: 900, q: 2, attack: 0.04 });
+    tone(k, t + 0.12, 2400, 0.7, 0.18 * g);
+    tone(k, t + 0.12, 3600, 0.5, 0.1 * g);
+  },
+  // 煙玉：柔らかい雑音のボン
+  poof: (k, t, g) => {
+    noiseBurst(k, { at: t, dur: 0.45, gain: 0.8 * g, type: 'lowpass', f0: 1400, f1: 200, attack: 0.01 });
+    tone(k, t, 140, 0.2, 0.4 * g, 70);
+  },
+  // 釣り糸のリール：細かいカリカリ
+  reel: (k, t, g) => {
+    for (let i = 0; i < 12; i++) noiseBurst(k, { at: t + i * 0.035, dur: 0.012, gain: 0.3 * g, type: 'bandpass', f0: 3800, q: 8 });
+  },
+  // 鎧がはまる・弾く：clang より厚い金属のガシャン
+  armor: (k, t, g) => {
+    for (const [f, a] of [[310, 0.45], [720, 0.35], [1180, 0.25], [1720, 0.16]]) tone(k, t, f, 0.6, a * g);
+    noiseBurst(k, { at: t, dur: 0.12, gain: 0.6 * g, type: 'bandpass', f0: 2200, q: 1.2 });
+  },
+  // 鎖：金属の細かいジャラジャラ
+  chain: (k, t, g) => {
+    for (let i = 0; i < 10; i++) {
+      const at = t + i * 0.04 + Math.random() * 0.02;
+      tone(k, at, 2200 + Math.random() * 1800, 0.08, 0.1 * g);
+      noiseBurst(k, { at, dur: 0.02, gain: 0.2 * g, type: 'bandpass', f0: 4000, q: 5 });
+    }
+  },
+  // 蹄：乾いたカッカッ
+  hoof: (k, t, g) => {
+    for (const d of [0, 0.12]) {
+      noiseBurst(k, { at: t + d, dur: 0.03, gain: 0.7 * g, type: 'bandpass', f0: 1300, q: 5 });
+      tone(k, t + d, 480, 0.05, 0.25 * g, 300);
+    }
+  },
+  // 炎：低いゴオッ
+  flame: (k, t, g) => {
+    noiseBurst(k, { at: t, dur: 0.8, gain: 0.7 * g, type: 'lowpass', f0: 300, f1: 900, q: 1.5, attack: 0.15 });
+    noiseBurst(k, { at: t + 0.1, dur: 0.6, gain: 0.25 * g, type: 'bandpass', f0: 1800, q: 0.8, attack: 0.1 });
+  },
+  // ツケ打ち：板を打つバタバタッ（3打、最後が強い）
+  tsuke: (k, t, g) => {
+    [0, 0.09, 0.16].forEach((d, i) => {
+      noiseBurst(k, { at: t + d, dur: 0.05, gain: (0.6 + i * 0.2) * g, type: 'bandpass', f0: 1500, q: 3 });
+      tone(k, t + d, 200, 0.08, (0.4 + i * 0.15) * g, 120);
+    });
+  },
+};
+const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 
 const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false };
 

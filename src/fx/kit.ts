@@ -290,7 +290,8 @@ export async function animateEl(ctx: FxCtx, el: HTMLElement, kf: Keyframe[], opt
 
 // ---------- カメラと揺れ ----------
 
-async function moveCam(ctx: FxCtx, pos: THREE.Vector3, look: THREE.Vector3, ms: number, ease: (t: number) => number): Promise<void> {
+/** カメラを pos から look を見る位置へ動かす。camera:false なら瞬時。札ごとの構え（stagecraft）もこれを使う */
+export async function cameraMove(ctx: FxCtx, pos: THREE.Vector3, look: THREE.Vector3, ms: number, ease: (t: number) => number = easeOut): Promise<void> {
   const s = ctx.stage;
   if (!ctx.alive()) throw new FxCancelled(); // 打ち切り後は次の画面のカメラに触れない
   if (!ctx.timing.camera) { s.cam.pos.copy(pos); s.cam.look.copy(look); return; }
@@ -302,7 +303,7 @@ async function moveCam(ctx: FxCtx, pos: THREE.Vector3, look: THREE.Vector3, ms: 
 export function cameraTo(ctx: FxCtx, at: THREE.Vector3, ms: number): Promise<void> {
   const z = ctx.me === 'sente' ? 1 : -1; // 見ている側の手前から寄る
   const pos = at.clone().add(new THREE.Vector3(1.2 * z, 4.6, 4.4 * z));
-  return moveCam(ctx, pos, at.clone().setY(0.3), ms, easeOut);
+  return cameraMove(ctx, pos, at.clone().setY(0.3), ms, easeOut);
 }
 
 /** 対象のない演出：盤の中央を見たまま、普段の視点から frac だけ近づく */
@@ -310,12 +311,12 @@ export function cameraPush(ctx: FxCtx, frac: number, ms: number): Promise<void> 
   const s = ctx.stage;
   const look = s.home.look.clone();
   const pos = s.home.pos.clone().lerp(look, frac);
-  return moveCam(ctx, pos, look, ms, easeOut);
+  return cameraMove(ctx, pos, look, ms, easeOut);
 }
 
 /** 普段の視点へ戻る */
 export function cameraHome(ctx: FxCtx, ms: number): Promise<void> {
-  return moveCam(ctx, ctx.stage.home.pos.clone(), ctx.stage.home.look.clone(), ms, easeInOut);
+  return cameraMove(ctx, ctx.stage.home.pos.clone(), ctx.stage.home.look.clone(), ms, easeInOut);
 }
 
 export function atHome(ctx: FxCtx): boolean {
@@ -333,12 +334,13 @@ export function shakeBy(ctx: FxCtx, amount: number): void {
 interface Live { obj: THREE.Object3D; age: number; life: number; step(dt: number, age: number): void }
 const lives = new Set<Live>();
 
-/** 網の物・点の物の形・材質・模様を捨てる（board3d の disposeTree は網の物だけなので、点も扱うこちらを使う） */
+/** 網の物・点の物・板（Sprite）の形・材質・模様を捨てる（board3d の disposeTree は網の物だけなので、点も扱うこちらを使う） */
 function disposeAll(o: THREE.Object3D): void {
   o.traverse((x) => {
     const m = x as THREE.Mesh | THREE.Points;
-    if (!(m as THREE.Mesh).isMesh && !(m as THREE.Points).isPoints) return;
-    m.geometry.dispose();
+    const sprite = (x as THREE.Sprite).isSprite;
+    if (!(m as THREE.Mesh).isMesh && !(m as THREE.Points).isPoints && !sprite) return;
+    if (!sprite) m.geometry.dispose(); // 板（Sprite）の形は three の中で共有なので捨てない
     const mats = Array.isArray(m.material) ? m.material : [m.material];
     for (const mat of mats) {
       (mat as THREE.MeshBasicMaterial).map?.dispose();
