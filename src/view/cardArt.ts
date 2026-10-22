@@ -49,16 +49,6 @@ function crystal(cx: number, cy: number, r: number, color: string, sw: number): 
   return `<path d="${d.trim()}" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" fill="none"/>`;
 }
 
-/** 六角形（先が上）の頂点 */
-function hexPts(cx: number, cy: number, r: number): string {
-  const out: string[] = [];
-  for (let k = 0; k < 6; k++) {
-    const a = (-90 + 60 * k) * Math.PI / 180;
-    out.push(`${r1(cx + Math.cos(a) * r)},${r1(cy + Math.sin(a) * r)}`);
-  }
-  return out.join(' ');
-}
-
 /** 鎧の板1枚（下にふくらむ帯）。y は上の端、w は上の幅、grow は下の端で広がる分 */
 function plate(y: number, w: number, grow: number, fill: string): string {
   const x1 = 23 - w / 2, x2 = 23 + w / 2, h = 8;
@@ -175,11 +165,8 @@ export const CARD_ART: Record<CardId, string> = {
     <path d="M11 17 Q23 9 35 17" stroke="${S}" stroke-width="2" fill="none"/>
     ${plate(46, 34, 2, S)}${plate(39, 31, 1.6, S)}${plate(32, 28, 1.6, S)}${plate(25, 25, 1.6, S)}${plate(17, 23, 1.2, G)}
     <path d="M17 29 L17 33 M29 29 L29 33 M16 36 L16 40 M30 36 L30 40 M15 43 L15 47 M31 43 L31 47 M14 50 L14 54 M32 50 L32 54" stroke="${G}" stroke-width="1.6" stroke-linecap="round"/>`,
-  // 王の盾：金の六角の盾に、墨の「王」
-  tate: `<polygon points="${hexPts(23, 32, 21)}" fill="${G}" stroke="${S}" stroke-width="2.4" stroke-linejoin="round"/>
-    <polygon points="${hexPts(23, 32, 15.5)}" fill="none" stroke="${S}" stroke-width="1"/>
-    <path d="M14 23 L32 23 M15.5 32 L30.5 32 M12 41.5 L34 41.5 M23 23 L23 41.5" stroke="${S}" stroke-width="3.6" stroke-linecap="square"/>
-    <circle cx="23" cy="14.5" r="1.4" fill="${S}"/><circle cx="23" cy="49.5" r="1.4" fill="${S}"/>`,
+  // 退き陣の旗（仮：計画9の Task 10 で描く）
+  hikijin: `<text x="23" y="40" text-anchor="middle" font-size="26" font-weight="800" font-family="'Shippori Mincho B1', serif" fill="${S}">退</text>`,
   // 韋駄天：前へ傾いて風を切る金の草鞋と、後ろへ流れる2本の速さの線
   idaten: `<path d="M4.6 36.6 L13 28.2 M17.4 49.4 L25.8 41 M8 46 L13 41" stroke="${S}" stroke-width="2.8" stroke-linecap="round"/>
     <g transform="rotate(45 30 24)">

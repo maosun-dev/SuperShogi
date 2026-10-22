@@ -46,7 +46,7 @@ describe('保存', () => {
   it('今は組めない持ち込みは、組めない札だけ外して読む', () => {
     const st = fakeStore();
     expect(loadDeck(st)).toBeNull();
-    st.setItem('superShogi.deck', JSON.stringify(['nazo', 'rakurai', 'rakurai']));
+    st.setItem('superShogi.deck', JSON.stringify(['tate', 'rakurai', 'rakurai']));
     expect(loadDeck(st)).toEqual(['rakurai']);
     st.setItem('superShogi.deck', JSON.stringify(['nazo']));
     expect(loadDeck(st)).toEqual([]);

@@ -28,5 +28,5 @@ export interface CardDef {
   choices?(s: GameState, side: Side): HandKind[];     // 対象のほかに選ぶ駒の種類（呼び戻し）
   resolve?(ctx: CardContext, targets: Square[], pick?: HandKind): void;   // 術札・纏札の効果
   trap?: { placement: 'square' | 'slot'; trigger: TrapTrigger };
-  equip?: { knight?: true; armor?: true; magicShield?: true; doubleMove?: true; pierce?: true; shackle?: true };
+  equip?: { knight?: true; armor?: true; retreat?: true; doubleMove?: true; pierce?: true; shackle?: true };
 }

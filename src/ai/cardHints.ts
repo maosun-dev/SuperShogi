@@ -83,8 +83,10 @@ function pick(s: GameState, side: Side, cardId: CardId, acts: CardAction[]): Car
     case 'narifuuji':
     case 'aiuchi':
       return acts.slice(0, 1);
+    case 'hikijin':
+      // 退き陣の旗：前に出ている駒ほど下がり道が役に立つ
+      return topBy(acts, a => (side === 'sente' ? 8 - a.targets[0].r : a.targets[0].r), HINT_TOP);
     case 'hagane':
-    case 'tate':
       // 守りの纏札：点数の大きい駒と、王の隣の駒
       return topBy(acts, a => targetValue(s, a) + (myKing && dist(a.targets[0], myKing) <= 1 ? 2000 : 0), HINT_TOP);
     default:

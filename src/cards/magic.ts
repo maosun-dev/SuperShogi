@@ -2,7 +2,6 @@
 import type { GameState, HandKind, Piece, Side, Square } from '../rules/types';
 import { HAND_KINDS, idx, onBoard, opponent, sqOf } from '../rules/board';
 import { mustPromote } from '../rules/moves';
-import { isShielded } from './shield';
 import type { CardDef } from './types';
 
 // side の駒とそのマスを盤の順に並べる
@@ -43,7 +42,7 @@ export const oshikaeshi: CardDef = {
     return piecesOf(s, opponent(side))
       .filter(({ sq, p }) => {
         const to = pushDest(p, sq);
-        return onBoard(to) && !s.board[idx(to)] && !isShielded(s, sq);
+        return onBoard(to) && !s.board[idx(to)];
       })
       .map(({ sq }) => [sq]);
   },
@@ -81,7 +80,7 @@ export const rakurai: CardDef = {
   prompt: '壊す相手の駒を選んでください',
   targetSets(s, side) {
     return piecesOf(s, opponent(side))
-      .filter(({ sq, p }) => p.kind !== 'OU' && p.kind !== 'HI' && p.kind !== 'KA' && !isShielded(s, sq))
+      .filter(({ sq, p }) => p.kind !== 'OU' && p.kind !== 'HI' && p.kind !== 'KA')
       .map(({ sq }) => [sq]);
   },
   resolve(ctx, [sq]) {
@@ -103,7 +102,7 @@ export const kakuotoshi: CardDef = {
   prompt: '成りを戻す相手の駒を選んでください',
   targetSets(s, side) {
     return piecesOf(s, opponent(side))
-      .filter(({ sq, p }) => p.promoted && !isShielded(s, sq)
+      .filter(({ sq, p }) => p.promoted
         && !mustPromote(p.kind, p.side, sq)
         && !(p.kind === 'FU' && hasPawnInColumn(s, p.side, sq.c, sq)))
       .map(({ sq }) => [sq]);

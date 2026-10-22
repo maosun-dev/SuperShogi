@@ -182,13 +182,11 @@ test('格落とし：相手の成った駒だけを選べ、成る前に戻す�
   expect(events).toContainEqual({ type: 'demoted', pieceId: ryu.id, at: { c: 4, r: 4 } });
 });
 
-test('格落とし：二歩・行き所のない駒になる駒と、王の盾の隣の駒は選べない', () => {
+test('格落とし：二歩・行き所のない駒になる駒は選べない', () => {
   const s = base();
   put(s, { c: 2, r: 4 }, 'FU', 'gote', { promoted: true });   // 同じ列に後手の歩 → 二歩
   put(s, { c: 2, r: 2 }, 'FU', 'gote');
   put(s, { c: 3, r: 8 }, 'KE', 'gote', { promoted: true });   // 後手の桂が最奥段 → 行き所なし
-  put(s, { c: 6, r: 4 }, 'GI', 'gote', { promoted: true });   // 王の盾の隣
-  put(s, { c: 6, r: 3 }, 'KI', 'gote', { equip: 'tate' });
   const uid = giveCard(s, 'sente', 'kakuotoshi');
   expect(cardActs(s, uid)).toEqual([]);
 });
@@ -346,19 +344,15 @@ test('貫きの槍：付けられるのは飛・角・香（竜・馬も）で�
 
 // ---------- 重りの枷 ----------
 
-test('重りの枷：付けた駒は隣8マスだけ。桂は動けない。王と王の盾の隣は選べない', () => {
+test('重りの枷：付けた駒は隣8マスだけ。桂は動けない。王は選べない', () => {
   const s = base();
   put(s, { c: 4, r: 1 }, 'HI', 'gote');
   put(s, { c: 6, r: 1 }, 'KE', 'gote');
-  put(s, { c: 1, r: 1 }, 'GI', 'gote'); // 王の盾の隣
-  put(s, { c: 1, r: 0 }, 'KI', 'gote', { equip: 'tate' });
   const uid = giveCard(s, 'sente', 'omori');
   const targets = cardActs(s, uid).map(a => a.targets);
   expect(targets).toContainEqual([{ c: 4, r: 1 }]);
   expect(targets).toContainEqual([{ c: 6, r: 1 }]);
   expect(targets).not.toContainEqual([{ c: 0, r: 0 }]);
-  expect(targets).not.toContainEqual([{ c: 1, r: 1 }]);
-  expect(targets).not.toContainEqual([{ c: 1, r: 0 }]);
   const { state } = applyAction(s, card(uid, [{ c: 4, r: 1 }]));
   const t = pieceTargets(state, { c: 4, r: 1 });
   expect(t.every(q => Math.abs(q.c - 4) <= 1 && Math.abs(q.r - 1) <= 1)).toBe(true);
@@ -368,12 +362,13 @@ test('重りの枷：付けた駒は隣8マスだけ。桂は動けない。王�
   expect(pieceTargets(s2, { c: 6, r: 1 })).toEqual([]);
 });
 
-test('札は全18種類で、術・忍・纏が6種類ずつ。王の盾はコスト2（計画8で下げた）', () => {
+test('札は全18種類で、術・忍・纏が6種類ずつ。王の盾はなく、退き陣の旗がコスト1', () => {
   const defs = Object.values(CARDS);
   expect(defs).toHaveLength(18);
   for (const kind of ['magic', 'trap', 'equip'] as const) {
     expect(defs.filter(d => d.kind === kind)).toHaveLength(6);
   }
-  expect(CARDS.tate.cost).toBe(2);
+  expect('tate' in CARDS).toBe(false);
+  expect(CARDS.hikijin.cost).toBe(1);
   expect(CARDS.itetsuku.kind).toBe('trap');
 });

@@ -32,13 +32,15 @@ function vectors(p: Piece): { steps: Vec[]; slides: Vec[] } {
 }
 
 // その駒が動ける先（味方のいるマスは除く。相手の駒のマスは含む）。
-// 凍った駒は動けない。重りの枷を付けた駒は隣8マスだけ。貫きの槍は滑る途中の駒を1つ飛び越えられる
+// 凍った駒は動けない。重りの枷を付けた駒は隣8マスだけ。貫きの槍は滑る途中の駒を1つ飛び越えられる。退き陣の旗は真後ろへ1マス
 export function pieceTargets(s: GameState, from: Square): Square[] {
   const p = s.board[idx(from)];
   if (!p || p.frozen) return [];
   const f = forward(p.side);
   const { steps, slides } = vectors(p);
-  const extra = p.equip?.cardId === 'tenma' ? KNIGHT : [];
+  // 天馬の蹄は桂馬の動きを足す。退き陣の旗は成っていない駒に真後ろ1マスを足す
+  const extra: Vec[] = p.equip?.cardId === 'tenma' ? KNIGHT
+    : p.equip?.cardId === 'hikijin' && !p.promoted ? [[0, -1]] : [];
   const out: Square[] = [];
   const seen = new Set<number>();
   const add = (sq: Square) => {

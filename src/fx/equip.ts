@@ -15,7 +15,7 @@ import { squareOf } from './trap';
 type EquipCue = Extract<Cue, { kind: 'equip' }>;
 type ArmorCue = Extract<Cue, { kind: 'armor' }>;
 type SecondCue = Extract<Cue, { kind: 'second' }>;
-type EquipName = 'tenma' | 'hagane' | 'tate' | 'idaten' | 'tsuranuki' | 'omori';
+type EquipName = 'tenma' | 'hagane' | 'hikijin' | 'idaten' | 'tsuranuki' | 'omori';
 
 const PILLAR_MS = 700;
 const PILLAR_H = 9;
@@ -162,37 +162,6 @@ async function hagane(ctx: FxCtx, _at: THREE.Vector3, pieceId: number): Promise<
   }
 }
 
-/** 王の盾：駒の周り3×3に金の薄い半球が一瞬かかる */
-async function tate(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
-  await ctx.wait(PILLAR_MS * 0.5);
-  const grp = new THREE.Group();
-  const shell = new THREE.Mesh(new THREE.SphereGeometry(1.65, 40, 14, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: PAL.soubiLight, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-  const wire = new THREE.Mesh(new THREE.SphereGeometry(1.66, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: PAL.soubiPale, wireframe: true, transparent: true, opacity: 0, depthWrite: false }));
-  const base = ring(1.55, 1.7, PAL.soubiLight, 48);
-  base.position.y = 0.02;
-  grp.add(shell, wire, base);
-  grp.position.set(at.x, 0, at.z);
-  const kill = transient(ctx, grp, 60000);
-  try {
-    await ctx.tween(200, (t) => {
-      grp.scale.setScalar(0.3 + 0.7 * t);
-      (shell.material as THREE.MeshBasicMaterial).opacity = 0.32 * t;
-      (wire.material as THREE.MeshBasicMaterial).opacity = lightCap(ctx, 0.7) * t;
-      base.material.opacity = lightCap(ctx, 0.9) * t;
-    }, easeOut);
-    await ctx.wait(160);
-    await ctx.tween(320, (t) => {
-      (shell.material as THREE.MeshBasicMaterial).opacity = 0.32 * (1 - t);
-      (wire.material as THREE.MeshBasicMaterial).opacity = lightCap(ctx, 0.7) * (1 - t);
-      base.material.opacity = lightCap(ctx, 0.9) * (1 - t);
-    });
-  } finally {
-    kill();
-  }
-}
-
 /** 韋駄天：足元から風の筋が巻き上がる */
 async function idaten(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
   const c = document.createElement('canvas'); c.width = 16; c.height = 128;
@@ -258,7 +227,7 @@ async function omori(ctx: FxCtx, at: THREE.Vector3): Promise<void> {
 export const EQUIP_FX: Record<EquipName, (ctx: FxCtx, cue: EquipCue) => Promise<void>> = {
   tenma: (ctx, cue) => withAt(ctx, cue, (at) => tenma(ctx, at)),
   hagane: (ctx, cue) => withAt(ctx, cue, (at) => hagane(ctx, at, cue.pieceId)),
-  tate: (ctx, cue) => withAt(ctx, cue, (at) => tate(ctx, at)),
+  hikijin: (ctx, cue) => withAt(ctx, cue, (at) => tenma(ctx, at)), // 仮：計画9の Task 10 で作る
   idaten: (ctx, cue) => withAt(ctx, cue, (at) => idaten(ctx, at)),
   tsuranuki: (ctx, cue) => withAt(ctx, cue, (at) => tsuranuki(ctx, at, cue.side)),
   omori: (ctx, cue) => withAt(ctx, cue, (at) => omori(ctx, at)),

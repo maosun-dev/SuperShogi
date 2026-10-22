@@ -1,7 +1,6 @@
 // 纏札6枚
 import type { CardId, GameState, Piece, Side, Square } from '../rules/types';
 import { idx, opponent, sqOf } from '../rules/board';
-import { isShielded } from './shield';
 import type { CardContext, CardDef } from './types';
 
 // 纏札が付いていない side の駒のうち、ok を満たすもの
@@ -43,13 +42,14 @@ export const hagane: CardDef = {
   equip: { armor: true },
 };
 
-export const tate: CardDef = {
-  id: 'tate', name: '王の盾', kind: 'equip', cost: 2, fx: 'tate',
-  text: '付けた駒と、その周り8マスの味方の駒は、相手の術札と重りの枷を受けない',
+export const hikijin: CardDef = {
+  id: 'hikijin', name: '退き陣の旗', kind: 'equip', cost: 1, fx: 'hikijin',
+  text: '自分のまだ成っていない歩・香車・桂馬・銀に付ける。付けた駒は、真後ろへ1マス下がれる',
   prompt: '纏札を付ける自分の駒を選んでください',
-  targetSets: bareOwnPieces,
-  resolve: attach('tate'),
-  equip: { magicShield: true },
+  targetSets: (s, side) => barePieces(s, side, p =>
+    !p.promoted && (p.kind === 'FU' || p.kind === 'KY' || p.kind === 'KE' || p.kind === 'GI')),
+  resolve: attach('hikijin'),
+  equip: { retreat: true },
 };
 
 export const idaten: CardDef = {
@@ -75,9 +75,9 @@ export const omori: CardDef = {
   id: 'omori', name: '重りの枷', kind: 'equip', cost: 3, fx: 'omori',
   text: '相手の王以外の駒に付ける。その駒は、隣8マスのうち、もともと動けるマスにしか動けない。桂馬は動けなくなる',
   prompt: '重りの枷を付ける相手の駒を選んでください',
-  targetSets: (s, side) => barePieces(s, opponent(side), (p, sq) => p.kind !== 'OU' && !isShielded(s, sq)),
+  targetSets: (s, side) => barePieces(s, opponent(side), p => p.kind !== 'OU'),
   resolve: attach('omori'),
   equip: { shackle: true },
 };
 
-export const EQUIP_CARDS: CardDef[] = [tenma, hagane, tate, tsuranuki, omori, idaten];
+export const EQUIP_CARDS: CardDef[] = [tenma, hagane, hikijin, tsuranuki, omori, idaten];

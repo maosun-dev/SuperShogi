@@ -14,7 +14,7 @@ test('向きを変えると符号が逆', () => {
   put(s, { c: 4, r: 8 }, 'OU', 'sente');
   put(s, { c: 4, r: 0 }, 'OU', 'gote');
   put(s, { c: 2, r: 6 }, 'KA', 'sente');
-  put(s, { c: 6, r: 2 }, 'KE', 'gote', { equip: 'tate' });
+  put(s, { c: 6, r: 2 }, 'KE', 'gote', { equip: 'hikijin' });
   put(s, { c: 1, r: 1 }, 'FU', 'gote', { promoted: true });
   s.players.sente.hand.GI = 2;
   giveCard(s, 'gote', 'rakurai');

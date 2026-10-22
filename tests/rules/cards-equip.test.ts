@@ -1,6 +1,7 @@
 import { test, expect } from 'vitest';
 import { applyAction, legalActions } from '../../src/rules/game';
 import { idx } from '../../src/rules/board';
+import { pieceTargets } from '../../src/rules/moves';
 import { IllegalActionError } from '../../src/rules/types';
 import type { Action, GameState, Square } from '../../src/rules/types';
 import { emptyState, giveCard, put } from '../helpers';
@@ -91,28 +92,53 @@ test('鋼の鎧は落雷を防がない', () => {
   expect(state.board[idx({ c: 4, r: 4 })]).toBeNull();
 });
 
-test('王の盾：盾の駒と周り8マスの味方は、相手の落雷・押し返しの対象外。9マス外の味方は対象', () => {
+test('王の盾がなくなり、落雷・押し返しはどの相手の駒にも使える（王・大駒の決まりは別）', () => {
   const s = base();
-  put(s, { c: 4, r: 3 }, 'GI', 'gote', { equip: 'tate' });
-  put(s, { c: 5, r: 4 }, 'KI', 'gote');    // 斜め隣
-  put(s, { c: 6, r: 3 }, 'KI', 'gote');    // 2マス離れている
-  put(s, { c: 3, r: 4 }, 'FU', 'sente');   // 隣の相手の駒は守られない（先手の駒）
+  put(s, { c: 4, r: 3 }, 'GI', 'gote');
+  put(s, { c: 5, r: 4 }, 'KI', 'gote');
   const rak = giveCard(s, 'sente', 'rakurai');
   const osh = giveCard(s, 'sente', 'oshikaeshi');
-  const rakT = cardActs(s, rak).map(a => a.targets[0]);
-  const oshT = cardActs(s, osh).map(a => a.targets[0]);
-  for (const ts of [rakT, oshT]) {
-    expect(ts).not.toContainEqual({ c: 4, r: 3 });
-    expect(ts).not.toContainEqual({ c: 5, r: 4 });
-    expect(ts).toContainEqual({ c: 6, r: 3 });
+  for (const uid of [rak, osh]) {
+    const ts = cardActs(s, uid).map(a => a.targets[0]);
+    expect(ts).toContainEqual({ c: 4, r: 3 });
+    expect(ts).toContainEqual({ c: 5, r: 4 });
   }
 });
 
-test('王の盾：自分の入れ替えの術は防がない', () => {
+test('退き陣の旗：先手の歩が真後ろへ1マス下がれる', () => {
   const s = base();
-  put(s, { c: 4, r: 4 }, 'GI', 'sente', { equip: 'tate' });
-  const uid = giveCard(s, 'sente', 'irekae');
-  expect(cardActs(s, uid).map(a => a.targets)).toContainEqual([{ c: 4, r: 4 }, { c: 8, r: 8 }]);
+  put(s, { c: 4, r: 4 }, 'FU', 'sente', { equip: 'hikijin' });
+  const t = pieceTargets(s, { c: 4, r: 4 });
+  expect(t).toContainEqual({ c: 4, r: 3 });
+  expect(t).toContainEqual({ c: 4, r: 5 });
+  expect(t).toHaveLength(2);
+});
+
+test('退き陣の旗：後手の銀は後手から見た真後ろ（r が1小さいマス）が増える', () => {
+  const s = base();
+  put(s, { c: 4, r: 3 }, 'GI', 'gote', { equip: 'hikijin' });
+  const t = pieceTargets(s, { c: 4, r: 3 });
+  expect(t).toContainEqual({ c: 4, r: 2 });
+  expect(t).toHaveLength(6);
+});
+
+test('退き陣の旗：成った駒では効き目がない（金と同じ動きのまま）', () => {
+  const s = base();
+  put(s, { c: 4, r: 4 }, 'FU', 'sente', { promoted: true, equip: 'hikijin' });
+  expect(pieceTargets(s, { c: 4, r: 4 })).toHaveLength(6);
+});
+
+test('退き陣の旗：付けられるのは纏札のない、成っていない自分の歩・香・桂・銀だけ', () => {
+  const s = base();
+  for (const [c, k] of [[0, 'FU'], [1, 'KY'], [2, 'KE'], [3, 'GI']] as const) put(s, { c, r: 6 }, k, 'sente');
+  put(s, { c: 5, r: 6 }, 'KI', 'sente');
+  put(s, { c: 6, r: 6 }, 'HI', 'sente');
+  put(s, { c: 7, r: 6 }, 'FU', 'sente', { promoted: true });
+  put(s, { c: 8, r: 6 }, 'GI', 'sente', { equip: 'tenma' });
+  put(s, { c: 0, r: 3 }, 'FU', 'gote');
+  const uid = giveCard(s, 'sente', 'hikijin');
+  const ts = cardActs(s, uid).map(a => a.targets[0]);
+  expect(ts.sort((x, y) => x.c - y.c)).toEqual([0, 1, 2, 3].map(c => ({ c, r: 6 })));
 });
 
 test('韋駄天：1手で2回動ける。2回目に取る手は不正', () => {

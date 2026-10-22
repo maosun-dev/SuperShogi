@@ -6,7 +6,7 @@ export type HandKind = Exclude<PieceKind, 'OU'>;
 export type CardId =
   | 'oshikaeshi' | 'irekae' | 'rakurai' | 'itetsuku' | 'yobimodoshi'
   | 'otoshiana' | 'kagami' | 'narifuuji'
-  | 'tenma' | 'hagane' | 'tate' | 'idaten'
+  | 'tenma' | 'hagane' | 'hikijin' | 'idaten'
   | 'kakuotoshi' | 'shoryu' | 'aiuchi' | 'migawari' | 'tsuranuki' | 'omori';
 
 // c は先手から見て左が0・右が8、r は上（後手側）が0・下（先手側）が8

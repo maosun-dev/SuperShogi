@@ -5,8 +5,6 @@ import { MAGIC_CARDS } from './magic';
 import { EQUIP_CARDS } from './equip';
 import { TRAP_CARDS } from './trap';
 
-export { isShielded } from './shield';
-
 export const CARDS = Object.fromEntries(
   [...MAGIC_CARDS, ...TRAP_CARDS, ...EQUIP_CARDS].map(d => [d.id, d]),
 ) as Record<CardId, CardDef>;
