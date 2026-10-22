@@ -53,9 +53,19 @@ export function titleScreen(): Screen {
       const shogi = el('span', 'shogi');
       shogi.innerHTML = brushChar('将', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 24) + brushChar('棋', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 24); // 同上
       h1.append(cho, shogi);
-      // 何が「超」なのかを、説明ではなく啖呵の一言で
-      const tag = el('p', 'tagline', '定跡なんぞ、札で破れ。');
-      logo.append(h1, tag);
+      // 何が「超」なのかを、説明ではなく啖呵の一言で。書の落款のように縦に書き添え、下に朱の印（白抜きの「札」）を押す。
+      // 縦書き（writing-mode）は iPhone の Safari で幅を取り違えるので、1字ずつ積む。句読点は右上へ寄せる
+      const rakkan = el('p', 'rakkan');
+      rakkan.setAttribute('aria-label', '定跡なんぞ、札で破れ。');
+      for (const ch of '定跡なんぞ、札で破れ。') {
+        const s = el('span', '、。'.includes(ch) ? 'punct' : '', ch);
+        s.setAttribute('aria-hidden', 'true');
+        rakkan.append(s);
+      }
+      const inkan = el('span', 'inkan', '札');
+      inkan.setAttribute('aria-hidden', 'true');
+      rakkan.append(inkan);
+      logo.append(h1, rakkan);
 
       const nav = el('nav', 'fuda-row');
       nav.setAttribute('aria-label', 'はじめる');
