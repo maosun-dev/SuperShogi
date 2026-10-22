@@ -394,12 +394,21 @@ function finish(s: GameState, events: GameEvent[], result: NonNullable<GameState
 // 手番の後処理：手番交代・王手の知らせ・千日手・手数の上限
 function endTurn(s: GameState, events: GameEvent[]): void {
   const mover = s.turn;
-  // 手番を終えた側の凍った駒は、残りを1減らす
-  for (const p of s.board) {
-    if (!p || p.side !== mover || !p.frozen) continue;
-    p.frozen--;
-    if (p.frozen <= 0) delete p.frozen;
-  }
+  // 手番を終えた側の凍った駒は残りを1減らす。重りの枷も残りを1減らし、0で外れる
+  s.board.forEach((p, i) => {
+    if (!p || p.side !== mover) return;
+    if (p.frozen) {
+      p.frozen--;
+      if (p.frozen <= 0) delete p.frozen;
+    }
+    if (p.equip?.cardId === 'omori' && p.equip.left !== undefined) {
+      p.equip.left--;
+      if (p.equip.left <= 0) {
+        p.equip = null;
+        events.push({ type: 'equipBroken', pieceId: p.id, at: sqOf(i), cardId: 'omori' });
+      }
+    }
+  });
   s.trapSetThisTurn = false;
   s.pushFollowUp = false;
   s.turn = opponent(mover);

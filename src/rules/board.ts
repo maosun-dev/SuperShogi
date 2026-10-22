@@ -79,7 +79,7 @@ export function applyHandicap(board: (Piece | null)[], h: Handicap): void {
 }
 
 function clonePiece(p: Piece): Piece {
-  const q: Piece = { id: p.id, kind: p.kind, side: p.side, promoted: p.promoted, equip: p.equip ? { cardId: p.equip.cardId } : null };
+  const q: Piece = { id: p.id, kind: p.kind, side: p.side, promoted: p.promoted, equip: p.equip ? { ...p.equip } : null };
   if (p.frozen) q.frozen = p.frozen;
   if (p.sealed) q.sealed = true;
   return q;
@@ -110,7 +110,7 @@ export function cloneState(s: GameState): GameState {
 export function positionKey(s: GameState): string {
   const cells = s.board.map(p => {
     if (!p) return '.';
-    return `${p.side[0]}${p.kind}${p.promoted ? '+' : ''}${p.equip ? '@' + p.equip.cardId : ''}`
+    return `${p.side[0]}${p.kind}${p.promoted ? '+' : ''}${p.equip ? '@' + p.equip.cardId + (p.equip.left ?? '') : ''}`
       + `${p.frozen ? '~' + p.frozen : ''}${p.sealed ? '!' : ''}`;
   });
   const hands = (['sente', 'gote'] as Side[]).map(side =>

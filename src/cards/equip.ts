@@ -71,12 +71,18 @@ export const tsuranuki: CardDef = {
   equip: { pierce: true },
 };
 
+export const OMORI_TURNS = 3; // 重りの枷が付いている、付けられた側の手番の数
+
 export const omori: CardDef = {
   id: 'omori', name: '重りの枷', kind: 'equip', cost: 3, fx: 'omori',
-  text: '相手の王以外の駒に付ける。その駒は、隣8マスのうち、もともと動けるマスにしか動けない。桂馬は動けなくなる',
+  text: '相手の王以外の駒に付ける。その駒は、隣8マスのうち、もともと動けるマスにしか動けない。桂馬は動けなくなる。相手の3手番が終わると外れる',
   prompt: '重りの枷を付ける相手の駒を選んでください',
   targetSets: (s, side) => barePieces(s, opponent(side), p => p.kind !== 'OU'),
-  resolve: attach('omori'),
+  resolve(ctx, [sq]) {
+    const p = ctx.state.board[idx(sq)]!;
+    p.equip = { cardId: 'omori', left: OMORI_TURNS };
+    ctx.emit({ type: 'equipped', pieceId: p.id, cardId: 'omori' });
+  },
   equip: { shackle: true },
 };
 

@@ -1,5 +1,6 @@
 // CPU 用の局面の点数（side から見た 自分−相手）
 import { CARDS } from '../cards';
+import { OMORI_TURNS } from '../cards/equip';
 import { HAND_KINDS, idx, opponent, sqOf } from '../rules/board';
 import { pieceTargets } from '../rules/moves';
 import type { CardId, GameState, Side, Square } from '../rules/types';
@@ -41,7 +42,8 @@ function sideScore(s: GameState, side: Side): number {
     total += v;
     if (p.frozen) total -= v * FROZEN_RATE * p.frozen;
     if (p.sealed) total -= p.kind === 'HI' || p.kind === 'KA' ? SEALED_BIG : SEALED_SMALL;
-    if (p.equip?.cardId === 'omori') total -= Math.max(OMORI_MIN, v * OMORI_RATE);
+    // 重りの枷：残りの手番が少ないほど損は小さい
+    if (p.equip?.cardId === 'omori') total -= Math.max(OMORI_MIN, v * OMORI_RATE) * (p.equip.left ?? OMORI_TURNS) / OMORI_TURNS;
     else if (p.equip) total += EQUIP_VALUE[p.equip.cardId] ?? 0;
   }
   for (const k of HAND_KINDS) total += s.players[side].hand[k] * PIECE_VALUE[k] * HAND_FACTOR;

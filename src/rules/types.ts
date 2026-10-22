@@ -11,7 +11,7 @@ export type CardId =
 
 // c は先手から見て左が0・右が8、r は上（後手側）が0・下（先手側）が8
 export interface Square { c: number; r: number }
-export interface Equip { cardId: CardId }
+export interface Equip { cardId: CardId; left?: number }  // left：重りの枷の残りの手番（付けられた側の手番が終わるたびに1減る）
 // frozen：凍って動けない残りの手番（無いときは凍っていない）。sealed：成り封じを受け、対局の終わりまで成れない
 export interface Piece {
   id: number; kind: PieceKind; side: Side; promoted: boolean; equip: Equip | null;

@@ -249,3 +249,57 @@ test('貫きの槍：香車が飛び越えて敵陣で成ると、成りと外�
 test('貫きの槍はコスト4', () => {
   expect(CARDS.tsuranuki.cost).toBe(4);
 });
+
+// ---------- 重りの枷は3手番で外れる（計画9） ----------
+
+// 先手が後手の銀に枷を付け、両者が王を動かして手番を回す
+function shackled() {
+  const s = base();
+  put(s, { c: 8, r: 6 }, 'GI', 'gote');
+  const uid = giveCard(s, 'sente', 'omori');
+  return applyAction(s, card(uid, [{ c: 8, r: 6 }])).state;
+}
+const kingShuffle = (s: GameState): GameState => {
+  const side = s.turn;
+  const from = s.board.findIndex(p => p?.kind === 'OU' && p.side === side);
+  const f = { c: from % 9, r: Math.floor(from / 9) };
+  const to = legalActions(s).find(a => a.type === 'move' && a.from.c === f.c && a.from.r === f.r)!;
+  return applyAction(s, to).state;
+};
+
+test('重りの枷：付けたときは残り3。先手の手番の終わりでは減らない', () => {
+  const s = shackled();
+  expect(s.board[idx({ c: 8, r: 6 })]?.equip).toEqual({ cardId: 'omori', left: 3 });
+});
+
+test('重りの枷：付けられた側の手番が3回終わると外れ、equipBroken が出る', () => {
+  let s = shackled();               // 後手の番
+  s = kingShuffle(s);               // 後手1回目の終わり → 2
+  expect(s.board[idx({ c: 8, r: 6 })]?.equip).toEqual({ cardId: 'omori', left: 2 });
+  s = kingShuffle(s);               // 先手
+  s = kingShuffle(s);               // 後手2回目 → 1
+  expect(s.board[idx({ c: 8, r: 6 })]?.equip).toEqual({ cardId: 'omori', left: 1 });
+  s = kingShuffle(s);               // 先手
+  const gi = s.board[idx({ c: 8, r: 6 })]!;
+  const side = s.turn;
+  const from = s.board.findIndex(p => p?.kind === 'OU' && p.side === side);
+  const act = legalActions(s).find(a => a.type === 'move' && a.from.c === from % 9 && a.from.r === Math.floor(from / 9))!;
+  const r = applyAction(s, act);    // 後手3回目 → 外れる
+  expect(r.state.board[idx({ c: 8, r: 6 })]?.equip).toBeNull();
+  expect(r.events).toContainEqual({ type: 'equipBroken', pieceId: gi.id, at: { c: 8, r: 6 }, cardId: 'omori' });
+});
+
+test('重りの枷：凍っていても手番の終わりで減る', () => {
+  const s = shackled();
+  s.board[idx({ c: 8, r: 6 })]!.frozen = 2;
+  const t = kingShuffle(s);
+  expect(t.board[idx({ c: 8, r: 6 })]?.equip).toEqual({ cardId: 'omori', left: 2 });
+});
+
+test('重りの枷：付いた駒が取られても例外にならず、取った側の持ち駒になる', () => {
+  let s = shackled();
+  s = kingShuffle(s);
+  put(s, { c: 8, r: 7 }, 'KI', 'sente');
+  const r = applyAction(s, mv({ c: 8, r: 7 }, { c: 8, r: 6 }));
+  expect(r.state.players.sente.hand.GI).toBe(1);
+});
