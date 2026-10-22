@@ -303,3 +303,23 @@ test('重りの枷：付いた駒が取られても例外にならず、取っ�
   const r = applyAction(s, mv({ c: 8, r: 7 }, { c: 8, r: 6 }));
   expect(r.state.players.sente.hand.GI).toBe(1);
 });
+
+test('韋駄天：飛車・角（竜・馬も）には付けられず、金・銀・王には付けられる（計画9）', () => {
+  const s = base();
+  put(s, { c: 1, r: 6 }, 'HI', 'sente');
+  put(s, { c: 2, r: 6 }, 'KA', 'sente', { promoted: true });
+  put(s, { c: 3, r: 6 }, 'KI', 'sente');
+  put(s, { c: 4, r: 6 }, 'GI', 'sente');
+  const uid = giveCard(s, 'sente', 'idaten');
+  const ts = cardActs(s, uid).map(a => a.targets[0]);
+  expect(ts).not.toContainEqual({ c: 1, r: 6 });
+  expect(ts).not.toContainEqual({ c: 2, r: 6 });
+  expect(ts).toContainEqual({ c: 3, r: 6 });
+  expect(ts).toContainEqual({ c: 4, r: 6 });
+  expect(ts).toContainEqual({ c: 8, r: 8 });
+});
+
+test('落とし穴・凍てつく床の説明に「相手からは場所が見えない」がある', () => {
+  expect(CARDS.otoshiana.text).toContain('相手からは場所が見えない');
+  expect(CARDS.itetsuku.text).toContain('相手からは場所が見えない');
+});

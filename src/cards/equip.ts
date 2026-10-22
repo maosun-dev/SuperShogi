@@ -54,9 +54,9 @@ export const hikijin: CardDef = {
 
 export const idaten: CardDef = {
   id: 'idaten', name: '韋駄天', kind: 'equip', cost: 5, fx: 'idaten',
-  text: '付けた駒は、1手で2回動ける。2回目の移動はしなくてもよい。2回目の移動では駒を取れない',
+  text: '飛車・角（竜・馬も）以外の自分の駒に付ける。付けた駒は、1手で2回動ける。2回目の移動はしなくてもよい。2回目の移動では駒を取れない',
   prompt: '纏札を付ける自分の駒を選んでください',
-  targetSets: bareOwnPieces,
+  targetSets: (s, side) => barePieces(s, side, p => p.kind !== 'HI' && p.kind !== 'KA'),
   resolve: attach('idaten'),
   equip: { doubleMove: true },
 };
