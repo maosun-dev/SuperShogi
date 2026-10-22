@@ -134,7 +134,7 @@ export function planFx(events: GameEvent[], actor: Side): Cue[] {
 export interface FxTiming { scale: number; camera: boolean; shake: boolean; flashMax: number }
 
 // 演出の長さ（短め／長め）と、動きを減らす設定から、演出の強さを決める
-export function fxTiming(settings: Settings, reducedMotion: boolean): FxTiming {
+export function fxTiming(settings: Pick<Settings, 'fx' | 'volume'>, reducedMotion: boolean): FxTiming {
   const scale = settings.fx === 'short' ? 0.5 : 1;
   return reducedMotion
     ? { scale, camera: false, shake: false, flashMax: 0.4 }

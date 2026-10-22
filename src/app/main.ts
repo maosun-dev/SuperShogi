@@ -6,6 +6,7 @@ import './style.css';
 import { initScreens, registerScreen, showScreen, setClapper } from './screens';
 import { getSound } from '../fx/sound';
 import { loadSettings, safeStore } from './storage';
+import { applyStage } from './stageTheme';
 import { zukanScreen } from './screens/zukan';
 import { titleScreen } from './screens/title';
 import { matchScreen } from './screens/match';
@@ -23,8 +24,11 @@ function start(): void {
   if (!root) throw new Error('#app がありません');
   initScreens(root);
   // 効果音：音量は設定から。音は最初の操作のあとに鳴らし始める（それまでは無音）。幕の拍子木もここで差し込む
+  const settings = loadSettings(safeStore());
+  // 舞台（背景と色の決まり）を最初に決める
+  applyStage(document.documentElement, settings);
   const sound = getSound();
-  sound.setVolume(loadSettings(safeStore()).volume);
+  sound.setVolume(settings.volume);
   setClapper(() => sound.play('hyoshigi'));
   // 最初の操作で解錠し、裏から戻って止まっていたら付け直す
   armSoundUnlock(sound, window);

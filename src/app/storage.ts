@@ -6,10 +6,13 @@ import { sanitizeDeck } from '../cards';
 import { isNativeApp, mirrorStore, nativePrefs } from './native';
 
 export interface KeyValueStore { getItem(k: string): string | null; setItem(k: string, v: string): void }
-export interface Settings { fx: 'short' | 'long'; volume: number } // volume は 0〜1
+export type StageId = 'kabuki' | 'ukiyoe' | 'byobu';
+export type Motion = 'auto' | 'full' | 'low'; // auto は端末の「動きを減らす」に合わせる
+// volume は 0〜1。stage は背景の舞台、motion は背景の動き
+export interface Settings { fx: 'short' | 'long'; volume: number; stage: StageId; motion: Motion }
 export interface Tally { wins: number; losses: number; draws: number }
 
-export const DEFAULT_SETTINGS: Settings = { fx: 'long', volume: 0.7 };
+export const DEFAULT_SETTINGS: Settings = { fx: 'long', volume: 0.7, stage: 'kabuki', motion: 'auto' };
 
 const KEY_SETTINGS = 'superShogi.settings';
 const KEY_DECK = 'superShogi.deck';
@@ -57,7 +60,9 @@ export function loadSettings(st: KeyValueStore): Settings {
   const fx = o.fx === 'short' || o.fx === 'long' ? o.fx : DEFAULT_SETTINGS.fx;
   const volume = typeof o.volume === 'number' && Number.isFinite(o.volume)
     ? Math.min(1, Math.max(0, o.volume)) : DEFAULT_SETTINGS.volume;
-  return { fx, volume };
+  const stage = o.stage === 'kabuki' || o.stage === 'ukiyoe' || o.stage === 'byobu' ? o.stage : DEFAULT_SETTINGS.stage;
+  const motion = o.motion === 'auto' || o.motion === 'full' || o.motion === 'low' ? o.motion : DEFAULT_SETTINGS.motion;
+  return { fx, volume, stage, motion };
 }
 
 export function saveSettings(st: KeyValueStore, s: Settings): void {

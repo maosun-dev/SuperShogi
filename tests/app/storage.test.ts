@@ -23,11 +23,12 @@ describe('保存', () => {
   });
   it('設定を保存して読み戻せる', () => {
     const st = fakeStore();
-    saveSettings(st, { fx: 'short', volume: 0.3 });
-    expect(loadSettings(st)).toEqual({ fx: 'short', volume: 0.3 });
+    saveSettings(st, { fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low' });
+    expect(loadSettings(st)).toEqual({ fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low' });
   });
-  it('何もなければ既定の設定', () => {
+  it('何もなければ既定の設定（舞台は歌舞伎、背景の動きは端末に合わせる）', () => {
     expect(loadSettings(fakeStore())).toEqual(DEFAULT_SETTINGS);
+    expect(DEFAULT_SETTINGS).toMatchObject({ stage: 'kabuki', motion: 'auto' });
   });
   it('壊れた JSON や変な値は既定に戻る', () => {
     const st = fakeStore();
@@ -36,7 +37,9 @@ describe('保存', () => {
     st.setItem('superShogi.settings', '{"fx":"fast","volume":"大"}');
     expect(loadSettings(st)).toEqual(DEFAULT_SETTINGS);
     st.setItem('superShogi.settings', '{"fx":"short","volume":3}');
-    expect(loadSettings(st)).toEqual({ fx: 'short', volume: 1 });
+    expect(loadSettings(st)).toEqual({ ...DEFAULT_SETTINGS, fx: 'short', volume: 1 });
+    st.setItem('superShogi.settings', '{"stage":"toString","motion":"fast"}');
+    expect(loadSettings(st)).toEqual(DEFAULT_SETTINGS);
   });
   it('持ち込みを保存して読み戻せる', () => {
     const st = fakeStore();
@@ -66,7 +69,7 @@ describe('保存', () => {
   });
   it('localStorage がなくても動く', () => {
     const st = safeStore();
-    saveSettings(st, { fx: 'short', volume: 0.5 });
-    expect(loadSettings(st)).toEqual({ fx: 'short', volume: 0.5 });
+    saveSettings(st, { ...DEFAULT_SETTINGS, fx: 'short', volume: 0.5 });
+    expect(loadSettings(st)).toEqual({ ...DEFAULT_SETTINGS, fx: 'short', volume: 0.5 });
   });
 });
