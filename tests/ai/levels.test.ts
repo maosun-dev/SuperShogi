@@ -51,6 +51,14 @@ test.each(LV)('時間内に答える（初期局面と中盤）: %s', level => {
   }
 }, { timeout: 30_000, retry: 2 });
 
+test('押し返しの続きは、伏せたあとと同じ短い時間で考える', () => {
+  const s = createGame({ sente: ['otoshiana'], gote: [] });
+  const t = { ...s, pushFollowUp: true };
+  const t1 = Date.now();
+  chooseCpuAction(viewFor(t, 'sente'), 'sente', 'strong', 1);
+  expect(Date.now() - t1).toBeLessThanOrEqual(LEVELS.strong.timeLimitMs * 0.4 + 200);
+}, { timeout: 30_000, retry: 2 });
+
 // 壁時計で測るので、ほかのテストと同時に走ると混雑で数ms延びることがある。上限は毎回そのまま測る（retry で再測定）
 test('手の数が膨らむ局面でも時間内', () => {
   const s = createGame({ sente: LEVELS.normal.deck, gote: LEVELS.normal.deck });

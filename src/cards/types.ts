@@ -23,6 +23,7 @@ export interface CardDef {
   cost: number;
   text: string;
   fx: string;                                         // 演出の名前（計画3で使う）
+  continuesTurn?: true;                               // 使っても手番が終わらず、続けて駒を動かすか打てる（押し返しの風）
   prompt?: string;                                    // 対象を選ぶときに案内の帯へ出す文（対象を取るカードだけ）
   targetSets(s: GameState, side: Side): Square[][];   // 使える対象の組。対象なしは [[]]。空配列なら使えない
   choices?(s: GameState, side: Side): HandKind[];     // 対象のほかに選ぶ駒の種類（呼び戻し）

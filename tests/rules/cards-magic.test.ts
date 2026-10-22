@@ -163,3 +163,56 @@ test('相手のカードは使えない', () => {
   expect(() => applyAction(s, card(uid, [{ c: 4, r: 6 }]))).toThrow(IllegalActionError);
 });
 
+
+// ---------- 押し返しの風の続き（計画9） ----------
+
+test('押し返しの風のあと、手番は終わらず駒を動かせる。術札・纏札はもう使えない', () => {
+  const s = base();
+  put(s, { c: 4, r: 3 }, 'FU', 'gote');
+  put(s, { c: 4, r: 6 }, 'FU', 'sente');
+  const uid = giveCard(s, 'sente', 'oshikaeshi');
+  const rak = giveCard(s, 'sente', 'rakurai');
+  const ten = giveCard(s, 'sente', 'tenma');
+  const { state } = applyAction(s, card(uid, [{ c: 4, r: 3 }]));
+  expect(state.turn).toBe('sente');
+  expect(state.pushFollowUp).toBe(true);
+  const acts = legalActions(state);
+  expect(acts.some(a => a.type === 'move')).toBe(true);
+  expect(acts.some(a => a.type === 'card' && (a.uid === rak || a.uid === ten))).toBe(false);
+});
+
+test('押し返しの続きで駒を動かすと、手番が相手へ移り続きの印が消える', () => {
+  const s = base();
+  put(s, { c: 4, r: 3 }, 'FU', 'gote');
+  put(s, { c: 4, r: 6 }, 'FU', 'sente');
+  const uid = giveCard(s, 'sente', 'oshikaeshi');
+  const r1 = applyAction(s, card(uid, [{ c: 4, r: 3 }]));
+  const r2 = applyAction(r1.state, mv({ c: 4, r: 6 }, { c: 4, r: 5 }));
+  expect(r2.state.turn).toBe('gote');
+  expect(r2.state.pushFollowUp).toBe(false);
+});
+
+test('押し返しの続きでも忍札を1枚伏せられ、伏せたあとも続きの手が残る', () => {
+  const s = base();
+  put(s, { c: 4, r: 3 }, 'FU', 'gote');
+  put(s, { c: 4, r: 6 }, 'FU', 'sente');
+  const uid = giveCard(s, 'sente', 'oshikaeshi');
+  const kag = giveCard(s, 'sente', 'kagami');
+  const r1 = applyAction(s, card(uid, [{ c: 4, r: 3 }]));
+  const r2 = applyAction(r1.state, card(kag, []));
+  expect(r2.state.turn).toBe('sente');
+  expect(r2.state.pushFollowUp).toBe(true);
+  expect(legalActions(r2.state).some(a => a.type === 'move')).toBe(true);
+});
+
+test('押し返しの続きに指せる手が1つもなければ、passed で手番が相手へ回る', () => {
+  const s = emptyState();
+  put(s, { c: 8, r: 8 }, 'OU', 'sente', { frozen: 2 });
+  put(s, { c: 0, r: 0 }, 'OU', 'gote');
+  put(s, { c: 4, r: 3 }, 'FU', 'gote');
+  const uid = giveCard(s, 'sente', 'oshikaeshi');
+  const { state, events } = applyAction(s, card(uid, [{ c: 4, r: 3 }]));
+  expect(events.some(e => e.type === 'passed' && e.side === 'sente')).toBe(true);
+  expect(state.turn).toBe('gote');
+  expect(state.pushFollowUp).toBe(false);
+});

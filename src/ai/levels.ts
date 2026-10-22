@@ -47,6 +47,7 @@ export function chooseCpuAction(view: GameState, side: Side, level: Level, seed:
   // 忍札は伏せても手番が続くので、伏せる手と続けて指す手で1手番の時間を分ける（合わせて timeLimitMs まで）
   const canSetTrap = !view.trapSetThisTurn
     && view.players[side].cards.some(c => !c.used && CARDS[c.cardId].kind === 'trap');
-  const share = view.trapSetThisTurn ? TRAP_AFTER_SHARE : canSetTrap ? TRAP_BEFORE_SHARE : 1;
+  // 押し返しの風の続きも、伏せたあとと同じ短い時間
+  const share = view.trapSetThisTurn || view.pushFollowUp ? TRAP_AFTER_SHARE : canSetTrap ? TRAP_BEFORE_SHARE : 1;
   return search(view, side, { ...opts, timeLimitMs: Math.max(20, opts.timeLimitMs * timeScale * share), seed });
 }

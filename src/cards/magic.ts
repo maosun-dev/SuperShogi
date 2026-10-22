@@ -36,7 +36,8 @@ function swapIsSound(s: GameState, side: Side, a: Square, b: Square): boolean {
 
 export const oshikaeshi: CardDef = {
   id: 'oshikaeshi', name: '押し返しの風', kind: 'magic', cost: 1, fx: 'oshikaeshi',
-  text: '相手の駒1つを、相手側へ1マス押し戻す。押し戻す先が空いているときだけ使える。王も対象にできる',
+  text: '相手の駒1つを、相手側へ1マス押し戻す。押し戻す先が空いているときだけ使える。王も対象にできる。押し戻したあと、続けて駒を1つ動かすか、持ち駒を1つ打てる',
+  continuesTurn: true,
   prompt: '押し戻す相手の駒を選んでください',
   targetSets(s, side) {
     return piecesOf(s, opponent(side))

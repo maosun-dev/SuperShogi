@@ -34,6 +34,7 @@ export function createGame(decks: Record<Side, CardId[]>, opts: { handicap?: Han
     turn: handicap ? handicap.side : 'sente',
     ply: 0,
     trapSetThisTurn: false,
+    pushFollowUp: false,
     seen: {},
     result: null,
     nextId,
@@ -65,6 +66,7 @@ export function legalActions(s: GameState): Action[] {
     if (c.used) continue;
     const def = CARDS[c.cardId];
     if (def.kind === 'trap' && s.trapSetThisTurn) continue; // 忍札は1手番に1枚まで
+    if (def.kind !== 'trap' && s.pushFollowUp) continue;    // 押し返しの続きでは術札・纏札は使えない
     for (const targets of def.targetSets(s, side)) {
       if (def.choices) {
         for (const pick of def.choices(s, side)) out.push({ type: 'card', uid: c.uid, targets, pick });
@@ -171,9 +173,13 @@ export function applyActionUnchecked(s0: GameState, a: Action): { state: GameSta
   } else {
     const inst = s.players[side].cards.find(c => c.uid === a.uid)!;
     useCard(s, events, side, inst, a.targets, a.pick);
-    if (CARDS[inst.cardId].kind === 'trap') {
-      // 忍札は伏せても手番が終わらない。続けて行える行動が無いときだけ手番を回す
-      s.trapSetThisTurn = true;
+    const def = CARDS[inst.cardId];
+    if (def.kind === 'trap' || def.continuesTurn) {
+      // 忍札は伏せても手番が終わらない。押し返しの風も使ったあと続けて指せる。
+      // 続けて行える行動が無いときだけ手番を回す
+      if (def.kind === 'trap') s.trapSetThisTurn = true;
+      else s.pushFollowUp = true;
+      if (s.result) return { state: s, events };
       if (!hasAnyAction(s)) {
         events.push({ type: 'passed', side });
         endTurn(s, events);
@@ -375,6 +381,7 @@ function endTurn(s: GameState, events: GameEvent[]): void {
     if (p.frozen <= 0) delete p.frozen;
   }
   s.trapSetThisTurn = false;
+  s.pushFollowUp = false;
   s.turn = opponent(mover);
   s.ply++;
   if (isInCheck(s, s.turn)) events.push({ type: 'check', side: s.turn });

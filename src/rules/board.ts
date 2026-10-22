@@ -99,6 +99,7 @@ export function cloneState(s: GameState): GameState {
     turn: s.turn,
     ply: s.ply,
     trapSetThisTurn: s.trapSetThisTurn,
+    pushFollowUp: s.pushFollowUp,
     seen: { ...s.seen },
     result: s.result ? { ...s.result } : null,
     nextId: s.nextId,
@@ -121,5 +122,5 @@ export function positionKey(s: GameState): string {
     - s.traps.filter(t => t.owner === side && t.cardId !== null).length);
   const traps = (['sente', 'gote'] as Side[]).map(side =>
     s.traps.filter(t => t.owner === side).length);
-  return [cells.join(''), hands.join('|'), s.turn, used.join('|'), traps.join(','), s.trapSetThisTurn ? 'T' : '-'].join('/');
+  return [cells.join(''), hands.join('|'), s.turn, used.join('|'), traps.join(','), s.trapSetThisTurn ? 'T' : '-', s.pushFollowUp ? 'P' : '-'].join('/');
 }

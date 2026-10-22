@@ -34,6 +34,7 @@ export interface GameState {
   turn: Side;
   ply: number;
   trapSetThisTurn: boolean;  // この手番に忍札を伏せたか（伏せても手番は終わらない。1手番1枚まで）
+  pushFollowUp: boolean;     // 押し返しの風を使ったあとの続きの手。駒を動かすか打つだけ（忍札は伏せられる）
   seen: Record<string, number>;
   result: Result | null;
   nextId: number;

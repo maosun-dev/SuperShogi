@@ -110,7 +110,10 @@ test('凍てつく床：押し返しの風で押し込まれた駒も、持ち�
   const r1 = applyAction(s, card(uid, [{ c: 4, r: 4 }]));
   expect(r1.events).toContainEqual({ type: 'frozen', pieceId: kin.id, at: { c: 4, r: 3 }, turns: 2 });
   expect(at(r1.state, 4, 3)!.frozen).toBe(2);
-  const r2 = applyAction(r1.state, mv({ c: 0, r: 0 }, { c: 0, r: 1 }));
+  // 押し返しのあとは続けて指す（計画9）
+  const r1b = applyAction(r1.state, mv({ c: 8, r: 8 }, { c: 8, r: 7 }));
+  expect(at(r1b.state, 4, 3)!.frozen).toBe(2);
+  const r2 = applyAction(r1b.state, mv({ c: 0, r: 0 }, { c: 0, r: 1 }));
   expect(at(r2.state, 4, 3)!.frozen).toBe(1);
 });
 

@@ -13,6 +13,7 @@ export function emptyState(turn: Side = 'sente'): GameState {
     turn,
     ply: 0,
     trapSetThisTurn: false,
+    pushFollowUp: false,
     seen: {},
     result: null,
     nextId: 1,

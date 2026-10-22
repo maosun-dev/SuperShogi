@@ -43,6 +43,15 @@ test('positionKey は手番が違えば違う', () => {
   expect(positionKey(s)).not.toBe(positionKey(t));
 });
 
+test('positionKey は押し返しの続きの最中かどうかを区別する', () => {
+  const s = emptyState('sente');
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  const t = cloneState(s);
+  t.pushFollowUp = true;
+  expect(positionKey(s)).not.toBe(positionKey(t));
+  expect(cloneState(t).pushFollowUp).toBe(true);
+});
+
 test('positionKey は装備と持ち駒の違いも区別する', () => {
   const s = emptyState();
   put(s, { c: 4, r: 4 }, 'KI', 'sente');
