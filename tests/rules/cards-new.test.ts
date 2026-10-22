@@ -292,7 +292,7 @@ test('相討ち：韋駄天の1回目で発動したら2回目は飛ばす', () 
 
 // ---------- 身代わり ----------
 
-test('身代わり：王の隣のいちばん安い駒が代わりに壊れ、取りに来た駒は動かない', () => {
+test('身代わり：王の隣のいちばん安い駒が代わりに壊れ、王はそのマスへ移る。取りに来た駒は動かない', () => {
   const s = emptyState();
   put(s, { c: 8, r: 8 }, 'OU', 'sente');
   const ou = put(s, { c: 4, r: 1 }, 'OU', 'gote');
@@ -304,11 +304,38 @@ test('身代わり：王の隣のいちばん安い駒が代わりに壊れ、�
   const { state, events } = applyAction(s, mv({ c: 4, r: 6 }, { c: 4, r: 1 }));
   expect(state.result).toBeNull();
   expect(at(state, 4, 6)?.id).toBe(hi.id);
-  expect(at(state, 4, 1)?.id).toBe(ou.id);
-  expect(at(state, 3, 0)).toBeNull();
+  expect(at(state, 4, 1)).toBeNull();
+  expect(at(state, 3, 0)?.id).toBe(ou.id);
   expect(at(state, 5, 0)?.id).toBe(fu.id);
-  expect(events).toContainEqual({ type: 'kingGuarded', attackerId: hi.id, kingId: ou.id, at: { c: 4, r: 1 } });
+  expect(events).toContainEqual({ type: 'kingGuarded', attackerId: hi.id, kingId: ou.id, at: { c: 4, r: 1 }, to: { c: 3, r: 0 } });
   expect(state.turn).toBe('gote');
+});
+
+test('身代わり：王が移った先に相手の凍てつく床があれば、王が1手番凍る', () => {
+  const s = emptyState();
+  put(s, { c: 8, r: 8 }, 'OU', 'sente');
+  const ou = put(s, { c: 4, r: 1 }, 'OU', 'gote');
+  put(s, { c: 3, r: 0 }, 'FU', 'gote');
+  setTrap(s, 'gote', 'migawari');
+  setTrap(s, 'sente', 'itetsuku', { c: 3, r: 0 });
+  put(s, { c: 4, r: 6 }, 'HI', 'sente');
+  put(s, { c: 8, r: 0 }, 'KI', 'gote'); // 後手に動ける駒を残す（凍った王だけだと手番が自動で回る）
+  const { state } = applyAction(s, mv({ c: 4, r: 6 }, { c: 4, r: 1 }));
+  expect(at(state, 3, 0)?.id).toBe(ou.id);
+  expect(at(state, 3, 0)?.frozen).toBe(1);
+});
+
+test('身代わり：王が移った先が相手の落とし穴でも、王は残り罠も残る', () => {
+  const s = emptyState();
+  put(s, { c: 8, r: 8 }, 'OU', 'sente');
+  const ou = put(s, { c: 4, r: 1 }, 'OU', 'gote');
+  put(s, { c: 3, r: 0 }, 'FU', 'gote');
+  setTrap(s, 'gote', 'migawari');
+  setTrap(s, 'sente', 'otoshiana', { c: 3, r: 0 });
+  put(s, { c: 4, r: 6 }, 'HI', 'sente');
+  const { state } = applyAction(s, mv({ c: 4, r: 6 }, { c: 4, r: 1 }));
+  expect(at(state, 3, 0)?.id).toBe(ou.id);
+  expect(state.traps.filter(t => t.cardId === 'otoshiana')).toHaveLength(1);
 });
 
 test('身代わり：王の隣に味方がいなければ発動せず、王が取られる', () => {

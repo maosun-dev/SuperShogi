@@ -240,7 +240,7 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
   return 'moved';
 }
 
-// 身代わり：王の隣8マスの味方のうちいちばん安い駒（同じなら盤の順で先）を代わりに壊す。発動したら true
+// 身代わり：王の隣8マスの味方のうちいちばん安い駒（同じなら盤の順で先）を代わりに壊し、王はそのマスへ移る。発動したら true
 function guardKing(s: GameState, events: GameEvent[], king: Piece, at: Square, attacker: Piece): boolean {
   const t = findTrap(s, king.side, 'kingCapture');
   if (!t) return false;
@@ -256,7 +256,10 @@ function guardKing(s: GameState, events: GameEvent[], king: Piece, at: Square, a
   if (!best) return false;
   fireTrap(s, events, t);
   destroyAt(s, events, best.sq, 'migawari');
-  events.push({ type: 'kingGuarded', attackerId: attacker.id, kingId: king.id, at });
+  s.board[idx(at)] = null;
+  s.board[idx(best.sq)] = king;
+  events.push({ type: 'kingGuarded', attackerId: attacker.id, kingId: king.id, at, to: best.sq });
+  enterSquare(s, events, best.sq);
   return true;
 }
 

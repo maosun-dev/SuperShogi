@@ -65,7 +65,7 @@ export const aiuchi: CardDef = {
 
 export const migawari: CardDef = {
   id: 'migawari', name: '身代わり', kind: 'trap', cost: 4, fx: 'migawari',
-  text: '相手が自分の王を取ろうとしたとき、王の隣にいる味方のうちいちばん安い駒を代わりに壊す。取りに来た駒は動かず、相手の手番は終わる。王の隣に味方がいないときは発動しない',
+  text: '相手が自分の王を取ろうとしたとき、王の隣にいる味方のうちいちばん安い駒を代わりに壊し、王はそのマスへ移る。取りに来た駒は動かず、相手の手番は終わる。王の隣に味方がいないときは発動しない',
   targetSets: slotTargets,
   trap: { placement: 'slot', trigger: 'kingCapture' },
 };

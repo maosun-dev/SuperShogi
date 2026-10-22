@@ -563,6 +563,13 @@ async function migawari(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
   } else {
     shatter(ctx, d.pieceId);
   }
+  // 王が、壊れた駒のいたマスへ移る
+  const king = pieceMesh(g.kingId);
+  if (king) {
+    const k0 = king.position.clone();
+    const k1 = squarePos(g.to).setY(k0.y);
+    await ctx.tween(320, (t) => { king.position.lerpVectors(k0, k1, t); }, easeInOut);
+  }
   await ctx.wait(400);
 }
 

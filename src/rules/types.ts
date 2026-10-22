@@ -63,7 +63,7 @@ export type GameEvent =
   | { type: 'frozen'; pieceId: number; at: Square; turns: number }
   | { type: 'demoted'; pieceId: number; at: Square }
   | { type: 'promotedInPlace'; pieceId: number; at: Square }
-  | { type: 'kingGuarded'; attackerId: number; kingId: number; at: Square }
+  | { type: 'kingGuarded'; attackerId: number; kingId: number; at: Square; to: Square }  // at から to へ王が移る
   | { type: 'secondMoveSkipped'; pieceId: number }
   | { type: 'passed'; side: Side }     // 指せる行動がなく、手番が自動で回った
 

@@ -89,7 +89,7 @@ describe('planFx', () => {
     setTrap(s3, 'gote', 'migawari');
     put(s3, sq(4, 6), 'HI', 'sente');
     const c3 = cuesOf(s3, { type: 'move', from: sq(4, 6), to: sq(4, 1), promote: false });
-    expect(c3.map(c => c.kind)).toEqual(['trapFire', 'check']); // 飛車は残るので王手のまま
+    expect(c3.map(c => c.kind)).toEqual(['trapFire']); // 王は (3,1) へ移るので、飛車の王手は外れる
     expect((c3[0] as Extract<Cue, { kind: 'trapFire' }>).effects.map(e => e.type)).toEqual(['destroyed', 'kingGuarded']);
   });
 
