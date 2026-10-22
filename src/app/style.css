@@ -1193,60 +1193,45 @@ input:focus-visible {
   box-shadow: 0 3px 8px rgba(0, 0, 0, .25);
 }
 .zukan .page-head + .rows { padding-top: 10px; }
-/* 対局：上の帯（相手）と下の帯（自分・手札）も漆の板。盤と舞台の絵は真ん中で見せる */
+/* 対局：上の帯（相手）と下の帯（自分・手札）は「駒台」。盤と同じ榧の木目に厚みのある縁、
+   伏せ札の枠は木に彫った溝。字は墨、手番は朱の判で示す */
+.match .side.foe, .match .mine-area {
+  --dai-ink: #2A1B10;
+  color: var(--dai-ink);
+  background:
+    repeating-linear-gradient(90deg, rgba(120, 70, 20, 0) 0 9px, rgba(120, 70, 20, .10) 9px 10px, rgba(120, 70, 20, 0) 10px 23px, rgba(90, 50, 10, .08) 23px 25px),
+    linear-gradient(#E9C27A, #DDAF62 60%, #D3A255);
+}
 .match .side.foe {
-  background: color-mix(in srgb, var(--yoru) 90%, transparent);
-  box-shadow: 0 2px 0 var(--soubi), 0 6px 14px rgba(0, 0, 0, .28);
+  border-radius: 0 0 14px 14px;
+  box-shadow: inset 0 -3px 0 rgba(255, 240, 200, .6), inset 0 2px 0 rgba(0, 0, 0, .06), 0 2px 0 var(--kaya-leg, #8A5A22), 0 10px 22px rgba(40, 20, 0, .35);
 }
 .match .mine-area {
   position: relative;
   z-index: 2;
-  background: linear-gradient(color-mix(in srgb, var(--yoru) 88%, transparent), color-mix(in srgb, var(--yoru) 62%, transparent));
-  box-shadow: 0 -2px 0 var(--soubi), 0 -6px 14px rgba(0, 0, 0, .28);
+  border-radius: 14px 14px 0 0;
+  box-shadow: inset 0 3px 0 rgba(255, 240, 200, .75), inset 0 -2px 0 rgba(0, 0, 0, .08), 0 -2px 0 #8A5A22, 0 -10px 22px rgba(40, 20, 0, .35);
 }
-/* 設定：舞台の見本。見本の絵そのものを押す（選んだ舞台は金の縁と朱の判） */
-.settings .set-item {
-  margin: 10px 12px 0;
+.match :is(.side.foe, .mine-area) .seal { border-color: var(--dai-ink); }
+.match .side.me .who { color: color-mix(in srgb, var(--dai-ink) 60%, transparent); }
+.match .side.me.turn .who { color: var(--dai-ink); }
+.match .side.me.turn .seal { background: var(--wana); border-color: var(--wana); color: var(--gofun); box-shadow: inset 0 0 0 1.5px var(--wana), inset 0 0 0 2.5px var(--gofun); }
+.match .side.foe .thinking { color: var(--wana-deep); }
+.match :is(.side.foe, .mine-area) .slot {
   border: 0;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--yoru) 88%, transparent);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+  background: linear-gradient(#B98A45, #C99A50);
+  box-shadow: inset 0 2px 4px rgba(60, 30, 0, .55), 0 1px 0 rgba(255, 240, 200, .6);
 }
-.stage-picks { display: flex; gap: 10px; }
-.stage-pick {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0;
-  background: none;
-  border: 0;
-  font-size: 12px;
-  font-weight: 800;
+.match :is(.side.foe, .mine-area) .slot.back {
+  background: repeating-linear-gradient(45deg, var(--wana) 0 3px, var(--wana-deep) 3px 6px);
+  box-shadow: 0 0 0 1.5px var(--sumi), 0 2px 3px rgba(40, 20, 0, .4);
 }
-.stage-pick img {
-  width: 100%;
-  aspect-ratio: 9 / 16;
-  object-fit: cover;
-  border-radius: 3px;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gofun) 25%, transparent);
-}
-.stage-pick[aria-pressed="true"] img { box-shadow: 0 0 0 3px var(--soubi), 0 0 14px color-mix(in srgb, var(--soubi) 60%, transparent); }
-.stage-pick[aria-pressed="true"]::after {
-  content: "選";
-  position: absolute;
-  right: -4px;
-  top: -6px;
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 3px;
+.match :is(.side.foe, .mine-area) .slot.mine {
   background: var(--wana);
   color: var(--gofun);
-  font-family: var(--font-display);
-  font-size: 16px;
-  transform: rotate(-10deg);
-  box-shadow: inset 0 0 0 1.5px var(--wana), inset 0 0 0 2.5px var(--gofun);
+  box-shadow: 0 0 0 1.5px var(--sumi), 0 2px 3px rgba(40, 20, 0, .4);
 }
+.match .side.foe .rest-open { border-color: color-mix(in srgb, var(--dai-ink) 45%, transparent); }
+/* 駒台の上の駒札：木の上でも浮くよう、輪郭の影を付ける */
+.match :is(.side.foe, .mine-area) .koma { filter: drop-shadow(0 1px 0 rgba(90, 50, 10, .7)); }
+.match :is(.side.foe, .mine-area) .komadai .none, .match .mine-area .hand .none { color: var(--dai-ink); opacity: .6; }
