@@ -65,6 +65,7 @@ export type GameEvent =
   | { type: 'promotedInPlace'; pieceId: number; at: Square }
   | { type: 'kingGuarded'; attackerId: number; kingId: number; at: Square; to: Square }  // at から to へ王が移る
   | { type: 'secondMoveSkipped'; pieceId: number }
+  | { type: 'equipBroken'; pieceId: number; at: Square; cardId: CardId }   // 纏札が外れた（槍を使い切った・枷の手番が尽きた）
   | { type: 'passed'; side: Side }     // 指せる行動がなく、手番が自動で回った
 
   | { type: 'check'; side: Side }      // side の王が狙われている

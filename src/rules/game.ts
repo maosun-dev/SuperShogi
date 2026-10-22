@@ -197,6 +197,7 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
   const p = s.board[idx(from)]!;
   const side = p.side;
   const target = s.board[idx(to)];
+  const pierced = p.equip?.cardId === 'tsuranuki' && jumpsOver(s, from, to);
   if (target && hasEquip(target, 'armor')) {
     // 鋼の鎧：取らずに守り、鎧は外れる。攻めた駒は元のマスのまま
     target.equip = null;
@@ -236,8 +237,24 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
       return 'moved';
     }
   }
+  if (pierced) {
+    // 貫きの槍は1回きり：飛び越えて動いたら外れる
+    p.equip = null;
+    events.push({ type: 'equipBroken', pieceId: p.id, at: to, cardId: 'tsuranuki' });
+  }
   enterSquare(s, events, to);
   return 'moved';
+}
+
+// from と to を結ぶまっすぐな線（縦・横・斜め）の間に駒があるか
+function jumpsOver(s: GameState, from: Square, to: Square): boolean {
+  const dc = Math.sign(to.c - from.c), dr = Math.sign(to.r - from.r);
+  const n = Math.max(Math.abs(to.c - from.c), Math.abs(to.r - from.r));
+  if (to.c - from.c !== dc * n || to.r - from.r !== dr * n) return false;
+  for (let k = 1; k < n; k++) {
+    if (s.board[idx({ c: from.c + dc * k, r: from.r + dr * k })]) return true;
+  }
+  return false;
 }
 
 // 身代わり：王の隣8マスの味方のうちいちばん安い駒（同じなら盤の順で先）を代わりに壊し、王はそのマスへ移る。発動したら true

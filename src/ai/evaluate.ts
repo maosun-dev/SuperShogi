@@ -12,7 +12,7 @@ export const CARD_PER_COST = 80;  // 未使用のカード：コスト×80
 export const TRAP_PER_COST = 100; // 中身の分かる伏せた罠：コスト×100
 export const PITFALL_BONUS = 100; // 自分の落とし穴のマスに、相手の王以外の駒が動ける
 export const EQUIP_VALUE: Partial<Record<CardId, number>> = {
-  tenma: 200, hagane: 350, hikijin: 80, idaten: 500, tsuranuki: 300,
+  tenma: 200, hagane: 350, hikijin: 80, idaten: 500, tsuranuki: 150,
 };
 export const OMORI_RATE = 0.4;     // 重りの枷：付けられた駒の点数のこの割合だけ、持ち主の損
 export const OMORI_MIN = 150;

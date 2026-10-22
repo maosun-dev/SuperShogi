@@ -109,6 +109,9 @@ export function planFx(events: GameEvent[], actor: Side): Cue[] {
       case 'secondMoveSkipped':
         cues.push({ kind: 'notice', text: '2回目の移動はできませんでした' });
         break;
+      case 'equipBroken':
+        cues.push({ kind: 'notice', text: `${CARDS[e.cardId].name}が外れました` });
+        break;
       case 'passed':
         cues.push({
           kind: 'notice',

@@ -62,8 +62,8 @@ export const idaten: CardDef = {
 };
 
 export const tsuranuki: CardDef = {
-  id: 'tsuranuki', name: '貫きの槍', kind: 'equip', cost: 3, fx: 'tsuranuki',
-  text: '自分の飛車・角・香車（竜・馬も）に付ける。まっすぐ進む動きで、途中の駒を1つだけ飛び越えられる。飛び越えた先の相手の駒は取れる',
+  id: 'tsuranuki', name: '貫きの槍', kind: 'equip', cost: 4, fx: 'tsuranuki',
+  text: '自分の飛車・角・香車（竜・馬も）に付ける。1回だけ、まっすぐ進む途中にある駒を1つ飛び越えて動ける。飛び越えた先にいる相手の駒は取れる。飛び越えると札は外れる',
   prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: (s, side) => barePieces(s, side, p =>
     p.kind === 'HI' || p.kind === 'KA' || (p.kind === 'KY' && !p.promoted)),
