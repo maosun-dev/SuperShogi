@@ -382,7 +382,7 @@ def ukiyoe():
     cloud('front', 0.85, 0.98, -5.0, 3, 0.7, 0.6)
     shiro = mat('tsuru', '#FBF6EA', 0.7, emit=0.3)
     kuro = mat('tsuru_saki', '#1D1A17', 0.8)
-    for (u, v, s) in [(0.05, 0.62, 1.0), (0.24, 0.55, 0.8), (-0.12, 0.54, 0.7)]:
+    for (u, v, s) in [(0.1, 0.6, 0.5), (0.22, 0.56, 0.42), (-0.02, 0.555, 0.38)]:   # 鶴は小さく（スマホでは大きく写るため）
         x, y, z = scr(u, v, -3.0)
         for side in (-1, 1):
             box('front', shiro, (x + side * 0.16 * s, y, z), (0.32 * s, 0.02, 0.06 * s), rot=(0, math.radians(-side * 20), 0))

@@ -6,8 +6,11 @@ import './style.css';
 import { initScreens, registerScreen, showScreen, setClapper } from './screens';
 import { getSound } from '../fx/sound';
 import { loadSettings, safeStore } from './storage';
-import { applyStage, effectiveMotion, prefersReducedMotion } from './stageTheme';
+import { applyStage, effectiveMotion, onStageChange, prefersReducedMotion } from './stageTheme';
 import { mountBackdrop } from '../view/backdrop';
+import { mountAmbient } from '../view/ambient';
+import { setStageLook } from '../view/stageFloor';
+import { getStage } from '../view/stage';
 import { zukanScreen } from './screens/zukan';
 import { titleScreen } from './screens/title';
 import { matchScreen } from './screens/match';
@@ -28,7 +31,16 @@ function start(): void {
   const settings = loadSettings(safeStore());
   // 舞台（背景と色の決まり）を最初に決める
   applyStage(document.documentElement, settings);
-  mountBackdrop(document.body, settings.stage, effectiveMotion(settings.motion, prefersReducedMotion()));
+  const motion = effectiveMotion(settings.motion, prefersReducedMotion());
+  // 奥から：背景の絵（層0）→ 動く飾り（層1）→ #app（盤の3Dと文字）
+  const ambient = mountAmbient(document.body, settings.stage, motion);
+  const backdrop = mountBackdrop(document.body, settings.stage, motion);
+  setStageLook(getStage(), settings.stage);
+  onStageChange((stage, m) => {
+    backdrop.setStage(stage); backdrop.setMotion(m);
+    ambient.setStage(stage); ambient.setMotion(m);
+    setStageLook(getStage(), stage);
+  });
   const sound = getSound();
   sound.setVolume(settings.volume);
   setClapper(() => sound.play('hyoshigi'));

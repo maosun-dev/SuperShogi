@@ -23,3 +23,19 @@ export function applyStage(el: { dataset: Record<string, string | undefined> }, 
   el.dataset.stage = s.stage;
   el.dataset.motion = effectiveMotion(s.motion, reduced);
 }
+
+type StageListener = (stage: StageId, motion: 'full' | 'low') => void;
+const listeners = new Set<StageListener>();
+
+/** 舞台が変わったときに呼ばれる。戻り値で外す（背景の絵・動く飾り・盤の床が使う） */
+export function onStageChange(fn: StageListener): () => void {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
+
+/** 印を付け直して、登録した相手に知らせる（設定の画面で選んだとき） */
+export function changeStage(el: { dataset: Record<string, string | undefined> }, s: Pick<Settings, 'stage' | 'motion'>, reduced = prefersReducedMotion()): void {
+  applyStage(el, s, reduced);
+  const m = effectiveMotion(s.motion, reduced);
+  for (const fn of listeners) fn(s.stage, m);
+}

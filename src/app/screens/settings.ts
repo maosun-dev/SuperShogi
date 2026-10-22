@@ -1,7 +1,9 @@
-// 設定：演出の長さ「短め／長め」の切り替えと、音の大きさのつまみ。
+// 設定：舞台（背景）の選び、背景の動き「多め／少なめ」、演出の長さ「短め／長め」、音の大きさのつまみ。
 // 変えたらすぐ保存し、すぐ効かせる（音は setVolume、演出の長さは演出役が毎回設定を読み直す）。
 import { getSound } from '../../fx/sound';
 import { loadSettings, safeStore, saveSettings, type Settings } from '../storage';
+import { STAGES, STAGE_LABEL, changeStage, effectiveMotion, prefersReducedMotion } from '../stageTheme';
+import { layerUrl } from '../../view/backdrop';
 import { type Screen } from '../screens';
 import { button, el, pageHead } from './ui';
 
@@ -15,6 +17,50 @@ export function settingsScreen(): Screen {
 
       const box = el('div', 'page settings');
       box.dataset.screen = 'settings';
+      const apply = (): void => changeStage(document.documentElement, s);
+
+      // ---- 舞台：見本の絵を押して選ぶ。その場で背景が替わる ----
+      const stSec = el('section', 'set-item');
+      const stHead = el('h2', '', '舞台');
+      stHead.id = 'set-stage';
+      const picks = el('div', 'stage-picks');
+      picks.setAttribute('role', 'group');
+      picks.setAttribute('aria-labelledby', 'set-stage');
+      const stageBtns = STAGES.map((id) => {
+        const b = button('stage-pick', '');
+        const img = el('img');
+        img.src = layerUrl(import.meta.env.BASE_URL, id, 'thumb');
+        img.alt = '';
+        b.append(img, el('span', '', STAGE_LABEL[id]));
+        b.addEventListener('click', () => { save({ ...s, stage: id }); apply(); paintStage(); });
+        picks.append(b);
+        return { id, b };
+      });
+      const paintStage = (): void => {
+        for (const { id, b } of stageBtns) b.setAttribute('aria-pressed', String(s.stage === id));
+      };
+      stSec.append(stHead, picks);
+      paintStage();
+
+      // ---- 背景の動き ----
+      const mvSec = el('section', 'set-item');
+      const mvHead = el('h2', '', '背景の動き');
+      mvHead.id = 'set-motion';
+      const mvSeg = el('div', 'seg');
+      mvSeg.setAttribute('role', 'group');
+      mvSeg.setAttribute('aria-labelledby', 'set-motion');
+      const many = button('', '多め');
+      const few = button('', '少なめ');
+      const paintMotion = (): void => {
+        const m = effectiveMotion(s.motion, prefersReducedMotion());
+        many.setAttribute('aria-pressed', String(m === 'full'));
+        few.setAttribute('aria-pressed', String(m === 'low'));
+      };
+      many.addEventListener('click', () => { save({ ...s, motion: 'full' }); apply(); paintMotion(); });
+      few.addEventListener('click', () => { save({ ...s, motion: 'low' }); apply(); paintMotion(); });
+      mvSeg.append(many, few);
+      mvSec.append(mvHead, mvSeg, el('p', 'note', '重く感じたら「少なめ」に。背景の揺れと舞う飾りが止まります'));
+      paintMotion();
 
       // ---- 演出の長さ ----
       const fxSec = el('section', 'set-item');
@@ -69,7 +115,7 @@ export function settingsScreen(): Screen {
       volSec.append(lab, row);
       show();
 
-      box.append(pageHead('設定', 'title'), fxSec, volSec);
+      box.append(pageHead('設定', 'title'), stSec, mvSec, fxSec, volSec);
       root.append(box);
     },
     unmount() { clearTimeout(timer); },

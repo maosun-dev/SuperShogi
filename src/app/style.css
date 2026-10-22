@@ -88,6 +88,16 @@ button:focus-visible {
   object-position: 50% 50%;
   will-change: transform;
 }
+/* 層1：動く飾り（背景の絵の手前、文字やボタンの後ろ） */
+#ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+#ambient[hidden] { display: none; }
 #app { z-index: 1; }
 
 /* 3D の舞台を置く場所（画面いっぱい、文字やボタンの後ろ） */
@@ -1193,4 +1203,50 @@ input:focus-visible {
   z-index: 2;
   background: linear-gradient(color-mix(in srgb, var(--yoru) 88%, transparent), color-mix(in srgb, var(--yoru) 62%, transparent));
   box-shadow: 0 -2px 0 var(--soubi), 0 -6px 14px rgba(0, 0, 0, .28);
+}
+/* 設定：舞台の見本。見本の絵そのものを押す（選んだ舞台は金の縁と朱の判） */
+.settings .set-item {
+  margin: 10px 12px 0;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--yoru) 88%, transparent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+}
+.stage-picks { display: flex; gap: 10px; }
+.stage-pick {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 12px;
+  font-weight: 800;
+}
+.stage-pick img {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gofun) 25%, transparent);
+}
+.stage-pick[aria-pressed="true"] img { box-shadow: 0 0 0 3px var(--soubi), 0 0 14px color-mix(in srgb, var(--soubi) 60%, transparent); }
+.stage-pick[aria-pressed="true"]::after {
+  content: "選";
+  position: absolute;
+  right: -4px;
+  top: -6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 3px;
+  background: var(--wana);
+  color: var(--gofun);
+  font-family: var(--font-display);
+  font-size: 16px;
+  transform: rotate(-10deg);
+  box-shadow: inset 0 0 0 1.5px var(--wana), inset 0 0 0 2.5px var(--gofun);
 }
