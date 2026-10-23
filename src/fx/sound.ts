@@ -14,7 +14,7 @@ export type SoundName =
 /** 札の演出の音（2026-10-23。すべて仮の音。docs/sound-wishlist.md におすすめの差し替え先） */
 type CardSoundName =
   | 'ice' | 'trapdoor' | 'thud' | 'paper' | 'glass' | 'slash' | 'poof'
-  | 'reel' | 'armor' | 'chain' | 'hoof' | 'flame' | 'tsuke';
+  | 'reel' | 'armor' | 'chain' | 'hoof' | 'flame' | 'tsuke' | 'splash';
 
 export interface Sound {
   unlock(): void;
@@ -239,6 +239,12 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   flame: (k, t, g) => {
     noiseBurst(k, { at: t, dur: 0.8, gain: 0.7 * g, type: 'lowpass', f0: 300, f1: 900, q: 1.5, attack: 0.15 });
     noiseBurst(k, { at: t + 0.1, dur: 0.6, gain: 0.25 * g, type: 'bandpass', f0: 1800, q: 0.8, attack: 0.1 });
+  },
+  // 水鏡に札が落ちる「ちゃぽん」：音程の下がる丸い響き＋細かい水しぶき
+  splash: (k, t, g) => {
+    tone(k, t, 900, 0.18, 0.35 * g, 300);
+    tone(k, t + 0.05, 520, 0.4, 0.2 * g, 380);
+    noiseBurst(k, { at: t, dur: 0.35, gain: 0.3 * g, type: 'bandpass', f0: 2500, f1: 900, q: 1.2 });
   },
   // ツケ打ち：板を打つバタバタッ（3打、最後が強い）
   tsuke: (k, t, g) => {

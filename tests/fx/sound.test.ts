@@ -29,9 +29,9 @@ describe('getSound（AudioContext のない Node）', () => {
 });
 
 describe('札の演出の仮の音', () => {
-  it('13個とも例外を出さない', () => {
+  it('14個とも例外を出さない', () => {
     const s = getSound();
-    const names = ['ice', 'trapdoor', 'thud', 'paper', 'glass', 'slash', 'poof', 'reel', 'armor', 'chain', 'hoof', 'flame', 'tsuke'] as const;
+    const names = ['ice', 'trapdoor', 'thud', 'paper', 'glass', 'slash', 'poof', 'reel', 'armor', 'chain', 'hoof', 'flame', 'tsuke', 'splash'] as const;
     expect(() => { for (const n of names) s.play(n); }).not.toThrow();
   });
 });

@@ -1,351 +1,269 @@
-// 鏡の結界（コスト3・約4.5秒）「時が止まって跳ね返す」
-// 前振り：暗転。相手の術の光が的へ向かいかけて、宙で止まる
-// 見せ場：巨大な銅鏡が、裏の文様を見せて回りながら盤から立ち上がり、表へ返る。術の光が当たった瞬間に時が止まり（白黒・無音）、
-//         光の柱になって術を使った側の帯へ一直線に跳ね返る。鏡に映った札にひびが入り、破片が画面の手前へ飛び散る
-// 余韻：鏡がくるりと裏を見せて、盤へ沈む
+// 鏡の結界（コスト3・約4秒）「水鏡」
+// 前振り：暗転し、盤の面が中央から一瞬で静かな水面に変わる（提灯の灯が揺れて映る）
+// 見せ場：打ち消された相手の札が、読める向きのまま落ちてくる。水面に触れた瞬間「ちゃぽん」と波紋が盤じゅうに広がり、
+//         札は水に沈んで溶ける（泡が上がる）
+// 余韻：水面が引いて、盤に戻る
 // 術札の演出（magic.ts）は打ち消されると名前ドンまでで止まり、続きをここで見せる
 import * as THREE from 'three';
+import type { CardId } from '../../rules/types';
 import { CARDS } from '../../cards';
+import { CARD_ART, KIND_MARK } from '../../view/cardArt';
+import { BD, BW, ring } from '../../view/board3d';
 import { PAL, PALS, rgba } from '../../view/palette';
-import { animateEl, cameraPush, easeInOut, easeOut, flash, later, lightCap, overlay, shakeBy, transient, type FxCtx } from '../kit';
-import { darken, pointLight, pointOff, softTexture, timeStop } from '../stagecraft';
+import { cameraPush, easeInOut, easeOut, later, lightCap, puff, shakeBy, transient, type FxCtx } from '../kit';
+import { brighten, darken } from '../stagecraft';
 import { getSound } from '../sound';
 import { effect, type CardFx, type TrapFireCue } from './types';
 
-const MIRROR_R = 1.9;
-const MIRROR_Y = 2.3;
+const WATER_Y = 0.03;    // 水面の高さ（駒の足元が少し水に浸かる）
+const CARD_W = 1.5;      // 落ちてくる札の大きさ
+const CARD_H = CARD_W * 62 / 46;
 
-/** ひびの線（最初に決めておき、描き足すたびに同じ形） */
-function crackLines(): [number, number][][] {
-  const lines: [number, number][][] = [];
-  for (let i = 0; i < 11; i++) {
-    let a = (i / 11) * Math.PI * 2 + Math.random() * 0.4, r = 8;
-    const pts: [number, number][] = [[256, 256]];
-    while (r < 190) {
-      r += 20 + Math.random() * 28; a += (Math.random() - 0.5) * 0.5;
-      pts.push([256 + Math.cos(a) * r, 256 + Math.sin(a) * r]);
+// ---------- 水面 ----------
+
+/** 水の模様：深い藍に、横に流れる淡い光と、奥の提灯の灯の映り（揺れる縦の筋） */
+function waterTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+  const g = c.getContext('2d')!;
+  const gr = g.createLinearGradient(0, 0, 0, 512);
+  gr.addColorStop(0, '#1d3d6b'); gr.addColorStop(1, '#0a1730');
+  g.fillStyle = gr; g.fillRect(0, 0, 512, 512);
+  // 提灯の灯の映り（奥＝上の側）
+  for (const x of [90, 200, 312, 422]) {
+    for (let k = 0; k < 9; k++) {
+      g.fillStyle = rgba(PAL.kayaLight, 0.16 - k * 0.015);
+      g.fillRect(x - 10 + Math.sin(k * 1.7) * 6, 30 + k * 26, 20, 14);
     }
-    lines.push(pts);
   }
-  return lines;
-}
-
-/** 鏡の表：金の縁・鋲・青白く光る鏡面。映った札の名前（左右が逆）と、ひび（cracks 0〜1） */
-function frontFace(name: string): { canvas: HTMLCanvasElement; draw(cracks: number, glow: number): void } {
-  const c = document.createElement('canvas'); c.width = c.height = 512;
-  const g = c.getContext('2d')!;
-  const lines = crackLines();
-  const draw = (cracks: number, glow: number): void => {
-    g.clearRect(0, 0, 512, 512);
-    g.fillStyle = PALS.sumi; g.beginPath(); g.arc(256, 256, 254, 0, Math.PI * 2); g.fill();
-    g.fillStyle = PALS.soubi; g.beginPath(); g.arc(256, 256, 246, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = PALS.soubiLight; g.lineWidth = 5; g.beginPath(); g.arc(256, 256, 206, 0, Math.PI * 2); g.stroke();
-    g.fillStyle = PALS.soubiPale;
-    for (let i = 0; i < 16; i++) {
-      const a = (i / 16) * Math.PI * 2;
-      g.beginPath(); g.arc(256 + Math.cos(a) * 226, 256 + Math.sin(a) * 226, 8, 0, Math.PI * 2); g.fill();
-    }
-    const gr = g.createRadialGradient(200, 180, 10, 256, 256, 196);
-    gr.addColorStop(0, PALS.gofun); gr.addColorStop(0.45, PALS.mahouPale); gr.addColorStop(1, PALS.yoruLight);
-    g.fillStyle = gr; g.beginPath(); g.arc(256, 256, 194, 0, Math.PI * 2); g.fill();
-    if (glow > 0) {
-      const gl = g.createRadialGradient(256, 256, 0, 256, 256, 194);
-      gl.addColorStop(0, rgba(PAL.hakkou, glow)); gl.addColorStop(1, rgba(PAL.mahouPale, 0));
-      g.fillStyle = gl; g.beginPath(); g.arc(256, 256, 194, 0, Math.PI * 2); g.fill();
-    }
-    if (name) {
-      g.save();
-      g.translate(256, 268); g.scale(-1, 1);
-      g.fillStyle = rgba(PAL.mahou, 0.8);
-      const n = [...name].length;
-      g.font = `800 ${Math.min(150, 520 / Math.max(2, n))}px "Shippori Mincho B1", serif`;
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(name, 0, 0);
-      g.restore();
-    }
-    g.strokeStyle = rgba(PAL.hakkou, 0.85); g.lineWidth = 16; g.lineCap = 'round';
-    g.beginPath(); g.arc(256, 256, 160, Math.PI * 1.1, Math.PI * 1.45); g.stroke();
-    if (cracks <= 0) return;
-    g.save();
-    g.beginPath(); g.arc(256, 256, 194, 0, Math.PI * 2); g.clip();
-    g.strokeStyle = PALS.gofun; g.lineWidth = 6; g.lineCap = 'round';
-    for (const pts of lines) {
-      const k = Math.max(1, Math.round((pts.length - 1) * cracks));
-      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
-      for (let i = 1; i <= k; i++) g.lineTo(pts[i][0], pts[i][1]);
-      g.stroke();
-    }
-    g.restore();
-  };
-  draw(0, 0);
-  return { canvas: c, draw };
-}
-
-/** 鏡の裏（鏡背）：古い青銅に、中央の鈕（つまみ）・内区の菊の花びら・外区の波の文様 */
-function backFace(): HTMLCanvasElement {
-  const c = document.createElement('canvas'); c.width = c.height = 512;
-  const g = c.getContext('2d')!;
-  const bronze = '#5d4a2a', bronzeLight = '#9a7a3e', patina = '#4f6b5a';
-  g.fillStyle = PALS.sumi; g.beginPath(); g.arc(256, 256, 254, 0, Math.PI * 2); g.fill();
-  const gr = g.createRadialGradient(220, 200, 20, 256, 256, 250);
-  gr.addColorStop(0, bronzeLight); gr.addColorStop(0.7, bronze); gr.addColorStop(1, '#3a2c17');
-  g.fillStyle = gr; g.beginPath(); g.arc(256, 256, 246, 0, Math.PI * 2); g.fill();
-  // 緑青のしみ
+  // さざ波の淡い光
+  g.strokeStyle = rgba(PAL.mahouPale, 0.12); g.lineWidth = 2;
   for (let i = 0; i < 40; i++) {
-    g.fillStyle = rgba(0x4f6b5a, 0.12 + Math.random() * 0.2);
-    g.beginPath(); g.arc(Math.random() * 512, Math.random() * 512, 6 + Math.random() * 26, 0, Math.PI * 2); g.fill();
+    const y = Math.random() * 512, x = Math.random() * 512, w = 30 + Math.random() * 90;
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + w / 2, y - 3, x + w, y); g.stroke();
   }
-  g.strokeStyle = bronzeLight; g.lineWidth = 4;
-  for (const r of [232, 196, 120]) { g.beginPath(); g.arc(256, 256, r, 0, Math.PI * 2); g.stroke(); }
-  // 外区：波の文様（青海波）
-  g.lineWidth = 3; g.strokeStyle = rgba(0xd9b45a, 0.85);
-  for (let i = 0; i < 28; i++) {
-    const a = (i / 28) * Math.PI * 2;
-    const x = 256 + Math.cos(a) * 214, y = 256 + Math.sin(a) * 214;
-    for (const r of [14, 9, 4]) { g.beginPath(); g.arc(x, y, r, a + Math.PI * 0.1, a + Math.PI * 0.9 + Math.PI); g.stroke(); }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+/** 中央から広がる丸い覆い（白い円・ふちはぼかし・外は黒）。repeat と offset で広がり具合を変える */
+function revealTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#000'; g.fillRect(0, 0, 256, 256);
+  const gr = g.createRadialGradient(128, 128, 0, 128, 128, 127);
+  gr.addColorStop(0, '#fff'); gr.addColorStop(0.8, '#fff'); gr.addColorStop(1, '#000');
+  g.fillStyle = gr; g.beginPath(); g.arc(128, 128, 127, 0, Math.PI * 2); g.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+interface Water { mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>; reveal: THREE.Texture; spread(k: number): void; kill(): void }
+
+function buildWater(ctx: FxCtx): Water {
+  const map = waterTexture();
+  const reveal = revealTexture();
+  const mat = new THREE.MeshBasicMaterial({ map, alphaMap: reveal, transparent: true, opacity: 0.92, depthWrite: false });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(BW - 0.3, BD - 0.3), mat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = WATER_Y;
+  mesh.renderOrder = 1;
+  // k（0〜1）：中央の丸が盤いっぱいまで広がる
+  const spread = (k: number): void => {
+    const s = Math.max(0.001, k * 1.6);
+    reveal.repeat.set(1 / s, 1 / s);
+    reveal.offset.set(0.5 - 0.5 / s, 0.5 - 0.5 / s);
+  };
+  spread(0);
+  // 水面はゆっくり流れて揺らめく
+  let t0 = 0;
+  const kill = transient(ctx, mesh, 60000, (dt) => {
+    t0 += dt;
+    map.offset.set(Math.sin(t0 * 0.6) * 0.01, t0 * 0.015);
+  });
+  return { mesh, reveal, spread, kill };
+}
+
+/** 波紋：細い輪が盤じゅうに広がって消える */
+function ripple(ctx: FxCtx, at: THREE.Vector3, delay: number, maxR: number): void {
+  const r = ring(0.2, 0.208, PAL.gofun, 96); // 細い輪（広げても線が太くなりすぎない）
+  r.position.set(at.x, WATER_Y + 0.004, at.z);
+  r.renderOrder = 2;
+  r.material.opacity = 0;
+  const LIFE = 1700 * Math.max(0.6, ctx.timing.scale);
+  const D = delay * Math.max(0.6, ctx.timing.scale);
+  transient(ctx, r, LIFE + D, (_dt, age) => {
+    const t = Math.max(0, Math.min(1, (age - D) / LIFE));
+    const k = 1 + easeOut(t) * maxR / 0.204;
+    r.scale.set(k, k, k);
+    r.material.opacity = t <= 0 ? 0 : lightCap(ctx, 0.55) * (1 - t) * (1 - t);
+  });
+}
+
+/** 水しぶきと泡 */
+function droplets(ctx: FxCtx, at: THREE.Vector3): void {
+  const N = 50, geo = new THREE.BufferGeometry(), arr = new Float32Array(N * 3), v: THREE.Vector3[] = [];
+  for (let i = 0; i < N; i++) {
+    arr.set([at.x, WATER_Y + 0.05, at.z], i * 3);
+    const a = Math.random() * Math.PI * 2, sp = 0.5 + Math.random() * 1.3;
+    v.push(new THREE.Vector3(Math.cos(a) * sp, 2 + Math.random() * 2.5, Math.sin(a) * sp));
   }
-  // 内区：菊の花びら
-  g.fillStyle = rgba(0xd9b45a, 0.9);
-  for (let i = 0; i < 16; i++) {
-    g.save(); g.translate(256, 256); g.rotate((i / 16) * Math.PI * 2);
-    g.beginPath(); g.ellipse(0, -84, 13, 38, 0, 0, Math.PI * 2); g.fill();
-    g.restore();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const pm = new THREE.PointsMaterial({ color: PAL.mahouPale, size: 0.09, transparent: true, opacity: lightCap(ctx, 0.95), depthWrite: false });
+  transient(ctx, new THREE.Points(geo, pm), 900, (dt, age) => {
+    const pos = geo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < N; i++) {
+      v[i].y -= 9 * dt;
+      pos.setXYZ(i, pos.getX(i) + v[i].x * dt, Math.max(WATER_Y, pos.getY(i) + v[i].y * dt), pos.getZ(i) + v[i].z * dt);
+    }
+    pos.needsUpdate = true;
+    pm.opacity = lightCap(ctx, 0.95) * Math.max(0, 1 - age / 900);
+  });
+}
+
+function bubbles(ctx: FxCtx, at: THREE.Vector3, life: number): void {
+  const N = 26, geo = new THREE.BufferGeometry(), arr = new Float32Array(N * 3);
+  const seed: { x: number; z: number; y: number; v: number }[] = [];
+  for (let i = 0; i < N; i++) {
+    const s = { x: (Math.random() - 0.5) * 0.9, z: (Math.random() - 0.5) * 0.6, y: WATER_Y, v: 0.15 + Math.random() * 0.35 };
+    seed.push(s);
+    arr.set([at.x + s.x, s.y, at.z + s.z], i * 3);
   }
-  // 鈕（中央のつまみ）
-  const kn = g.createRadialGradient(244, 244, 4, 256, 256, 44);
-  kn.addColorStop(0, '#e0c070'); kn.addColorStop(1, bronze);
-  g.fillStyle = kn; g.beginPath(); g.arc(256, 256, 42, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = patina; g.lineWidth = 3; g.beginPath(); g.arc(256, 256, 42, 0, Math.PI * 2); g.stroke();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const pm = new THREE.PointsMaterial({ color: PAL.gofun, size: 0.06, transparent: true, opacity: 0, depthWrite: false });
+  const LIFE = life * Math.max(0.6, ctx.timing.scale);
+  transient(ctx, new THREE.Points(geo, pm), LIFE, (dt, age) => {
+    const pos = geo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < N; i++) {
+      const s = seed[i];
+      s.y += s.v * dt;
+      if (s.y > WATER_Y + 0.25) s.y = WATER_Y;
+      pos.setXYZ(i, at.x + s.x, s.y, at.z + s.z);
+    }
+    pos.needsUpdate = true;
+    const t = age / LIFE;
+    pm.opacity = lightCap(ctx, 0.8) * Math.min(1, t * 5) * (1 - t);
+  });
+}
+
+// ---------- 落ちてくる札（読める向きのまま） ----------
+
+/** 札の表をキャンバスに描く（札の絵の SVG は読み込みを少しだけ待つ） */
+async function cardCanvas(ctx: FxCtx, id: CardId): Promise<HTMLCanvasElement> {
+  const def = CARDS[id];
+  const kind = KIND_MARK[def.kind];
+  const color = PALS[kind.color];
+  const c = document.createElement('canvas'); c.width = 230; c.height = 310;
+  const g = c.getContext('2d')!;
+  const draw = (img: HTMLImageElement | null): void => {
+    g.clearRect(0, 0, 230, 310);
+    g.fillStyle = PALS.gofun; g.strokeStyle = color; g.lineWidth = 12;
+    g.beginPath(); g.roundRect(8, 8, 214, 294, 12); g.fill(); g.stroke();
+    if (img) g.drawImage(img, 24, 70, 140, 190);
+    // コストの丸と札の名前（縦書き）と種類の判
+    g.fillStyle = color; g.beginPath(); g.arc(40, 40, 20, 0, Math.PI * 2); g.fill();
+    g.fillStyle = PALS.gofun; g.font = '800 26px "Shippori Mincho B1", serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(String(def.cost), 40, 42);
+    g.fillStyle = PALS.sumi; g.font = '800 30px "Shippori Mincho B1", serif';
+    [...def.name].forEach((ch, i) => g.fillText(ch, 192, 46 + i * 32));
+    g.fillStyle = PALS.wana; g.fillRect(170, 250, 36, 36);
+    g.fillStyle = PALS.gofun; g.font = '800 24px "Shippori Mincho B1", serif'; g.fillText(kind.mark, 188, 269);
+  };
+  draw(null);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 62" width="140" height="190">${CARD_ART[id]}</svg>`;
+  const img = new Image();
+  const loaded = new Promise<void>((res) => { img.onload = () => res(); img.onerror = () => res(); });
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  await Promise.race([loaded, ctx.wait(250)]);
+  if (img.complete && img.naturalWidth > 0) draw(img);
   return c;
 }
 
-/** 術の光の玉（藍） */
-function orb(): THREE.Sprite {
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: PAL.mahouGlow, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
-  s.scale.setScalar(1.1);
-  return s;
-}
-
-/** 鏡のかけら：銀の三角が、画面の手前（カメラの方）へ飛んでくる */
-function shardsToCamera(ctx: FxCtx, at: THREE.Vector3, cam: THREE.Camera): void {
-  const grp = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color: PAL.mahouPale, transparent: true, opacity: 1, side: THREE.DoubleSide, depthWrite: false });
-  const edge = new THREE.MeshBasicMaterial({ color: PAL.hakkou, transparent: true, opacity: 1, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
-  const toCam = cam.position.clone().sub(at).normalize();
-  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion);
-  const ps: { m: THREE.Mesh; v: THREE.Vector3; av: THREE.Vector3 }[] = [];
-  for (let i = 0; i < 46; i++) {
-    const s = 0.12 + Math.random() * 0.3;
-    const geo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, s, 0), new THREE.Vector3(-s * 0.7, -s * 0.5, 0), new THREE.Vector3(s * 0.6, -s * 0.6, 0),
-    ]);
-    const m = new THREE.Mesh(geo, i % 5 ? mat : edge);
-    const a = Math.random() * Math.PI * 2, r = Math.random() * MIRROR_R * 0.85;
-    m.position.copy(at).addScaledVector(right, Math.cos(a) * r).addScaledVector(up, Math.sin(a) * r);
-    m.quaternion.copy(cam.quaternion);
-    grp.add(m);
-    const v = toCam.clone().multiplyScalar(5 + Math.random() * 7)
-      .addScaledVector(right, Math.cos(a) * (1 + Math.random() * 3)).addScaledVector(up, Math.sin(a) * (1 + Math.random() * 3));
-    ps.push({ m, v, av: new THREE.Vector3(Math.random() * 12, Math.random() * 12, Math.random() * 12) });
-  }
-  const LIFE = 1100;
-  transient(ctx, grp, LIFE, (dt, age) => {
-    for (const p of ps) {
-      p.v.y -= 3 * dt;
-      p.m.position.addScaledVector(p.v, dt);
-      p.m.rotation.x += p.av.x * dt; p.m.rotation.y += p.av.y * dt;
-    }
-    const k = Math.max(0, 1 - age / LIFE) * lightCap(ctx, 1);
-    mat.opacity = k; edge.opacity = k;
-  });
-}
-
-/** 3D の点が、対局画面（root）の中でどこに見えるか */
-function toScreen(ctx: FxCtx, p: THREE.Vector3): { x: number; y: number } {
-  const v = p.clone().project(ctx.stage.camera);
-  const c = ctx.stage.canvas.getBoundingClientRect(), o = ctx.hud.root.getBoundingClientRect();
-  return { x: c.left - o.left + (v.x + 1) / 2 * c.width, y: c.top - o.top + (1 - v.y) / 2 * c.height };
-}
-
-/** 跳ね返した光の柱：鏡から、術を使った側の帯へ一直線（重ね板） */
-async function beamTo(ctx: FxCtx, from: { x: number; y: number }, band: HTMLElement | null): Promise<void> {
-  const o = ctx.hud.root.getBoundingClientRect();
-  const r = band?.getBoundingClientRect();
-  const to = r ? { x: r.left - o.left + r.width / 2, y: r.top - o.top + r.height / 2 } : { x: o.width / 2, y: 0 };
-  const dx = to.x - from.x, dy = to.y - from.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
-  const el = document.createElement('div');
-  Object.assign(el.style, {
-    left: `${from.x}px`, top: `${from.y - 9}px`, width: `${len}px`, height: '18px',
-    transformOrigin: '0 50%',
-    background: `linear-gradient(180deg, ${rgba(PAL.mahouGlow, 0)} 0%, ${rgba(PAL.mahouPale, 0.9)} 35%, ${rgba(PAL.hakkou, lightCap(ctx, 1))} 50%, ${rgba(PAL.mahouPale, 0.9)} 65%, ${rgba(PAL.mahouGlow, 0)} 100%)`,
-    boxShadow: `0 0 24px 6px ${rgba(PAL.mahouGlow, 0.7)}`,
-    borderRadius: '9px',
-  });
-  overlay(ctx).append(el);
-  const S = ctx.timing.scale;
-  try {
-    await animateEl(ctx, el, [
-      { transform: `rotate(${ang}deg) scaleX(0)`, opacity: 1 },
-      { transform: `rotate(${ang}deg) scaleX(1)`, opacity: 1 },
-    ], { duration: Math.max(1, 160 * S), easing: 'cubic-bezier(.2,.9,.3,1)' });
-    // 帯に当たる：白く光って、帯が揺れる
-    flash(ctx, PALS.hakkou, 0.6, 240);
-    shakeBy(ctx, 0.35);
-    getSound().play('thunder', { gain: 0.35 });
-    if (band) void later(animateEl(ctx, band, [
-      { transform: 'translate(0, 0)' }, { transform: 'translate(-6px, 3px)' }, { transform: 'translate(5px, -2px)' },
-      { transform: 'translate(-3px, 1px)' }, { transform: 'translate(0, 0)' },
-    ], { duration: Math.max(1, 360 * S), easing: 'ease-out', fill: 'none' }));
-    await animateEl(ctx, el, [
-      { transform: `rotate(${ang}deg) scaleX(1) scaleY(1)`, opacity: 1 },
-      { transform: `rotate(${ang}deg) scaleX(1) scaleY(.1)`, opacity: 0 },
-    ], { duration: Math.max(1, 360 * S), easing: 'ease-in' });
-  } finally {
-    el.remove();
-  }
-}
-
-interface Mirror {
-  grp: THREE.Group;          // 位置（立ち上がる高さ）
-  spinner: THREE.Group;      // 縦の軸で回す（0 で表が画面を向く、π で裏）
-  face: ReturnType<typeof frontFace>;
-  tex: THREE.CanvasTexture;
-  mats: THREE.Material[];
-  kill(): void;
-}
-
-interface State { center: THREE.Vector3; orb: THREE.Sprite; killOrb(): void; mirror?: Mirror }
+interface State { water: Water; card?: { mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>; kill(): void } }
 const states = new WeakMap<TrapFireCue, State>();
 
-function buildMirror(ctx: FxCtx, name: string): Mirror {
-  const face = frontFace(name);
-  const tex = new THREE.CanvasTexture(face.canvas); tex.colorSpace = THREE.SRGBColorSpace;
-  const btex = new THREE.CanvasTexture(backFace()); btex.colorSpace = THREE.SRGBColorSpace;
-  const fm = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
-  const bm = new THREE.MeshBasicMaterial({ map: btex, transparent: true, depthWrite: false });
-  const front = new THREE.Mesh(new THREE.CircleGeometry(MIRROR_R, 64), fm);
-  front.position.z = 0.03;
-  const back = new THREE.Mesh(new THREE.CircleGeometry(MIRROR_R, 64), bm);
-  back.rotation.y = Math.PI;
-  back.position.z = -0.03;
-  const rimMat = new THREE.MeshStandardMaterial({ color: PAL.soubi, metalness: 0.7, roughness: 0.35, emissive: PAL.soubi, emissiveIntensity: 0.25 });
-  const rim = new THREE.Mesh(new THREE.CylinderGeometry(MIRROR_R, MIRROR_R, 0.08, 64, 1, true), rimMat);
-  rim.rotation.x = Math.PI / 2;
-  const spinner = new THREE.Group();
-  spinner.add(front, back, rim);
-  const grp = new THREE.Group();
-  grp.add(spinner);
-  const cam = ctx.stage.camera;
-  // 毎フレーム、鏡の面を画面へ向ける（回すのは spinner）
-  const kill = transient(ctx, grp, 60000, () => { grp.quaternion.copy(cam.quaternion); });
-  return { grp, spinner, face, tex, mats: [fm, bm, rimMat], kill };
-}
-
-/** 鏡が立つ場所：盤の中央の少し手前 */
+/** 札が落ちてくる所：盤の中央の少し手前 */
 function centerOf(ctx: FxCtx): THREE.Vector3 {
-  return new THREE.Vector3(0, 0, ctx.me === 'sente' ? 0.5 : -0.5);
+  return new THREE.Vector3(0, WATER_Y, ctx.me === 'sente' ? 0.6 : -0.6);
 }
 
 export const kagami: CardFx<TrapFireCue> = {
   async pre(ctx, cue) {
-    const neg = effect(cue, 'magicNegated');
-    const center = centerOf(ctx);
-    const cam = later(cameraPush(ctx, 0.18, 500));
-    const dark = later(darken(ctx, null, 450, 0.18));
-    const o = orb();
-    const st: State = { center, orb: o, killOrb: transient(ctx, o, 60000) };
-    states.set(cue, st);
-    if (neg) {
-      // 術の光が上から的へ向かいかけて、宙で止まる（ぶるぶる震える）
-      const from = center.clone().setY(7), stop = center.clone().setY(MIRROR_Y + 1.4);
-      getSound().play('whoosh', { gain: 0.5 });
-      await ctx.tween(380, (t) => {
-        o.position.lerpVectors(from, stop, easeOut(t));
-        o.material.opacity = lightCap(ctx, 0.95) * t;
-      });
-      await ctx.tween(300, (t) => { o.scale.setScalar(1.1 + Math.sin(t * Math.PI * 8) * 0.1); });
-    }
+    // 暗転し、盤の面が中央から一瞬で水面に変わる
+    const cam = later(cameraPush(ctx, 0.12, 500));
+    const dark = later(darken(ctx, null, 400, 0.3));
+    const water = buildWater(ctx);
+    states.set(cue, { water });
+    getSound().play('frost', { gain: 0.35 });
+    await ctx.tween(520, (t) => water.spread(easeOut(t)));
     await Promise.all([cam, dark]);
   },
   async main(ctx, cue) {
     const st = states.get(cue);
     if (!st) return;
     const neg = effect(cue, 'magicNegated');
-    const mirror = buildMirror(ctx, neg ? CARDS[neg.cardId].name : '');
-    st.mirror = mirror;
-    const c = st.center;
-    // 裏の文様を見せながら回って、盤から立ち上がり、表へ返る（盤より下は盤に隠れる）
-    getSound().play('chime');
-    getSound().play('whoosh', { gain: 0.5 });
-    pointLight(ctx, c.clone().setY(MIRROR_Y), 12, PAL.soubiLight, 7);
-    await ctx.tween(900, (t) => {
-      mirror.grp.position.set(c.x, -MIRROR_R + (MIRROR_Y + MIRROR_R) * easeOut(Math.min(1, t * 1.5)), c.z);
-      // 2回り半して、最後に表（0）で止まる
-      mirror.spinner.rotation.y = Math.PI * 5 * (1 - easeOut(t)) + Math.PI;
-    });
-    mirror.spinner.rotation.y = 0;
-    getSound().play('clang', { gain: 0.5 });
-    shakeBy(ctx, 0.15);
-    if (!neg) { pointOff(); await ctx.wait(500); return; }
-    // 術の光が鏡に当たる
-    const o = st.orb;
-    const hit = mirror.grp.position.clone();
-    const p0 = o.position.clone();
-    await ctx.tween(150, (t) => { o.position.lerpVectors(p0, hit, t * t); });
-    // 時が止まる：白黒・無音。鏡の面だけが白く光をためる
-    flash(ctx, PALS.hakkou, 0.5, 120);
-    timeStop(ctx, 1);
-    getSound().play('frost', { gain: 0.5 });
-    await ctx.tween(650, (t) => {
-      mirror.face.draw(0, t * 0.9);
-      mirror.tex.needsUpdate = true;
-      o.scale.setScalar(1.1 + t * 0.6);
-    });
-    // 時が動き出す：光の柱になって、術を使った側の帯へ跳ね返す
-    timeStop(ctx, 0);
-    o.visible = false;
-    pointLight(ctx, hit, 50, PAL.mahouPale, 9);
-    getSound().play('clang');
-    getSound().play('whoosh');
-    const band = ctx.hud.root.querySelector<HTMLElement>(neg.side === ctx.me ? '.side.me' : '.side.foe');
-    await beamTo(ctx, toScreen(ctx, hit), band);
-    pointOff();
-    // 映った札にひびが入り、破片が手前へ飛び散る
-    for (const k of [0.3, 0.65, 1]) {
-      mirror.face.draw(k, 0);
-      mirror.tex.needsUpdate = true;
-      getSound().play('tick', { gain: 0.9 });
-      await ctx.wait(120);
+    const at = centerOf(ctx);
+    if (!neg) {
+      // 打ち消す術がない（念のため）：水面に波紋がひとつ
+      getSound().play('splash', { gain: 0.6 });
+      ripple(ctx, at, 0, 4);
+      await ctx.wait(700);
+      return;
     }
-    getSound().play('glass');
-    flash(ctx, PALS.mahouPale, 0.55, 220);
-    shakeBy(ctx, 0.3);
-    shardsToCamera(ctx, hit, ctx.stage.camera);
-    // 割れたのは映った札：鏡は面だけ新しくなって残る
-    mirror.face.draw(0, 0);
-    mirror.tex.needsUpdate = true;
-    await ctx.wait(450);
+    // 打ち消された札が、読める向きのまま落ちてくる（いつも画面に向け、水面より下は切り落とす）
+    const tex = new THREE.CanvasTexture(await cardCanvas(ctx, neg.cardId));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false,
+      clippingPlanes: [new THREE.Plane(new THREE.Vector3(0, 1, 0), -WATER_Y)],
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(CARD_W, CARD_H), mat);
+    mesh.renderOrder = 3;
+    const cam = ctx.stage.camera;
+    let sway = 0;
+    const kill = transient(ctx, mesh, 60000, () => { mesh.quaternion.copy(cam.quaternion); mesh.rotateZ(sway); });
+    st.card = { mesh, kill };
+    const top = 4.2, rest = WATER_Y + CARD_H / 2;
+    getSound().play('whoosh', { gain: 0.4 });
+    await ctx.tween(820, (t) => {
+      mesh.position.set(at.x + Math.sin(t * Math.PI * 1.5) * 0.25, top + (rest - top) * easeInOut(t), at.z);
+      sway = Math.sin(t * Math.PI * 2) * 0.12 * (1 - t);
+    });
+    sway = 0;
+    // ちゃぽん：触れた瞬間、波紋が盤じゅうに広がる
+    getSound().play('splash');
+    shakeBy(ctx, 0.08);
+    droplets(ctx, at);
+    // 盤の中に収まる大きさまで（盤の幅の半分くらい）
+    for (let i = 0; i < 5; i++) ripple(ctx, at, i * 170, 1.6 + i * 0.6);
+    // 札は水に沈み、藍に染まって溶ける（泡が上がる）
+    bubbles(ctx, at, 1600);
+    await ctx.tween(1100, (t) => {
+      mesh.position.y = rest - (CARD_H + 0.1) * easeInOut(t);
+      mat.color.setRGB(1 - 0.55 * t, 1 - 0.4 * t, 1 - 0.1 * t);
+      mat.opacity = 1 - 0.6 * t;
+    });
+    kill();
+    st.card = undefined;
+    getSound().play('splash', { gain: 0.3 });
+    await ctx.wait(300);
   },
   async after(ctx, cue) {
     const st = states.get(cue);
-    const mirror = st?.mirror;
-    if (!st || !mirror) return;
-    // くるりと裏を見せて、盤へ沈む
-    getSound().play('whoosh', { gain: 0.4 });
-    const y0 = mirror.grp.position.y;
-    await ctx.tween(650, (t) => {
-      mirror.spinner.rotation.y = Math.PI * easeInOut(Math.min(1, t * 1.6));
-      mirror.grp.position.y = y0 - (y0 + MIRROR_R) * Math.max(0, (t - 0.45) / 0.55) ** 2;
-    });
-    getSound().play('stamp', { gain: 0.6 });
-    await ctx.wait(150);
+    if (!st) return;
+    // 水面が引いて、盤に戻る
+    const light = later(brighten(ctx, 600));
+    puff(ctx, centerOf(ctx), PAL.mahouPale, 18, 0.6);
+    await ctx.tween(600, (t) => st.water.spread(1 - easeInOut(t)));
+    await light;
   },
-  cleanup(ctx, cue) {
-    pointOff();
-    timeStop(ctx, 0);
+  cleanup(_ctx, cue) {
     const st = states.get(cue);
-    st?.killOrb();
-    st?.mirror?.kill();
+    st?.card?.kill();
+    st?.water.kill();
+    st?.water.reveal.dispose(); // 覆いの模様は片付けの対象外なのでここで捨てる
     states.delete(cue);
   },
 };
