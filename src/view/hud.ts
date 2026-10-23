@@ -38,6 +38,12 @@ export function kansuji(n: number): string {
   return `${tens === 1 ? '' : DIGITS[tens]}十${DIGITS[n % 10]}`;
 }
 
+/** 相手の残り札の見せ方：術札・纏札は表で、忍札は枚数だけ（伏せた忍札が減った札から当てられないように） */
+export function restView(ids: CardId[]): { open: CardId[]; hiddenTraps: number } {
+  const open = ids.filter(id => CARDS[id].kind !== 'trap');
+  return { open, hiddenTraps: ids.length - open.length };
+}
+
 /**
  * 駒台で「ポン」と収める持ち駒の種類：前の描き直しより増えた種類と、描き直しの直前にまだ「ポン」の途中だった種類（still）。
  * still があるのは、CPU に取られた直後にすぐ次の描き直しが来ても、動きを消さないため。前がなければ still だけ
@@ -148,10 +154,18 @@ export function createHud(root: HTMLElement): Hud {
     const left = last.view.players[foeSide].cards.filter(c => !c.used);
     restList.replaceChildren();
     if (left.length === 0) restList.append(el('p', 'rest-none', '残りの札はありません'));
-    for (const c of left) {
+    const { open, hiddenTraps } = restView(left.map(c => c.cardId));
+    for (const id of open) {
       const fig = el('figure', 'rest-card');
-      fig.innerHTML = cardHtml(c.cardId, { size: 'small' }); // 定数だけでできた文字列
-      fig.append(el('figcaption', '', CARDS[c.cardId].name));
+      fig.innerHTML = cardHtml(id, { size: 'small' }); // 定数だけでできた文字列
+      fig.append(el('figcaption', '', CARDS[id].name));
+      restList.append(fig);
+    }
+    // 忍札は伏せるときと同じ札の裏（紅の縞に「忍」）で、何の札かは見せない
+    for (let i = 0; i < hiddenTraps; i++) {
+      const fig = el('figure', 'rest-card');
+      fig.innerHTML = '<span class="card-back" style="--s:0.486" aria-hidden="true"><i></i></span>'; // 定数だけでできた文字列
+      fig.append(el('figcaption', '', '忍札'));
       restList.append(fig);
     }
     rest.hidden = false;
