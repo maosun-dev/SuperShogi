@@ -3,7 +3,7 @@ import '@fontsource/yuji-boku/400.css';
 import '@fontsource/shippori-mincho-b1/500.css';
 import '@fontsource/shippori-mincho-b1/800.css';
 import './style.css';
-import { initScreens, registerScreen, showScreen, setClapper } from './screens';
+import { initScreens, registerScreen, showScreen, setClapper, setScreenHook } from './screens';
 import { getSound } from '../fx/sound';
 import { loadSettings, safeStore } from './storage';
 import { applyStage, effectiveMotion, onStageChange, prefersReducedMotion } from './stageTheme';
@@ -22,11 +22,15 @@ import { settingsScreen } from './screens/settings';
 import { armSoundUnlock, watchResume } from './unlock';
 import { prepareSaves } from './native';
 import { autoMatchParams, fxMatchParams } from './dev';
+import { bannerOn, initAds, setBannerWanted } from './ads';
 
 function start(): void {
   const root = document.getElementById('app');
   if (!root) throw new Error('#app がありません');
   initScreens(root);
+  // バナー広告（アプリ版だけ）：対局の外の画面で出し、対局では隠す
+  initAds();
+  setScreenHook((name) => setBannerWanted(bannerOn(name)));
   // 効果音：音量は設定から。音は最初の操作のあとに鳴らし始める（それまでは無音）。幕の拍子木もここで差し込む
   const settings = loadSettings(safeStore());
   // 舞台（背景と色の決まり）を最初に決める

@@ -13,6 +13,7 @@ let root: HTMLElement | null = null;
 let curtain: HTMLElement | null = null;
 let busy: Promise<void> | null = null;
 let clapper: () => void = () => {}; // 拍子木の音（main.ts が setClapper で効果音を差し込む。それまでは無音）
+let hook: (name: ScreenName) => void = () => {}; // 画面を入れ替えたら呼ぶ（main.ts がバナー広告の出し入れを差し込む）
 
 export function registerScreen(name: ScreenName, make: (params: unknown) => Screen): void {
   makers.set(name, make);
@@ -21,6 +22,11 @@ export function registerScreen(name: ScreenName, make: (params: unknown) => Scre
 /** 拍子木の音を鳴らす関数を差し込む */
 export function setClapper(fn: () => void): void {
   clapper = fn;
+}
+
+/** 画面を入れ替えたときに、新しい画面の名前で呼ぶ関数を差し込む（幕が閉じている間に呼ばれる） */
+export function setScreenHook(fn: (name: ScreenName) => void): void {
+  hook = fn;
 }
 
 /** 画面を置く場所と幕を用意する（起動時に1回） */
@@ -52,6 +58,7 @@ function swap(name: ScreenName, params: unknown): void {
     throw e;
   }
   current = next;
+  try { hook(name); } catch { /* フックの失敗で画面の入れ替えを止めない */ }
 }
 
 /** 幕を引いて画面を入れ替える。引いている最中の呼び出しは、終わってから順に実行する */

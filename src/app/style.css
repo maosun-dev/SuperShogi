@@ -51,10 +51,11 @@ body {
 }
 
 /* 画面はノッチとホームバーをよけた四角に収める。各画面は position:absolute; inset:0 なので、
-   余白（padding）では効かない（絶対配置は余白の内側に入らない）。#app 自体の四隅を内側へ寄せる */
+   余白（padding）では効かない（絶対配置は余白の内側に入らない）。#app 自体の四隅を内側へ寄せる。
+   下はバナー広告（ホームバーのすぐ上に出る）の高さ --ad-h ぶんも上げる（ads.ts が入れる。出していなければ 0） */
 #app {
   position: fixed;
-  inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  inset: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + var(--ad-h, 0px)) env(safe-area-inset-left);
   max-width: 430px;
   margin: 0 auto;
 }
