@@ -8,7 +8,7 @@ import { PIECE_Y, pieceMesh } from '../../view/pieces3d';
 import { spear } from '../../view/equipProps';
 import { cameraTo, easeInOut, easeOut, flash, later, lightCap, puff, shakeBy, transient, type FxCtx } from '../kit';
 import { getSound } from '../sound';
-import { follow, ghost, sparks } from './parts';
+import { follow, ghost, hideEquipMark, sparks } from './parts';
 import { squareOf, type EquipFx } from './types';
 
 /** 穂先のきらめき（十字の光） */
@@ -103,6 +103,7 @@ export const tsuranuki: EquipFx = {
   },
   async onBreak(ctx, cue) {
     // 槍が二つに折れ、金の破片が左右へ跳ねて落ちる
+    hideEquipMark(cue.pieceId);
     const at = squarePos(cue.at);
     const grp = new THREE.Group();
     grp.position.set(at.x, 0, at.z);

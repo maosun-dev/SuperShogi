@@ -463,39 +463,87 @@ button:focus-visible {
 
 /* 盤の場所と案内の帯 */
 .match .board-area { position: relative; flex: 1; min-height: 0; }
+/* 案内は「和紙の短冊」：朱の印で留めた紙が盤の上に垂れ下がる。板やグラデーションでなく、紙と印で見せる。
+   紙の地は ::before（ふちを手漉きのように不揃いに切る）、留めの印は ::after。影は紙の形に沿わせる（drop-shadow） */
 .match .prompt {
   position: absolute;
   left: 50%;
-  top: 10px;
+  top: 6px;
   z-index: 2;
-  transform: translateX(-50%);
   width: max-content;
-  max-width: calc(100% - 24px);
+  max-width: calc(100% - 32px);
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 6px 10px;
-  padding: 7px 12px;
-  background: color-mix(in srgb, var(--yoru-deep) 87%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gofun) 27%, transparent);
-  border-radius: 4px;
-  font-size: 13px;
+  gap: 8px 14px;
+  padding: 16px 18px 12px;
+  color: var(--sumi);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  transform: translateX(-50%) rotate(-1deg);
+  transform-origin: 50% 0;
+  filter: drop-shadow(0 3px 2px rgba(29, 26, 23, .45)) drop-shadow(0 8px 10px rgba(29, 26, 23, .25));
+  animation: tanzaku-hang .5s cubic-bezier(.3, 1.4, .5, 1) both;
 }
+.match .prompt::before,
+.match .fx-notice span::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: #f3eee2;
+  /* 和紙の繊維：細かい雲紋（feTurbulence）をうっすら重ねる */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.035 .9' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .45  0 0 0 0 .36  0 0 0 0 .22  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)' opacity='.35'/%3E%3C/svg%3E");
+  clip-path: polygon(0 3%, 6% 0, 21% 2%, 38% 0, 57% 1.5%, 74% 0, 92% 1.8%, 100% 0, 99% 30%, 100% 62%, 99% 100%, 84% 97%, 66% 100%, 47% 97.5%, 29% 100%, 12% 97%, 0 100%, 1% 64%, 0 31%);
+}
+/* 留めの朱の印 */
+.match .prompt::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  width: 15px;
+  height: 15px;
+  margin-left: -7.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e9535f 0 22%, var(--wana) 40%, #8f1424 100%);
+  box-shadow: inset 0 0 0 2px rgba(238, 232, 220, .35);
+}
+@keyframes tanzaku-hang {
+  from { transform: translateX(-50%) translateY(-14px) rotate(-5deg); opacity: 0; }
+  60% { transform: translateX(-50%) translateY(0) rotate(1.2deg); opacity: 1; }
+  to { transform: translateX(-50%) rotate(-1deg); }
+}
+@media (prefers-reduced-motion: reduce) { .match .prompt { animation: none; } }
 .match .prompt[hidden] { display: none; }
-.match .prompt .pbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.match .prompt .pbtns { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* ボタンは判子：「やめる」は朱の角印、選ぶもの（成る・駒の種類）は墨の判 */
 .match .prompt button {
-  padding: 3px 10px;
+  padding: 5px 9px 4px;
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--gofun) 40%, transparent);
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 800;
+  color: var(--sumi);
+  border: 1.5px solid var(--sumi);
+  border-radius: 2px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+.match .prompt button.pcancel {
+  background: var(--wana);
+  color: var(--gofun);
+  border-color: var(--wana);
+  box-shadow: inset 0 0 0 2px var(--wana), inset 0 0 0 3px rgba(238, 232, 220, .7);
+  transform: rotate(-4deg);
 }
 .match .prompt button.yes,
-.match .prompt button.choice { background: var(--gofun); color: var(--sumi); border-color: var(--gofun); }
+.match .prompt button.choice { background: var(--sumi); color: var(--gofun); border-color: var(--sumi); }
 .match .prompt button.promote,
-.match .prompt button.choice { padding: 5px 14px; font-size: 14px; }
+.match .prompt button.choice { padding: 6px 14px 5px; font-size: 15px; }
+.match .prompt button:active { transform: translateY(1px) rotate(-4deg); }
+.match .prompt button:focus-visible { outline: 2px solid var(--wana); outline-offset: 2px; }
 
 /* 下の帯と手札 */
 .match .mine-area { position: relative; z-index: 3; }
@@ -642,14 +690,15 @@ button:focus-visible {
   z-index: 8; display: flex; justify-content: center; align-items: flex-start;
   padding: 26% 16px 0; opacity: 0;
 }
+/* 知らせも和紙の短冊（留めの印なし・小さめ）。紙の地は ::before（案内の帯と同じ） */
 .match .fx-notice span {
-  max-width: 100%; padding: 8px 16px;
-  background: color-mix(in srgb, var(--yoru-deep) 90%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gofun) 33%, transparent);
-  border-radius: 4px;
-  color: var(--gofun);
+  position: relative; z-index: 0;
+  max-width: 100%; padding: 10px 18px 9px;
+  color: var(--sumi);
   font-family: var(--font-body);
-  font-size: 14px; font-weight: 800; text-align: center;
+  font-size: 14px; font-weight: 700; letter-spacing: .04em; text-align: center;
+  transform: rotate(.8deg);
+  filter: drop-shadow(0 3px 2px rgba(29, 26, 23, .45)) drop-shadow(0 8px 10px rgba(29, 26, 23, .25));
 }
 .match .fx-notice.on { opacity: 1; transition: opacity .18s ease-out; }
 .match .fx-notice.off { opacity: 0; transition: opacity .25s ease-in; }

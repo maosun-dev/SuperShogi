@@ -156,8 +156,21 @@ export function pointOff(): void {
   if (rig) rig.point.intensity = 0;
 }
 
-/** 打ち切りのとき：暗転・スポットライト・点の光を必ず元に戻す（持ち主は問わない） */
+// ---------- 時が止まる（3D の画面を白黒にする） ----------
+let frozenCanvas: HTMLCanvasElement | null = null;
+
+/** 時が止まる：k（0〜1）だけ白黒にして、少し硬い光にする。0 で戻す */
+export function timeStop(ctx: FxCtx, k: number): void {
+  const c = ctx.stage.canvas;
+  if (k <= 0) { c.style.filter = ''; frozenCanvas = null; return; }
+  if (!ctx.alive()) return; // 打ち切り後は止めない（戻すのはよい）
+  c.style.filter = `grayscale(${k.toFixed(3)}) contrast(${(1 + 0.3 * k).toFixed(3)})`;
+  frozenCanvas = c;
+}
+
+/** 打ち切りのとき：暗転・スポットライト・点の光・時止めを必ず元に戻す（持ち主は問わない） */
 export function resetStagecraft(): void {
+  if (frozenCanvas) { frozenCanvas.style.filter = ''; frozenCanvas = null; }
   if (house) {
     const h = house;
     h.k = 1; h.spot = 0;

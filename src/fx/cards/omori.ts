@@ -9,6 +9,7 @@ import { chainRing, ironBall } from '../../view/equipProps';
 import { cameraTo, easeOut, flash, later, puff, shakeBy, transient } from '../kit';
 import { getSound } from '../sound';
 import { squareOf, type EquipFx } from './types';
+import { hideEquipMark } from './parts';
 
 const R = 0.42; // 足元の鎖の輪の大きさ
 
@@ -74,6 +75,10 @@ export const omori: EquipFx = {
   },
   async onBreak(ctx, cue) {
     const at = squarePos(cue.at);
+    // まず枷の付いた駒へ寄る（盤の印の鎖が見えているうちに）
+    await cameraTo(ctx, at, 450);
+    await ctx.wait(150);
+    hideEquipMark(cue.pieceId);
     // 錆びる：鎖の色が錆の色へ変わり、輪がばらばらに崩れ落ちる
     const ring = chainRing(R, 14);
     ring.position.set(at.x, 0.05, at.z);

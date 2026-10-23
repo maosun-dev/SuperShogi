@@ -4,6 +4,12 @@ import { PAL } from '../../view/palette';
 import { pieceMesh } from '../../view/pieces3d';
 import { lightCap, transient, type FxCtx } from '../kit';
 
+/** 駒に付けていた纏札の印（駒の組の中の組）を隠す。片付けは sync（外れた局面で消える） */
+export function hideEquipMark(pieceId: number): void {
+  const eqGrp = pieceMesh(pieceId)?.children.find((c) => (c as THREE.Group).isGroup);
+  if (eqGrp) eqGrp.visible = false;
+}
+
 /** 金属の火花：at から back の向きへ多めに散る */
 export function sparks(ctx: FxCtx, at: THREE.Vector3, back: THREE.Vector3, n = 110, color: number = PAL.soubiPale): void {
   const geo = new THREE.BufferGeometry(), arr = new Float32Array(n * 3), v: THREE.Vector3[] = [];

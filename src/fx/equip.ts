@@ -4,11 +4,11 @@
 // 韋駄天の2回目の移動（playSecond）・札の力を使う手（playEquipMove：退き陣・天馬・槍）
 import { CARDS } from '../cards';
 import type { Cue } from './plan';
-import { pieceMesh } from '../view/pieces3d';
 import { atHome, cameraHome, cardFly, cutIn, later, showNotice, type FxCtx } from './kit';
 import { brighten, lightsUp } from './stagecraft';
 import { EQUIP_FX } from './cards';
 import { equipMoveKind } from './equipMove';
+import { hideEquipMark } from './cards/parts';
 import type { ArmorCue, BreakCue, EquipCue, MoveCue, SecondCue } from './cards/types';
 
 const NAME_MS = 700;
@@ -57,12 +57,14 @@ export async function playArmor(ctx: FxCtx, cue: ArmorCue): Promise<void> {
 
 /** 纏札が外れた（貫きの槍を使い切った・重りの枷の手番が尽きた）：札ごとの壊れ方のあと、名前で知らせる */
 export async function playEquipBreak(ctx: FxCtx, cue: BreakCue): Promise<void> {
-  // 付けていた印は隠す（片付けは sync。外れた局面で消える）
-  const eqGrp = pieceMesh(cue.pieceId)?.children.find((c) => (c as { isGroup?: boolean }).isGroup);
-  if (eqGrp) eqGrp.visible = false;
+  // 付けていた印を隠すのは札ごとの演出に任せる（寄ってから隠す、など）。片付けは sync（外れた局面で消える）
   const fx = EQUIP_FX[cue.cardId];
-  if (fx?.onBreak) await fx.onBreak(ctx, cue);
-  else await ctx.wait(300);
+  if (fx?.onBreak) {
+    await fx.onBreak(ctx, cue);
+  } else {
+    hideEquipMark(cue.pieceId);
+    await ctx.wait(300);
+  }
   ctx.sync();
   await showNotice(ctx, `${CARDS[cue.cardId].name}が外れました`);
 }
