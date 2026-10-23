@@ -17,12 +17,28 @@ type CardSoundName =
   | 'reel' | 'armor' | 'chain' | 'hoof' | 'flame' | 'tsuke' | 'splash'
   | 'fude' | 'suzu'; // 決着（筆の擦れる音・負けの書き終わりの鈴）
 
+export type MusicName = 'taikyoku';
+
+/** 曲（public/bgm）。ループの位置は秒。gain は効果音に対する大きさ */
+interface Track { path: string; loopStart: number; loopEnd: number; gain: number }
+
+// 対局の曲（2026-10-24、SUNO）：元の曲は 32.010秒→68.875秒（88拍）をくり返す作り。
+// ファイルは「頭〜68.875秒」＋「ループ区間の写し（頭15msを重ねてつないだもの）」＋「写しの頭0.5秒」に作り直してあり、
+// 写しの中（68.875〜105.740秒）だけをくり返すと波形が切れ目なくつながる
+export const TRACKS: Record<MusicName, Track> = {
+  taikyoku: { path: 'bgm/taikyoku.mp3', loopStart: 68.875, loopEnd: 105.74, gain: 0.5 },
+};
+
 export interface Sound {
   unlock(): void;
   play(name: SoundName, opts?: { gain?: number }): void;
   setVolume(v: number): void;
   /** 音が出せる状態か（AudioContext が running）。解錠のきっかけの登録を外してよいかの判断に使う */
   running(): boolean;
+  /** 流す曲を決める（null で止める）。音が出せるようになるまでは待ち、出せるようになったら流す */
+  music(name: MusicName | null): void;
+  /** 裏へ回ったときに音を止める（戻ったら unlock で再開） */
+  sleep(): void;
 }
 
 /** 音量つまみ（0〜1）→ 本当の大きさ。耳には2乗ぐらいがちょうどよい。範囲外・数でないものは丸める */
@@ -267,7 +283,10 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 
-const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false };
+const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false, music() {}, sleep() {} };
+
+const MUSIC_FADE_IN = 1.2; // 秒
+const MUSIC_FADE_OUT = 0.25; // 時定数（秒）。約1秒で聞こえなくなる
 
 function createSound(): Sound {
   let ctx: Ctx | null = null;
@@ -277,7 +296,78 @@ function createSound(): Sound {
   let volume = 0.7;
   try { volume = loadSettings(safeStore()).volume; } catch { /* 既定の音量のまま */ }
 
+  // 曲：wanted＝流したい曲、playing＝いま鳴らしている曲。読み込みは1曲1回だけ
+  let wanted: MusicName | null = null;
+  let playing: { name: MusicName; src: AudioBufferSourceNode; gain: GainNode } | null = null;
+  const buffers = new Map<MusicName, Promise<AudioBuffer | null>>();
+
+  function load(c: Ctx, name: MusicName): Promise<AudioBuffer | null> {
+    let p = buffers.get(name);
+    if (!p) {
+      p = fetch(`${import.meta.env.BASE_URL}${TRACKS[name].path}`)
+        .then((r) => { if (!r.ok) throw new Error(`曲を読めませんでした（${r.status}）`); return r.arrayBuffer(); })
+        .then((b) => c.decodeAudioData(b))
+        .catch((e: unknown) => { console.error(`曲を使えませんでした（${name}）`, e); return null; });
+      buffers.set(name, p);
+    }
+    return p;
+  }
+
+  function stopMusic(): void {
+    if (!playing || !ctx) return;
+    const { src, gain } = playing;
+    playing = null;
+    try {
+      const now = ctx.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.setTargetAtTime(0, now, MUSIC_FADE_OUT);
+      src.stop(now + MUSIC_FADE_OUT * 6);
+    } catch { /* 止められなくても進める */ }
+  }
+
+  /** 流したい曲と鳴っている曲を合わせる。音が出せない間は何もしない（出せるようになったら呼び直される） */
+  function syncMusic(): void {
+    try {
+      if (!ctx || !master || failed) return;
+      if (playing && playing.name !== wanted) stopMusic();
+      if (!wanted || playing || ctx.state !== 'running') return;
+      const name = wanted;
+      const c = ctx, out = master;
+      void load(c, name).then((buf) => {
+        try {
+          // 読み終わるまでに曲が変わった・もう鳴っている・音が止まった なら流さない
+          if (!buf || wanted !== name || playing || ctx !== c || c.state !== 'running') return;
+          const t = TRACKS[name];
+          const src = c.createBufferSource();
+          src.buffer = buf;
+          src.loop = true;
+          src.loopStart = t.loopStart;
+          src.loopEnd = Math.min(t.loopEnd, buf.duration);
+          const gain = c.createGain();
+          const now = c.currentTime;
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(t.gain, now + MUSIC_FADE_IN);
+          src.connect(gain).connect(out);
+          src.start(now);
+          playing = { name, src, gain };
+        } catch (e) {
+          console.error(`曲を流せませんでした（${name}）`, e);
+        }
+      });
+    } catch (e) {
+      console.error('曲の切り替えに失敗しました', e);
+    }
+  }
+
   return {
+    music(name) {
+      wanted = name;
+      syncMusic();
+    },
+    sleep() {
+      try { if (ctx && ctx.state === 'running') void ctx.suspend().catch(() => {}); } catch { /* 止められなくても進める */ }
+    },
     unlock() {
       if (failed) return;
       try {
@@ -290,9 +380,12 @@ function createSound(): Sound {
           master.gain.value = volumeToGain(volume);
           master.connect(ctx.destination);
           kit = { ctx, out: master, noise: noiseBuffer(ctx) };
+          // 音が出せるようになったら、待っていた曲を流す
+          ctx.addEventListener('statechange', () => syncMusic());
         }
         // running 以外（suspended と、iOS の interrupted）はどちらも再開を試す
         if (ctx.state !== 'running') void ctx.resume().catch(() => {});
+        else syncMusic();
       } catch (e) {
         failed = true;
         ctx = null; kit = null; master = null;

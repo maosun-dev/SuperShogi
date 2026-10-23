@@ -25,13 +25,18 @@ import { prepareSaves } from './native';
 import { autoMatchParams, fxMatchParams } from './dev';
 import { bannerOn, initAds, setBannerWanted } from './ads';
 import { playSplash } from './splash';
+import { musicFor } from './music';
 
 function start(): void {
   const root = document.getElementById('app');
   if (!root) throw new Error('#app がありません');
   initScreens(root);
   // バナー広告（アプリ版だけ）：対局の外の画面で出し、対局では隠す。広告を動かし始める（initAds）のは起動の画面のあと
-  setScreenHook((name) => setBannerWanted(bannerOn(name)));
+  // 曲：画面に合わせて流す・止める（幕が閉じている間に切り替わる）
+  setScreenHook((name) => {
+    setBannerWanted(bannerOn(name));
+    getSound().music(musicFor(name));
+  });
   // 効果音：音量は設定から。音は最初の操作のあとに鳴らし始める（それまでは無音）。幕の拍子木もここで差し込む
   const settings = loadSettings(safeStore());
   // 舞台（背景と色の決まり）を最初に決める
@@ -52,6 +57,8 @@ function start(): void {
   // 最初の操作で解錠し、裏から戻って止まっていたら付け直す
   armSoundUnlock(sound, window);
   watchResume(sound, window, document);
+  // 裏へ回ったら曲ごと音を止める（戻ったら watchResume が再開する）
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') sound.sleep(); });
   registerScreen('title', () => titleScreen());
   registerScreen('zukan', () => zukanScreen());
   registerScreen('match', (p) => matchScreen(p));

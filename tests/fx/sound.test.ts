@@ -22,6 +22,10 @@ describe('getSound（AudioContext のない Node）', () => {
     expect(() => { s.unlock(); s.play('hyoshigi'); s.setVolume(0.5); }).not.toThrow();
     expect(s.running()).toBe(false);
   });
+  it('曲の出し入れも例外を出さない', () => {
+    const s = getSound();
+    expect(() => { s.music('taikyoku'); s.music(null); s.sleep(); }).not.toThrow();
+  });
   it('駒音の3つも例外を出さない', () => {
     const s = getSound();
     expect(() => { s.play('koma'); s.play('komaHard'); s.play('kaesu'); }).not.toThrow();
