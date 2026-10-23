@@ -95,7 +95,7 @@ function kingOf(s: GameState, side: Side): Square | null {
 
 /**
  * 演出役。cancel() で打ち切ると、流している演出は残りを流さず、共有の舞台（カメラ・盤）にも触れずに終わる。
- * resign(state) は、流している演出を打ち切ってから投了の演出（王が伏せられる → 「負」）を流す。cancel() で途中でも止まる
+ * resign(state) は、流している演出を打ち切ってから投了の演出（王が墨に沈む → 「負」）を流す。cancel() で途中でも止まる
  */
 export interface FxPresenter extends Presenter { cancel(): void; resign(state: GameState): Promise<void> }
 
