@@ -260,15 +260,16 @@ button:focus-visible {
   font-size: 13px;
 }
 .zukan h2 small { font-size: 12px; font-weight: 500; opacity: .7; }
+/* 1種類6枚を横に送らず1行に収める（札選びの札と同じ大きさ） */
 .zukan .row {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 10px 16px 14px;
-  scroll-padding: 16px;
-  scrollbar-width: none; /* はみ出した札が見えていれば横に送れると分かるので、つまみは出さない */
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 12px 14px;
 }
-.zukan .row::-webkit-scrollbar { display: none; }
+.zukan .row .card { --s: .7; }
+@media (max-width: 360px) { .zukan .row .card { --s: .6; } }
 .zukan .pick {
   flex: none;
   background: none;
@@ -992,7 +993,7 @@ input:focus-visible {
   --c: var(--mahou);
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas: "name tally" "cards cards";
+  grid-template-areas: "name tally" "cards note";
   align-items: end;
   gap: 10px 12px;
   padding: 12px 16px 14px;
@@ -1010,11 +1011,13 @@ input:focus-visible {
 /* 衡山の筆の字（見出し・強さの名前）。字の大きさ（1em）を高さにして、横幅は字数なりに伸ばす */
 /* 筆の字は細めなので、題字と同じく字と同じ色の線で少し太らせる（ui.ts の stroke-width） */
 .kouzan { display: block; width: auto; height: 1.22em; overflow: visible; }
-.level-fuda .lv-tally { grid-area: tally; font-size: 14px; font-weight: 800; }
+.level-fuda .lv-tally { grid-area: tally; justify-self: end; font-size: 14px; font-weight: 800; }
 .level-fuda .lv-cards { grid-area: cards; display: flex; flex-wrap: wrap; gap: 6px; }
+/* 強さの目安：札の右の空きに小さく（札の高さを増やさない） */
+.level-fuda .lv-note { grid-area: note; font-size: 12px; line-height: 1.45; text-align: right; white-space: nowrap; opacity: .75; }
 .level-fuda .card { cursor: inherit; }
-/* 稽古：稽古場の床の榧の帯の札。強さの3枚と少し間を空け、戦績の代わりに「強さも選べます」 */
-.level-fuda.keiko { --c: var(--kaya); margin-top: 4px; }
+/* 稽古：定式幕の萌葱の帯の札（藍・金・紅の強さと見分ける）。強さの3枚と少し間を空け、戦績の代わりに「強さも選べます」 */
+.level-fuda.keiko { --c: #3E7B45; margin-top: 4px; }
 .level-fuda .lv-none { font-size: 13px; opacity: .6; }
 /* くじの札の裏：墨と榧の斜めの縞に「籤」の印（伏せ札の紅の裏と見分ける） */
 .card-back.kuji {
@@ -1186,8 +1189,9 @@ input:focus-visible {
   font-weight: 800;
 }
 .handi-kind:focus-visible { outline: 2px solid var(--gofun); outline-offset: 2px; }
-.handi-side { flex: 1; min-width: 0; }
-.handi-side button { min-width: 0; padding: 7px 10px; font-size: 14px; }
+/* 共通の .seg（ボタンの幅 96px 以上）より強く書き、残りの幅に2つを等分して収める */
+.seg.handi-side { display: flex; flex: 1; min-width: 0; }
+.seg.handi-side button { flex: 1; min-width: 0; padding: 7px 4px; font-size: 14px; }
 .handi-side button:disabled { opacity: .35; }
 /* 駒落ちなしのときは行ごと消して高さを返す */
 .handi-note { margin-top: 3px; font-size: 12px; opacity: .8; }

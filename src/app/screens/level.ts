@@ -10,6 +10,13 @@ import { el, kujiBacksHtml, pageHead, writeKouzan } from './ui';
 
 const ORDER: Level[] = ['weak', 'normal', 'strong'];
 
+// 強さの目安（どんな人に向いた相手か）
+const LEVEL_NOTE: Record<Level, string> = {
+  weak: '駒の動きを覚えたら',
+  normal: '詰みが分かってきたら',
+  strong: '将棋アプリの級位者に',
+};
+
 export function levelScreen(): Screen {
   return {
     mount(root) {
@@ -21,14 +28,14 @@ export function levelScreen(): Screen {
         const t = tallyText(loadTally(store, lv));
         const b = el('button', `level-fuda ${lv}`);
         b.type = 'button';
-        b.setAttribute('aria-label', `${LEVEL_NAME[lv]}。戦績 ${t}`);
+        b.setAttribute('aria-label', `${LEVEL_NAME[lv]}。${LEVEL_NOTE[lv]}。戦績 ${t}`);
         const name = el('span', 'lv-name');
         writeKouzan(name, LEVEL_NAME[lv]);
         const tally = el('span', 'lv-tally', t);
         const cards = el('span', 'lv-cards');
         cards.setAttribute('aria-hidden', 'true');
         cards.innerHTML = LEVELS[lv].deck.map((id) => cardHtml(id, { size: 'small' })).join(''); // 定数だけでできた文字列
-        b.append(name, tally, cards);
+        b.append(name, tally, cards, el('span', 'lv-note', LEVEL_NOTE[lv]));
         b.addEventListener('click', () => { void showScreen('deck', { level: lv }); });
         list.append(b);
       }
