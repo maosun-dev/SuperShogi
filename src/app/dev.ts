@@ -301,9 +301,12 @@ const PICKS: [string, string][] = [
   ['omori', '纏・重りの枷'], ['tsuranuki', '纏・貫きの槍'], ['idaten', '纏・韋駄天'],
   ['hagane-block', '出番・鎧が守る'], ['spear-break', '出番・槍で跳び越える'], ['omori-break', '出番・枷が外れる'],
   ['equips', '纏札の印を見る'], ['move', '1手・動かす'], ['capture', '1手・取る'], ['promote', '1手・成る'], ['drop', '1手・打つ'],
+  ['check', '決着・王手'], ['win', '決着・勝ち'], ['lose', '決着・負け'], ['draw', '決着・引き分け'], ['resign', '決着・投了'],
 ];
 
-function installFxPicker(): () => void {
+/** 左下の試し口の切り替え。決着のあとの結果画面でも選び直せるよう、一度出したら画面が替わっても残す */
+function installFxPicker(): void {
+  if (document.getElementById('fx-picker')) return;
   const q = new URLSearchParams(location.search);
   const now = q.get('fx') ?? '';
   const i = PICKS.findIndex(([id]) => id === now);
@@ -312,6 +315,7 @@ function installFxPicker(): () => void {
     location.search = q.toString();
   };
   const bar = document.createElement('div');
+  bar.id = 'fx-picker';
   bar.setAttribute('style', [
     'position:fixed', 'left:8px', 'bottom:8px', 'z-index:2000', 'display:flex', 'gap:4px', 'align-items:center',
     'padding:4px', 'border-radius:6px', 'background:rgba(29,26,23,.82)', 'font:13px/1 sans-serif',
@@ -344,13 +348,12 @@ function installFxPicker(): () => void {
   // Space は演出を流すキーなので、選んだあとは選択欄から外す
   bar.addEventListener('click', () => sel.blur());
   document.body.append(bar);
-  return () => bar.remove();
 }
 
 /** Space キーで、試し口の行動を指す。画面の左下に試し口の切り替えも出す。戻り値で外す */
 export function installFxKey(match: Match, submit: (a: Action) => void): () => void {
   if (!import.meta.env.DEV) return () => {};
-  const removePicker = installFxPicker();
+  installFxPicker();
   const scene = fxScene()?.scene ?? 'card';
   const onKey = (e: KeyboardEvent): void => {
     if (e.code !== 'Space' || e.repeat) return;
@@ -367,7 +370,7 @@ export function installFxKey(match: Match, submit: (a: Action) => void): () => v
     if (a) submit(a);
   };
   window.addEventListener('keydown', onKey);
-  return () => { window.removeEventListener('keydown', onKey); removePicker(); };
+  return () => window.removeEventListener('keydown', onKey);
 }
 
 // ---------- 自動対局（?auto=weak|normal|strong。開発中だけ） ----------
