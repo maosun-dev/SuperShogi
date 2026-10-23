@@ -6,3 +6,6 @@ tools/arena/out/
 
 # 作業用（設計の見本など）
 .superpowers/
+
+# 筆文字のフォント（配らない。字の形だけを取り出して使う）
+tools/title/fonts/
