@@ -111,8 +111,8 @@ try {
   const preview = process.argv.find((a) => a.startsWith('--preview='));
   if (preview) writeFileSync(join(preview.slice(10), 'icon-60.png'), render(iconSvg(FAMILY), 60));
 
-  // 起動画面：夜の藍の無地
-  const splashSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732"><rect width="2732" height="2732" fill="${PALS.yoru}"/></svg>`;
+  // 起動画面：盤の木の色の無地（アプリの起動の画面＝画面いっぱいの盤 #splash の地と同じ色。切り替わりでチカッとさせない）
+  const splashSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732"><rect width="2732" height="2732" fill="#D9A95C"/></svg>`;
   const splash = render(splashSvg, 2732);
   for (const name of ['splash-2732x2732.png', 'splash-2732x2732-1.png', 'splash-2732x2732-2.png']) {
     writeFileSync(join(assets, 'Splash.imageset', name), splash);

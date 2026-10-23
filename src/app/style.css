@@ -1529,60 +1529,64 @@ input:focus-visible {
 }
 
 /* ======== 起動時の画面（maosun-dev のしるし。splash.ts） ========
-   夜の藍の地（iPhone の起動の無地と同じ色）に、上から当てた明かりと木の盤。
-   盤は8×4マス。駒は五角形の木の駒で、字はサイトと同じ書体（Dela Gothic One）。いちばん上に重ね、押しても何も起きない */
+   画面いっぱいが将棋盤：真上からのぞき込んだ榧の盤（木目・マス目・星）。色の地は使わない。
+   マス目は画面の真ん中を通るように置き、駒は真ん中の2段に並ぶ。真ん中は明るく、端は少し暗い（盤を照らす明かり）。
+   いちばん上に重ね、押しても何も起きない */
 #splash {
-  --sq: min(10.4vw, 44px);
+  --sq: min(calc(100vw / 9), 64px);   /* マスの横幅（9マスで画面の幅） */
+  --sqh: calc(var(--sq) * 1.1);       /* マスの縦（本物の盤と同じく少し縦長） */
+  --grid: rgba(42, 27, 16, .62);
   position: fixed;
   inset: 0;
   z-index: 2000;
-  display: grid;
-  place-items: center;
-  background:
-    radial-gradient(60% 38% at 50% 46%, rgba(255, 214, 140, .16), transparent 70%),
-    #14213D;
+  overflow: hidden;
+  background: #D9A95C;
   touch-action: none;
 }
 #splash .sp-board {
-  position: relative;
-  width: calc(var(--sq) * 8);
-  height: calc(var(--sq) * 4);
-  border-radius: 6px;
+  position: absolute;
+  inset: -12%;   /* 寄り引きしても端が見えないよう、画面より大きく作る */
   background:
-    linear-gradient(90deg, rgba(42, 27, 16, .55) 1px, transparent 1px) 0 0 / var(--sq) var(--sq),
-    linear-gradient(rgba(42, 27, 16, .55) 1px, transparent 1px) 0 0 / var(--sq) var(--sq),
-    repeating-linear-gradient(90deg, rgba(120, 70, 20, 0) 0 9px, rgba(120, 70, 20, .10) 9px 10px, rgba(120, 70, 20, 0) 10px 23px),
-    linear-gradient(#E9C27A, #D3A255);
-  box-shadow:
-    inset 0 0 0 1px rgba(42, 27, 16, .55),
-    0 0 0 6px #B9853F,
-    0 8px 0 6px #8A5A22,
-    0 22px 40px rgba(0, 0, 0, .55);
+    /* 星（盤の目印の点）：真ん中から3マスずつ離れた4か所 */
+    radial-gradient(circle, var(--grid) 0 3px, transparent 3.6px) calc(50% - var(--sq) * 3) calc(50% - var(--sqh) * 3) / 10px 10px no-repeat,
+    radial-gradient(circle, var(--grid) 0 3px, transparent 3.6px) calc(50% + var(--sq) * 3) calc(50% - var(--sqh) * 3) / 10px 10px no-repeat,
+    radial-gradient(circle, var(--grid) 0 3px, transparent 3.6px) calc(50% - var(--sq) * 3) calc(50% + var(--sqh) * 3) / 10px 10px no-repeat,
+    radial-gradient(circle, var(--grid) 0 3px, transparent 3.6px) calc(50% + var(--sq) * 3) calc(50% + var(--sqh) * 3) / 10px 10px no-repeat,
+    /* 明かり：真ん中が明るく、端へ向かって木が沈む */
+    radial-gradient(70% 55% at 50% 50%, rgba(255, 240, 200, .38), transparent 70%),
+    radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(70, 35, 5, .42)),
+    /* マス目：線が画面の真ん中を通るように敷く（% は絵の大きさを引いた残りに効くので、半マス足す） */
+    linear-gradient(90deg, var(--grid) 1.2px, transparent 1.2px) calc(50% + var(--sq) / 2) calc(50% + var(--sqh) / 2) / var(--sq) var(--sqh),
+    linear-gradient(var(--grid) 1.2px, transparent 1.2px) calc(50% + var(--sq) / 2) calc(50% + var(--sqh) / 2) / var(--sq) var(--sqh),
+    /* 木目：横に流れる細い年輪（feTurbulence を横に引き伸ばす） */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .19' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 .42  0 0 0 0 .25  0 0 0 0 .08  0 0 0 1.1 -.35'/%3E%3C/filter%3E%3Crect width='420' height='420' filter='url(%23g)'/%3E%3C/svg%3E"),
+    linear-gradient(#E8BE74, #D9A95C);
 }
-/* 駒：盤のマス（--col, --row）に置く。木の面は ::before で五角形に切り、影は形に沿わせる（drop-shadow） */
+/* 駒：真ん中の2段（row 0 が上の段、1 が下の段）。col は 0〜5、真ん中に寄せて並べる。
+   木の面は ::before で五角形に切り、影は形に沿わせる（drop-shadow） */
 #splash .sp-koma {
   position: absolute;
-  left: calc(var(--sq) * (var(--col) + 1));
-  top: calc(var(--sq) * (var(--row) + 1));
+  left: calc(50% + var(--sq) * (var(--col) - 3));
+  top: calc(50% + var(--sqh) * (var(--row) - 1));
   width: var(--sq);
-  height: var(--sq);
+  height: var(--sqh);
   display: grid;
   place-items: center;
-  padding-top: calc(var(--sq) * .14);
+  padding-top: calc(var(--sqh) * .16);
   box-sizing: border-box;
   font-family: "Dela Gothic One", sans-serif;
   font-style: normal;
-  font-size: calc(var(--sq) * .56);
+  font-size: calc(var(--sq) * .52);
   line-height: 1;
   opacity: 0;
-  filter: drop-shadow(0 2px 0 #8A5A22) drop-shadow(0 4px 4px rgba(0, 0, 0, .45));
+  filter: drop-shadow(0 2px 0 #9A6A2C) drop-shadow(0 5px 5px rgba(40, 20, 0, .45));
   isolation: isolate;
 }
 #splash .sp-koma::before {
   content: "";
   position: absolute;
-  inset: calc(var(--sq) * .04) calc(var(--sq) * .08) calc(var(--sq) * .02);
+  inset: calc(var(--sqh) * .05) calc(var(--sq) * .07) calc(var(--sqh) * .04);
   z-index: -1;
-  background: linear-gradient(#FBE7B8, #F0CF8A 60%, #E2B65B);
+  background: linear-gradient(#FCEBC2, #F2D392 60%, #E6BC66);
   clip-path: polygon(50% 0, 86% 17%, 100% 100%, 0 100%, 14% 17%);
 }
