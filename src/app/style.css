@@ -463,13 +463,13 @@ button:focus-visible {
 
 /* 盤の場所と案内の帯 */
 .match .board-area { position: relative; flex: 1; min-height: 0; }
-/* 案内は「和紙の短冊」：朱の印で留めた紙が盤の上に垂れ下がる。板やグラデーションでなく、紙と印で見せる。
+/* 案内は「和紙の短冊」：朱の印で留めた紙を、下の駒台（自分の帯）に貼る（盤にはかぶせない）。板やグラデーションでなく、紙と印で見せる。
    紙の地は ::before（ふちを手漉きのように不揃いに切る）、留めの印は ::after。影は紙の形に沿わせる（drop-shadow） */
 .match .prompt {
   position: absolute;
   left: 50%;
-  top: 6px;
-  z-index: 2;
+  top: 10px;
+  z-index: 5;
   width: max-content;
   max-width: calc(100% - 32px);
   display: flex;

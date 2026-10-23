@@ -85,12 +85,12 @@ export function createHud(root: HTMLElement): Hud {
   foeHands.setAttribute('aria-label', '相手の持ち駒');
   foe.append(foeRow, foeHands);
 
-  // ---- 盤の場所と案内の帯 ----
+  // ---- 盤の場所 ----
   const board = el('div', 'board-area');
+  // 案内の短冊は、盤にかぶらないよう下の駒台（自分の帯）に貼る
   const prompt = el('div', 'prompt');
   prompt.hidden = true;
   prompt.setAttribute('role', 'status');
-  board.append(prompt);
 
   // ---- 下の帯（自分）と手札 ----
   const footer = el('footer', 'mine-area');
@@ -123,7 +123,7 @@ export function createHud(root: HTMLElement): Hud {
   const dCancel = button('cancel', 'やめる');
   dBtns.append(useBtn, dCancel);
   detail.append(dHead, dText, dNote, dBtns);
-  footer.append(detail, me, hand);
+  footer.append(detail, me, hand, prompt);
 
   // ---- 相手の残り札の板 ----
   const rest = el('div', 'rest');
