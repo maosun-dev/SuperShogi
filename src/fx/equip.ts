@@ -4,7 +4,7 @@
 // 韋駄天の2回目の移動（playSecond）・札の力を使う手（playEquipMove：退き陣・天馬・槍）
 import { CARDS } from '../cards';
 import type { Cue } from './plan';
-import { atHome, cameraHome, cardFly, cutIn, later, showNotice, type FxCtx } from './kit';
+import { atHome, cameraHome, cutIn, showNotice, startCardFly, type FxCtx } from './kit';
 import { brighten, lightsUp } from './stagecraft';
 import { EQUIP_FX } from './cards';
 import { equipMoveKind } from './equipMove';
@@ -17,9 +17,9 @@ const NAME_MS = 700;
 export async function playEquip(ctx: FxCtx, cue: EquipCue): Promise<void> {
   const def = CARDS[cue.cardId];
   const fx = EQUIP_FX[cue.cardId];
-  const fly = later(cardFly(ctx, cue.cardId, cue.side === ctx.me ? 'me' : 'foe'));
+  let fly: Promise<void> = Promise.resolve();
   try {
-    await ctx.wait(200);
+    fly = (await startCardFly(ctx, cue.cardId, cue.side)).done;
     if (fx?.pre) await fx.pre(ctx, cue);
     await cutIn(ctx, def.name, `纏・コスト${def.cost}`, 'soubi', fx?.nameMs ?? NAME_MS);
     if (fx) {

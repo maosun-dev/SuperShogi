@@ -8,7 +8,7 @@ import { CARDS } from '../cards';
 import type { Cue } from './plan';
 import { PAL, rgba } from '../view/palette';
 import { ring, squarePos } from '../view/board3d';
-import { animateEl, atHome, cameraHome, cutIn, easeOut, localRect, overlay, transient, type FxCtx } from './kit';
+import { animateEl, atHome, cameraHome, cutIn, easeOut, localRect, overlay, startCardFly, transient, type FxCtx } from './kit';
 import { brighten, lightsUp } from './stagecraft';
 import { TRAP_FX } from './cards';
 import { getSound } from './sound';
@@ -135,9 +135,12 @@ async function flipSlot(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
 export async function playTrapFire(ctx: FxCtx, cue: TrapFireCue): Promise<void> {
   const def = CARDS[cue.cardId];
   const fx = TRAP_FX[cue.cardId];
+  let fly: Promise<void> = Promise.resolve();
   try {
     await flipSlot(ctx, cue);
-    await ctx.wait(80);
+    // 相手の罠は、何の札か読めるように大きく見せてから名前ドンへ
+    if (cue.owner !== ctx.me) fly = (await startCardFly(ctx, cue.cardId, cue.owner)).done;
+    else await ctx.wait(80);
     if (fx?.pre) await fx.pre(ctx, cue);
     await cutIn(ctx, def.name, cue.cardId === 'kagami' ? '無効' : '忍・発動', 'wana', fx?.nameMs ?? 900);
     if (fx) {
@@ -149,5 +152,6 @@ export async function playTrapFire(ctx: FxCtx, cue: TrapFireCue): Promise<void> 
     try { fx?.cleanup?.(ctx, cue); } catch (e) { console.error('忍札の演出の後始末に失敗しました', e); }
     lightsUp(ctx);
     if (!atHome(ctx)) await cameraHome(ctx, 700);
+    await fly;
   }
 }

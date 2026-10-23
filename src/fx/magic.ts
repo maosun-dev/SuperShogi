@@ -5,7 +5,7 @@
 import { CARDS } from '../cards';
 import type { Cue } from './plan';
 import type { Stage } from '../view/stage';
-import { atHome, cameraHome, cardFly, cutIn, later, type FxCtx } from './kit';
+import { atHome, cameraHome, cutIn, startCardFly, type FxCtx } from './kit';
 import { brighten, lightsUp, prepareStagecraft } from './stagecraft';
 import { MAGIC_FX } from './cards';
 
@@ -21,9 +21,9 @@ export function prepareMagic(stage: Stage): void {
 export async function playMagic(ctx: FxCtx, cue: MagicCue): Promise<void> {
   const def = CARDS[cue.cardId];
   const fx = MAGIC_FX[cue.cardId];
-  const fly = later(cardFly(ctx, cue.cardId, cue.side === ctx.me ? 'me' : 'foe'));
+  let fly: Promise<void> = Promise.resolve();
   try {
-    await ctx.wait(200);
+    fly = (await startCardFly(ctx, cue.cardId, cue.side)).done;
     if (fx?.pre) await fx.pre(ctx, cue);
     await cutIn(ctx, def.name, `術・コスト${def.cost}`, 'mahou', fx?.nameMs ?? NAME_MS);
     if (cue.negated) {
