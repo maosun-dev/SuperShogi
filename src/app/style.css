@@ -50,14 +50,13 @@ body {
   -webkit-user-select: none;
 }
 
+/* 画面はノッチとホームバーをよけた四角に収める。各画面は position:absolute; inset:0 なので、
+   余白（padding）では効かない（絶対配置は余白の内側に入らない）。#app 自体の四隅を内側へ寄せる */
 #app {
   position: fixed;
-  inset: 0;
-  width: 100%;
+  inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   max-width: 430px;
   margin: 0 auto;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  overflow: hidden;
 }
 
 button {
@@ -1313,6 +1312,18 @@ input:focus-visible {
     repeating-linear-gradient(90deg, rgba(120, 70, 20, 0) 0 9px, rgba(120, 70, 20, .10) 9px 10px, rgba(120, 70, 20, 0) 10px 23px, rgba(90, 50, 10, .08) 23px 25px),
     linear-gradient(#E9C27A, #DDAF62 60%, #D3A255);
 }
+/* 駒台の木を、ノッチの帯（上）とホームバーの帯（下）まで伸ばす（そこに字やボタンは置かない） */
+.match .side.foe::before,
+.match .mine-area::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: inherit;
+  pointer-events: none;
+}
+.match .side.foe::before { bottom: 100%; height: env(safe-area-inset-top); }
+.match .mine-area::after { top: 100%; height: env(safe-area-inset-bottom); }
 .match .side.foe {
   border-radius: 0 0 14px 14px;
   box-shadow: inset 0 -3px 0 rgba(255, 240, 200, .6), inset 0 2px 0 rgba(0, 0, 0, .06), 0 2px 0 var(--kaya-leg, #8A5A22), 0 10px 22px rgba(40, 20, 0, .35);
