@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { getSound, volumeToGain } from '../../src/fx/sound';
+import { getSound, musicResponseUsable, volumeToGain } from '../../src/fx/sound';
+
+describe('musicResponseUsable（曲のファイルの返事を使ってよいか）', () => {
+  it('200 と 206（範囲を指定した返事）は使う', () => {
+    expect(musicResponseUsable(200, 1000)).toBe(true);
+    expect(musicResponseUsable(206, 1000)).toBe(true);
+  });
+  it('iPhone アプリで番号のない返事（0）でも、中身があれば使う', () => {
+    expect(musicResponseUsable(0, 1000)).toBe(true);
+  });
+  it('中身が空・404 などは使わない', () => {
+    expect(musicResponseUsable(0, 0)).toBe(false);
+    expect(musicResponseUsable(404, 1000)).toBe(false);
+  });
+});
 
 describe('volumeToGain', () => {
   it('0 は無音、1 は最大', () => {

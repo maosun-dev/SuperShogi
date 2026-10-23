@@ -29,6 +29,12 @@ export const TRACKS: Record<MusicName, Track> = {
   taikyoku: { path: 'bgm/taikyoku.mp3', loopStart: 68.875, loopEnd: 105.74, gain: 0.5 },
 };
 
+/** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
+export function musicResponseUsable(status: number, bytes: number): boolean {
+  if (bytes <= 0) return false;
+  return status === 0 || (status >= 200 && status < 300);
+}
+
 export interface Sound {
   unlock(): void;
   play(name: SoundName, opts?: { gain?: number }): void;
@@ -304,8 +310,14 @@ function createSound(): Sound {
   function load(c: Ctx, name: MusicName): Promise<AudioBuffer | null> {
     let p = buffers.get(name);
     if (!p) {
-      p = fetch(`${import.meta.env.BASE_URL}${TRACKS[name].path}`)
-        .then((r) => { if (!r.ok) throw new Error(`曲を読めませんでした（${r.status}）`); return r.arrayBuffer(); })
+      // iPhone アプリ（Capacitor）は mp3 を範囲の指定なしで頼むと番号のない返事（status 0）を返すので、
+      // ファイル全体を範囲で頼んで 206 を受け取る。番号がなくても中身が届いていれば使う
+      p = fetch(`${import.meta.env.BASE_URL}${TRACKS[name].path}`, { headers: { Range: 'bytes=0-' } })
+        .then(async (r) => {
+          const b = await r.arrayBuffer();
+          if (!musicResponseUsable(r.status, b.byteLength)) throw new Error(`曲を読めませんでした（${r.status}・${b.byteLength}バイト）`);
+          return b;
+        })
         .then((b) => c.decodeAudioData(b))
         .catch((e: unknown) => { console.error(`曲を使えませんでした（${name}）`, e); return null; });
       buffers.set(name, p);
