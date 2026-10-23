@@ -640,6 +640,23 @@ button:focus-visible {
 .match .fx-lines { z-index: 6; opacity: 0; transition: opacity .12s; }
 .match .fx-lines.on { opacity: 1; }
 .match .fx-lines svg { width: 100%; height: 100%; }
+/* ---- 決着の筆文字（src/fx/brush.ts）。暗転した舞台でも読めるよう、字の周りに胡粉のほのかな光 ---- */
+.brush { --brush-sumi: var(--sumi); --brush-usuzumi: #6d665d; --brush-gold: #f0cf6e; display: block; overflow: visible; }
+.brush.ink-kasure, .brush.ink-gold, .brush.ink-sumi, .brush.ink-usuzumi {
+  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--gofun) 70%, transparent)) drop-shadow(0 0 18px color-mix(in srgb, var(--gofun) 45%, transparent));
+}
+.match .fx-brush { z-index: 8; display: grid; place-items: center; }
+.match .fx-brush .brush { height: min(60vmin, 420px); width: auto; max-width: 92%; }
+.match .fx-brush .brush.two { height: min(42vmin, 300px); }
+/* ---- 決着の筆文字（src/fx/brush.ts）。暗転した舞台でも読めるよう、字の周りに胡粉のほのかな光 ---- */
+.brush {
+  --brush-sumi: var(--sumi); --brush-usuzumi: #6d665d; --brush-gold: #f0cf6e;
+  display: block; overflow: visible;
+  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--gofun) 70%, transparent)) drop-shadow(0 0 18px color-mix(in srgb, var(--gofun) 45%, transparent));
+}
+.match .fx-brush { z-index: 8; display: grid; place-items: center; }
+.match .fx-brush .brush { height: min(60vmin, 420px); width: auto; max-width: 92%; }
+.match .fx-brush .brush.two { height: min(42vmin, 300px); }
 .match .fx-cutin { z-index: 7; opacity: 0; overflow: hidden; }
 .match .fx-cutin.on { opacity: 1; }
 .match .fx-cutin.off { opacity: 0; transition: opacity .25s; }
