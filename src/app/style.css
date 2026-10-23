@@ -1303,8 +1303,8 @@ input:focus-visible {
 .match .side.me .who { color: color-mix(in srgb, var(--dai-ink) 60%, transparent); }
 .match .side.me.turn .who { color: var(--dai-ink); }
 .match .side.me.turn .seal { background: var(--wana); border-color: var(--wana); color: var(--gofun); box-shadow: inset 0 0 0 1.5px var(--wana), inset 0 0 0 2.5px var(--gofun); }
-/* 相手の手番：藍の枠に「敵」 */
-.match .side.me.foe-turn .seal { border: 2px solid var(--mahou); color: var(--mahou); }
+/* 相手の手番：藍で塗りつぶした「敵」（自分の手番の朱の「自」と同じ作り） */
+.match .side.me.foe-turn .seal { background: var(--mahou); border-color: var(--mahou); color: var(--gofun); box-shadow: inset 0 0 0 1.5px var(--mahou), inset 0 0 0 2.5px var(--gofun); }
 .match .side.foe .thinking { color: var(--wana-deep); }
 .match :is(.side.foe, .mine-area) .slot {
   border: 0;
