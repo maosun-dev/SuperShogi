@@ -128,7 +128,8 @@ export function deckScreen(params: unknown): Screen {
         void showScreen('reveal', { level, deck: [...deck] });
       });
       acts.append(auto, go);
-      foot.append(el('h2', 'foot-cap', '持ち込み'), strip, handi, handiNote, acts);
+      // 見出しは置かない（下の段を低くして、上の札18枚を横送りなしで見せる）
+      foot.append(strip, handi, handiNote, acts);
 
       function add(id: CardId): void {
         const why = addReason(deck, id);
@@ -175,7 +176,7 @@ export function deckScreen(params: unknown): Screen {
           b.classList.toggle('full', !inDeck && addReason(deck, id) !== null);
         }
         strip.replaceChildren();
-        if (deck.length === 0) strip.append(el('p', 'none', '札なしでも対局できます。上の札を押すと説明が出て、入れられます'));
+        if (deck.length === 0) strip.append(el('p', 'none', '持ち込みの札はまだありません。札なしでも対局できます'));
         deck.forEach((id) => {
           // 持ち込みの札は、押すとすぐ外す（説明は上の一覧から見られる）
           const b = button('chosen', '', () => { remove(id); pickBtns.get(id)?.focus({ preventScroll: true }); });

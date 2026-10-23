@@ -1129,36 +1129,37 @@ input:focus-visible {
   box-shadow: 0 0 0 1.5px var(--gofun), 0 1px 3px rgba(0, 0, 0, .4);
   pointer-events: none;
 }
+/* 下の段は低く詰める（上の札18枚を、iPhone の画面で横にも縦にも送らずに見せるため） */
 .deck-foot {
   flex: none;
-  padding: 8px 16px 14px;
+  padding: 4px 16px 8px;
   border-top: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent);
   background: color-mix(in srgb, var(--yoru-deep) 70%, transparent);
 }
-.deck-foot .foot-cap { padding: 0; }
 .deck-foot .strip {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 62px;
+  min-height: 58px;
   overflow-x: auto;
-  padding: 4px 2px;
+  padding: 6px 2px 2px;
   scrollbar-width: none;
 }
 .deck-foot .strip::-webkit-scrollbar { display: none; }
 .deck-foot .strip .none { font-size: 13px; opacity: .65; }
 .deck-foot .acts { display: flex; gap: 10px; margin-top: 6px; }
+.deck-foot .acts button { padding-block: 10px; }
 .deck-foot .acts .primary { flex: 1; }
 /* 駒落ち：榧の板の札に墨の字。どちらに付けるかは設定と同じ切り替え */
-.handi { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.handi-cap { font-family: var(--font-display); font-size: 17px; color: var(--kaya); }
+.handi { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.handi-cap { flex: none; font-family: var(--font-display); font-size: 17px; color: var(--kaya); }
+/* 「四枚落ち」まで切れずに読める幅を先に取り、残りを自分・相手の切り替えに回す */
 .handi-kind {
   appearance: none;
   -webkit-appearance: none;
-  min-width: 0;
-  flex: 1;
-  max-width: 150px;
-  padding: 7px 28px 7px 12px;
+  flex: none;
+  width: 7.6em;
+  padding: 7px 26px 7px 10px;
   border: 0;
   border-radius: 2px;
   /* 下向きの墨の三角（色は --sumi と同じ値） */
@@ -1172,9 +1173,12 @@ input:focus-visible {
   font-weight: 800;
 }
 .handi-kind:focus-visible { outline: 2px solid var(--gofun); outline-offset: 2px; }
-.handi-side button { min-width: 0; padding: 7px 14px; font-size: 14px; }
+.handi-side { flex: 1; min-width: 0; }
+.handi-side button { min-width: 0; padding: 7px 10px; font-size: 14px; }
 .handi-side button:disabled { opacity: .35; }
-.handi-note { min-height: 1.4em; margin-top: 4px; font-size: 12px; opacity: .8; }
+/* 駒落ちなしのときは行ごと消して高さを返す */
+.handi-note { margin-top: 3px; font-size: 12px; opacity: .8; }
+.handi-note:empty { display: none; }
 .reveal .handi-tag {
   margin-top: 6px;
   font-family: var(--font-display);
