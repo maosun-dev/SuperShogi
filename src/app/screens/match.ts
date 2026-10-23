@@ -85,6 +85,7 @@ export function matchScreen(params: unknown): Screen {
       let st: InputState = { mode: 'idle' };
       let lastMove: Square[] = [];
       let thinking = false;
+      let resigning = false; // 投了の演出を流している（盤と帯の更新・投了の確かめを止める）
 
       // 自動対局は、保存された設定を書き換えずに演出を「短め」にする
       const fx = createPresenter(stage, hud, 'sente', auto ? { fx: 'short' } : undefined);
@@ -96,7 +97,7 @@ export function matchScreen(params: unknown): Screen {
         async present(step) {
           if (disposed) return;
           await fx.present(step); // fx.present は reject しない
-          if (disposed) return;
+          if (disposed || resigning) return;
           try {
             const at = lastSquare(step.events);
             if (at) lastMove = [at];
@@ -200,7 +201,6 @@ export function matchScreen(params: unknown): Screen {
       };
       const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') { hud.hideDetail(); dispatch({ type: 'cancel' }); } };
       // 決着・投了の筆文字を書いている間は、画面のどこを押しても残りを飛ばす（それより前は skipFinale が何もしない）
-      let resigning = false;
       const onSkip = (): void => { if (resigning || m.result()) skipFinale(); };
       box.addEventListener('pointerdown', onSkip);
       host.addEventListener('pointerdown', onDown);
@@ -240,7 +240,7 @@ export function matchScreen(params: unknown): Screen {
       hud.root.querySelector('.side.foe .row')?.prepend(back);
       const closeAsk = (): void => { ask.hidden = true; back.focus(); };
       back.addEventListener('click', () => {
-        if (m.phase() === 'over') return; // 決着済み：もうすぐ結果画面へ移る
+        if (m.phase() === 'over' || resigning) return; // 決着済み・投了中：もうすぐ結果画面へ移る
         ask.hidden = false;
         keep.focus();
       });
