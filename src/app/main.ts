@@ -2,6 +2,7 @@
 import '@fontsource/yuji-boku/400.css';
 import '@fontsource/shippori-mincho-b1/500.css';
 import '@fontsource/shippori-mincho-b1/800.css';
+import '@fontsource/dela-gothic-one/latin-400.css'; // 起動時の画面の字（サイトのロゴと同じ書体。英字だけ）
 import './style.css';
 import { initScreens, registerScreen, showScreen, setClapper, setScreenHook } from './screens';
 import { getSound } from '../fx/sound';
@@ -23,13 +24,13 @@ import { armSoundUnlock, watchResume } from './unlock';
 import { prepareSaves } from './native';
 import { autoMatchParams, fxMatchParams } from './dev';
 import { bannerOn, initAds, setBannerWanted } from './ads';
+import { playSplash } from './splash';
 
 function start(): void {
   const root = document.getElementById('app');
   if (!root) throw new Error('#app がありません');
   initScreens(root);
-  // バナー広告（アプリ版だけ）：対局の外の画面で出し、対局では隠す
-  initAds();
+  // バナー広告（アプリ版だけ）：対局の外の画面で出し、対局では隠す。広告を動かし始める（initAds）のは起動の画面のあと
   setScreenHook((name) => setBannerWanted(bannerOn(name)));
   // 効果音：音量は設定から。音は最初の操作のあとに鳴らし始める（それまでは無音）。幕の拍子木もここで差し込む
   const settings = loadSettings(safeStore());
@@ -61,10 +62,24 @@ function start(): void {
   registerScreen('settings', () => settingsScreen());
   // 開発中に ?fx=<カード> が付いていれば演出の試し口として、?auto=<強さ> なら自動対局として、対局画面から始める
   const dev = fxMatchParams() ?? autoMatchParams();
-  // アプリでは保存を戻し終わってから最初の画面を出す（失敗しても画面は出す）
-  void prepareSaves().catch(() => { /* 戻せなくても始める */ }).then(() => {
+  // 起動の画面（maosun-dev のしるし）。開発の試し口・自動対局では出さない
+  const splash = dev ? null : playSplash(sound, prefersReducedMotion());
+  // アプリでは保存を戻し終わってから最初の画面を出す（失敗しても画面は出す）。
+  // 最初の画面は起動の画面のうしろで先に組み立てておき、打ち終わったら起動の画面を消す。
+  // 追跡の確認と広告は、起動の画面が消えてから（ロゴの上にかぶせない）
+  void prepareSaves().catch(() => { /* 戻せなくても始める */ }).then(async () => {
     sound.setVolume(loadSettings(safeStore()).volume); // 戻した設定の音量を反映
-    return dev ? showScreen('match', dev) : showScreen('title');
+    try {
+      await (dev ? showScreen('match', dev) : showScreen('title'));
+    } finally {
+      // 最初の画面の組み立てに失敗しても、起動の画面は必ず消す（押せないまま止まらないように）
+      if (splash) {
+        await splash.done;
+        await splash.leave();
+      }
+      document.getElementById('boot-cover')?.remove(); // 起動の画面を出さないとき（開発の試し口）の分
+      initAds();
+    }
   });
 }
 
