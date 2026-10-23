@@ -41,6 +41,11 @@ export function writeKouzan(e: HTMLElement, text: string): void {
   e.setAttribute('aria-label', text);
 }
 
+/** 稽古の「くじ」：中身の見えない札の裏を n 枚。s は札の表に対する大きさ（小さな札は .486） */
+export function kujiBacksHtml(n: number, s: number): string {
+  return `<span class="card-back kuji" style="--s:${s}" aria-hidden="true"><i></i></span>`.repeat(n);
+}
+
 /** 画面の上の帯：左上に「戻る」、右に見出し（衡山の字） */
 export function pageHead(title: string, back: ScreenName | (() => void), backParams?: unknown): HTMLElement {
   const head = el('header', 'page-head');

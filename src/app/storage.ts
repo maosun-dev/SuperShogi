@@ -11,6 +11,9 @@ export type Motion = 'auto' | 'full' | 'low'; // auto は端末の「動きを�
 // volume は 0〜1。stage は背景の舞台、motion は背景の動き
 export interface Settings { fx: 'short' | 'long'; volume: number; stage: StageId; motion: Motion }
 export interface Tally { wins: number; losses: number; draws: number }
+// 稽古の相手：強さと、持ち込みの札（決めた並びか、毎局引き直す 'kuji'）
+export interface Keiko { level: Level; deck: CardId[] | 'kuji' }
+export const DEFAULT_KEIKO: Keiko = { level: 'normal', deck: 'kuji' };
 
 export const DEFAULT_SETTINGS: Settings = { fx: 'long', volume: 0.7, stage: 'kabuki', motion: 'auto' };
 
@@ -18,8 +21,9 @@ const KEY_SETTINGS = 'superShogi.settings';
 const KEY_DECK = 'superShogi.deck';
 const KEY_TALLY = 'superShogi.tally';
 const KEY_HANDICAP = 'superShogi.handicap';
+const KEY_KEIKO = 'superShogi.keiko';
 // アプリで消えにくい保存領域にも写す鍵の一覧
-export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP] as const;
+export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP, KEY_KEIKO] as const;
 export const NO_HANDICAP: Handicap = { side: 'sente', kind: 'none' };
 const LEVELS_ALL: Level[] = ['weak', 'normal', 'strong'];
 
@@ -91,6 +95,20 @@ export function loadHandicap(st: KeyValueStore): Handicap {
 
 export function saveHandicap(st: KeyValueStore, h: Handicap): void {
   st.setItem(KEY_HANDICAP, JSON.stringify(h));
+}
+
+// 稽古の相手。壊れていたら既定、今の決まりで組めない札は外す
+export function loadKeiko(st: KeyValueStore): Keiko {
+  const j = readJson(st, KEY_KEIKO);
+  const o = (j && typeof j === 'object' ? j : {}) as Record<string, unknown>;
+  if (o.level !== 'weak' && o.level !== 'normal' && o.level !== 'strong') return { ...DEFAULT_KEIKO };
+  if (o.deck === 'kuji') return { level: o.level, deck: 'kuji' };
+  if (!Array.isArray(o.deck) || !o.deck.every(x => typeof x === 'string')) return { ...DEFAULT_KEIKO };
+  return { level: o.level, deck: sanitizeDeck(o.deck as string[]) };
+}
+
+export function saveKeiko(st: KeyValueStore, k: Keiko): void {
+  st.setItem(KEY_KEIKO, JSON.stringify(k));
 }
 
 function count(v: unknown): number {

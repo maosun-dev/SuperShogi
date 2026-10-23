@@ -51,6 +51,14 @@ describe('対局の進行役', () => {
     expect(m.view().turn).toBe('sente');
   });
 
+  it('稽古で決めた相手の札があれば、強さごとの札の代わりにそれを持つ', () => {
+    const { presenter } = fakePresenter();
+    const m = createMatch({ level: 'strong', humanDeck: [], foeDeck: ['rakurai'], cpu: pickingCpu(), presenter, seed: 1 });
+    expect(m.view().players.gote.cards).toHaveLength(1);
+    const n = createMatch({ level: 'strong', humanDeck: [], foeDeck: [], cpu: pickingCpu(), presenter, seed: 1 });
+    expect(n.view().players.gote.cards).toHaveLength(0);
+  });
+
   it('人間の手のあと、CPU の手まで演出してから人間の手番に戻る', async () => {
     const { steps, presenter } = fakePresenter();
     const cpu = pickingCpu();

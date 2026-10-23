@@ -984,8 +984,8 @@ input:focus-visible {
 .level-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 14px 16px 24px;
+  gap: 10px;
+  padding: 10px 16px 12px;
 }
 .level-fuda {
   --c: var(--mahou);
@@ -1012,6 +1012,23 @@ input:focus-visible {
 .level-fuda .lv-tally { grid-area: tally; font-size: 14px; font-weight: 800; }
 .level-fuda .lv-cards { grid-area: cards; display: flex; flex-wrap: wrap; gap: 6px; }
 .level-fuda .card { cursor: inherit; }
+/* 稽古：稽古場の床の榧の帯の札。強さの3枚と少し間を空け、戦績の代わりに今の相手の強さ、下に一言 */
+.level-fuda.keiko {
+  --c: var(--kaya);
+  grid-template-areas: "name tally" "cards cards" "note note";
+  margin-top: 4px;
+}
+.level-fuda .lv-note { grid-area: note; font-size: 12px; opacity: .7; }
+.level-fuda .lv-none { font-size: 13px; opacity: .6; }
+/* くじの札の裏：墨と榧の斜めの縞に「籤」の印（伏せ札の紅の裏と見分ける） */
+.card-back.kuji {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  background: repeating-linear-gradient(45deg, var(--sumi) 0 calc(3px * var(--s)), var(--kaya) calc(3px * var(--s)) calc(6px * var(--s)));
+}
+.card-back.kuji i { box-shadow: inset 0 0 0 calc(2px * var(--s)) var(--sumi), 0 0 0 calc(2px * var(--s)) var(--sumi); }
+.card-back.kuji i::before { content: "籤"; color: var(--sumi); }
 
 /* ======== カード選び ======== */
 .deckb { overflow-y: hidden; }

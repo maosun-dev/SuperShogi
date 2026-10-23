@@ -1,7 +1,9 @@
 // カード選び：上に残りのコスト（大きな数字）とコストの目盛り10個、中に種類ごとの行、
 // 下に持ち込み中の札の列、駒落ちの選び、「おまかせ」「対局へ」。
 // 上の一覧の札は押すと大きな札と説明が出て、そこで「入れる」「抜く」を選ぶ（図鑑と同じ部品 cardLook）。
-// 下の持ち込みの札は、押すとすぐ外れる
+// 下の持ち込みの札は、押すとすぐ外れる。
+// role が 'foe' のときは稽古の相手の札を組む：駒落ちの代わりに相手の強さ、「おまかせ」の代わりに「くじ」（毎局引き直す）、
+// 「対局へ」の代わりに「次へ」（自分の札選びへ）。稽古の自分の札選び（keiko あり）の「戻る」は相手の札選びへ
 import type { CardId, HandicapKind, Side } from '../../rules/types';
 import { HANDICAP_LABEL } from '../../rules/board';
 import type { CardKind } from '../../cards/types';
@@ -11,14 +13,15 @@ import { KIND_MARK, cardHtml } from '../../view/cardArt';
 import { makeRng } from '../../ai/random';
 import { addReason, autoDeck, deckCost, lookActions } from '../deck';
 import { createCardLook, type CardLook } from './cardLook';
-import { loadDeck, loadHandicap, safeStore, saveDeck, saveHandicap } from '../storage';
-import { costMarks } from '../outcome';
+import { loadDeck, loadHandicap, loadKeiko, safeStore, saveDeck, saveHandicap, saveKeiko } from '../storage';
+import { LEVEL_NAME, costMarks } from '../outcome';
+import { keikoOf, type Keiko } from '../keiko';
 import { showScreen, type Screen } from '../screens';
-import { button, el, pageHead } from './ui';
+import { button, el, kujiBacksHtml, pageHead } from './ui';
 
 const KINDS: CardKind[] = ['magic', 'trap', 'equip'];
 
-export interface DeckParams { level: Level }
+export interface DeckParams { level: Level; role?: 'me' | 'foe'; keiko?: Keiko }
 
 function levelOf(p: unknown): Level {
   const lv = (p as Partial<DeckParams> | undefined)?.level;
@@ -27,13 +30,19 @@ function levelOf(p: unknown): Level {
 
 export function deckScreen(params: unknown): Screen {
   const level = levelOf(params);
+  const foeRole = (params as Partial<DeckParams> | undefined)?.role === 'foe';
+  const keiko = keikoOf((params as Partial<DeckParams> | undefined)?.keiko);
   let look: CardLook | null = null;
   return {
     mount(root) {
       const lk = createCardLook();
       look = lk;
       const store = safeStore();
-      let deck: CardId[] = [...(loadDeck(store) ?? [])];
+      // 相手の札を組むときは、保存してある稽古の相手から始める
+      const saved = foeRole ? loadKeiko(store) : null;
+      let foeLevel: Level = saved?.level ?? level;
+      let kuji = saved?.deck === 'kuji';
+      let deck: CardId[] = saved ? (saved.deck === 'kuji' ? [] : [...saved.deck]) : [...(loadDeck(store) ?? [])];
 
       const box = el('div', 'page deckb');
       box.dataset.screen = 'deck';
@@ -77,11 +86,18 @@ export function deckScreen(params: unknown): Screen {
       const strip = el('div', 'strip');
       strip.setAttribute('aria-label', '持ち込み中の札');
       const acts = el('div', 'acts');
-      const auto = button('ghost', 'おまかせ', () => {
-        deck = autoDeck(makeRng(Date.now()));
-        msg.textContent = 'おまかせで組みました';
-        render();
-      });
+      const auto = foeRole
+        ? button('ghost', 'くじ', () => {
+          kuji = true;
+          deck = [];
+          msg.textContent = 'くじにしました。対局のたびに引き直します';
+          render();
+        })
+        : button('ghost', 'おまかせ', () => {
+          deck = autoDeck(makeRng(Date.now()));
+          msg.textContent = 'おまかせで組みました';
+          render();
+        });
       // ---- 駒落ち：種類（iPhone では回す選び方になる）と、どちらに付けるか ----
       let handicap = loadHandicap(store);
       const handi = el('div', 'handi');
@@ -121,19 +137,46 @@ export function deckScreen(params: unknown): Screen {
       }
       renderHandi();
 
-      const go = button('primary', '対局へ', () => {
-        if (validateDeck(deck) !== null) return; // 札なしでも始められる
-        saveDeck(store, deck);
-        saveHandicap(store, handicap);
-        void showScreen('reveal', { level, deck: [...deck] });
-      });
+      const go = foeRole
+        ? button('primary', '次へ', () => {
+          if (!kuji && validateDeck(deck) !== null) return;
+          const k: Keiko = { level: foeLevel, deck: kuji ? 'kuji' : [...deck] };
+          saveKeiko(store, k);
+          void showScreen('deck', { level: foeLevel, keiko: k });
+        })
+        : button('primary', '対局へ', () => {
+          if (validateDeck(deck) !== null) return; // 札なしでも始められる
+          saveDeck(store, deck);
+          saveHandicap(store, handicap);
+          void showScreen('reveal', { level, deck: [...deck], keiko });
+        });
       acts.append(auto, go);
+
+      // ---- 相手の強さ（相手の札を組むときだけ。駒落ちの段の代わり） ----
+      const lvRow = el('div', 'handi foe-level');
+      const lvCap = el('span', 'handi-cap', '強さ');
+      const lvSeg = el('div', 'seg handi-side');
+      lvSeg.setAttribute('role', 'group');
+      lvSeg.setAttribute('aria-label', '相手の強さ');
+      const lvBtns = (['weak', 'normal', 'strong'] as Level[]).map((lv) => {
+        const b = button('', LEVEL_NAME[lv], () => { foeLevel = lv; renderLevel(); });
+        lvSeg.append(b);
+        return [b, lv] as const;
+      });
+      lvRow.append(lvCap, lvSeg);
+      function renderLevel(): void {
+        for (const [b, lv] of lvBtns) b.setAttribute('aria-pressed', String(lv === foeLevel));
+      }
+      renderLevel();
+
       // 見出しは置かない（下の段を低くして、上の札18枚を横送りなしで見せる）
-      foot.append(strip, handi, handiNote, acts);
+      if (foeRole) foot.append(strip, lvRow, acts);
+      else foot.append(strip, handi, handiNote, acts);
 
       function add(id: CardId): void {
         const why = addReason(deck, id);
         if (why) { msg.textContent = `${CARDS[id].name}は入れられません。${why}`; return; }
+        kuji = false; // 札を選んだら、くじはやめる
         deck.push(id);
         msg.textContent = `${CARDS[id].name}を入れました`;
         render();
@@ -176,7 +219,10 @@ export function deckScreen(params: unknown): Screen {
           b.classList.toggle('full', !inDeck && addReason(deck, id) !== null);
         }
         strip.replaceChildren();
-        if (deck.length === 0) strip.append(el('p', 'none', '持ち込みの札はまだありません。札なしでも対局できます'));
+        if (kuji) {
+          strip.insertAdjacentHTML('beforeend', kujiBacksHtml(3, 0.486)); // 定数だけでできた文字列
+          strip.append(el('p', 'none', '対局のたびに、くじで組みます'));
+        } else if (deck.length === 0) strip.append(el('p', 'none', foeRole ? '相手は札なしで指します。「くじ」なら毎局ちがう札です' : '持ち込みの札はまだありません。札なしでも対局できます'));
         deck.forEach((id) => {
           // 持ち込みの札は、押すとすぐ外す（説明は上の一覧から見られる）
           const b = button('chosen', '', () => { remove(id); pickBtns.get(id)?.focus({ preventScroll: true }); });
@@ -188,7 +234,11 @@ export function deckScreen(params: unknown): Screen {
       }
 
       render();
-      box.append(pageHead('札選び', 'level'), meter, msg, rows, foot, lk.el);
+      // 稽古の自分の札選びは、相手の札選びへ戻る
+      const head = foeRole ? pageHead('相手の札', 'level')
+        : keiko ? pageHead('札選び', 'deck', { level, role: 'foe' })
+        : pageHead('札選び', 'level');
+      box.append(head, meter, msg, rows, foot, lk.el);
       root.append(box);
     },
     unmount() {

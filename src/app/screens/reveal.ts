@@ -1,18 +1,19 @@
 // 対局前の札見せ：上に CPU の持ち込み、下に自分の持ち込みを表向きで並べ、
 // 拍子木と同時に中央で「いざ」の筆文字。1.6 秒で対局へ。タップ（Enter・Space）で飛ばせる。
+// 稽古の「くじ」は、この画面を開くたびに相手の札を引き直す（ここで初めて中身がわかる）。
 import type { CardId } from '../../rules/types';
 import type { Level } from '../../ai/levels';
-import { LEVELS } from '../../ai/levels';
 import { validateDeck } from '../../cards';
 import { cardHtml } from '../../view/cardArt';
 import { getSound } from '../../fx/sound';
-import { LEVEL_NAME } from '../outcome';
+import { makeRng } from '../../ai/random';
+import { drawFoeDeck, foeLabel, keikoOf, type Keiko } from '../keiko';
 import { HANDICAP_LABEL } from '../../rules/board';
 import { loadHandicap, safeStore } from '../storage';
 import { showScreen, type Screen } from '../screens';
 import { el, pageHead } from './ui';
 
-export interface RevealParams { level: Level; deck: CardId[] }
+export interface RevealParams { level: Level; deck: CardId[]; keiko?: Keiko }
 
 const SHOW_MS = 1600; // 札見せの長さ
 const IZA_AT = 260;   // 幕が開ききるころに「いざ」と拍子木
@@ -21,6 +22,8 @@ export function revealScreen(params: unknown): Screen {
   const q = (params ?? {}) as Partial<RevealParams>;
   const level: Level = q.level === 'normal' || q.level === 'strong' ? q.level : 'weak';
   const deck = q.deck && validateDeck(q.deck) === null ? q.deck : [];
+  const keiko = keikoOf(q.keiko);
+  const foeDeck = drawFoeDeck(level, keiko, makeRng(Date.now()));
   let timers: number[] = [];
   let onKey: ((e: KeyboardEvent) => void) | null = null;
   let gone = false;
@@ -29,7 +32,7 @@ export function revealScreen(params: unknown): Screen {
   const go = (): void => {
     if (gone) return;
     gone = true;
-    void showScreen('match', { level, deck });
+    void showScreen('match', { level, deck, keiko, foeDeck });
   };
 
   return {
@@ -58,10 +61,10 @@ export function revealScreen(params: unknown): Screen {
       skip.setAttribute('aria-label', '札見せを飛ばして対局を始める');
       const iza = el('div', 'iza', 'いざ');
       iza.setAttribute('aria-hidden', 'true');
-      skip.append(row(`相手（${LEVEL_NAME[level]}）の持ち込み`, LEVELS[level].deck, 'foe'), iza, row('自分の持ち込み', deck, 'me'));
+      skip.append(row(`相手（${foeLabel(level, keiko)}）の持ち込み`, foeDeck, 'foe'), iza, row('自分の持ち込み', deck, 'me'));
       skip.addEventListener('click', go);
 
-      box.append(pageHead('札見せ', () => { gone = true; void showScreen('deck', { level }); }), skip);
+      box.append(pageHead('札見せ', () => { gone = true; void showScreen('deck', { level, keiko }); }), skip);
       root.append(box);
 
       onKey = (e) => {

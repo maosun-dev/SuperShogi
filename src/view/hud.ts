@@ -9,7 +9,7 @@ type HudEvent = 'hand' | 'card' | 'use' | 'promote' | 'pick' | 'stop' | 'cancel'
 
 export interface Hud {
   /** 帯・駒台・伏せ札・手札を描き直す。usable は今使えるカードの uid（なければ全部使えない扱い） */
-  render(view: GameState, me: Side, opts: { thinking: boolean; level: Level; usable?: Set<number> }): void;
+  render(view: GameState, me: Side, opts: { thinking: boolean; level: Level; keiko?: boolean; usable?: Set<number> }): void;
   setPrompt(text: string | null, opts?: { stop?: boolean; choices?: HandKind[] }): void;
   askPromote(): void;          // 成る／成らないの2つのボタン
   on(ev: HudEvent, fn: (arg?: unknown) => void): void;
@@ -256,7 +256,7 @@ export function createHud(root: HTMLElement): Hud {
       const prev = last && last.me === side ? last.view : null;
       last = { view, me: side };
       const foeSide: Side = side === 'sente' ? 'gote' : 'sente';
-      foeName.textContent = `CPU・${LEVEL_LABEL[opts.level]}`;
+      foeName.textContent = `CPU・${opts.keiko ? '稽古・' : ''}${LEVEL_LABEL[opts.level]}`;
       thinking.textContent = opts.thinking ? '考え中' : '';
       const myTurn = view.turn === side && !opts.thinking && !view.result;
       meTurn.textContent = myTurn ? 'あなたの手番' : '相手の手番';

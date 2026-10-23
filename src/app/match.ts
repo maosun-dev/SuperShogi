@@ -28,12 +28,13 @@ const CPU: Side = 'gote';
 
 export function createMatch(opts: {
   level: Level; humanDeck: CardId[]; cpu: CpuClient; presenter: Presenter;
+  foeDeck?: CardId[];   // 稽古で決めた相手の持ち込み。なければ強さごとの札
   onOver?(r: Result): void; seed?: number;
   handicap?: Handicap;  // 駒落ち。駒を落とした側が先に指す
   initial?: GameState; // テスト専用：本当の局面を差し込む口。通常は使わない
 }): Match {
   let real: GameState = opts.initial
-    ?? createGame({ sente: opts.humanDeck, gote: LEVELS[opts.level].deck }, { handicap: opts.handicap });
+    ?? createGame({ sente: opts.humanDeck, gote: opts.foeDeck ?? LEVELS[opts.level].deck }, { handicap: opts.handicap });
   let phase: MatchPhase = real.turn === HUMAN ? 'human' : 'cpu';
   const rng = makeRng(opts.seed ?? Date.now());
 

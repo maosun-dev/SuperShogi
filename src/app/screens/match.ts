@@ -2,6 +2,7 @@
 import type { CardId, GameEvent, GameState, HandKind, Result, Square } from '../../rules/types';
 import type { Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
+import { keikoOf, type Keiko } from '../keiko';
 import { createMatch, type Match, type Presenter } from '../match';
 import { createBrowserCpu } from '../cpu';
 import { liftedSquare, reduceInput, type InputEvent, type InputState } from '../../view/input';
@@ -21,6 +22,8 @@ import { button, el } from './ui';
 export interface MatchParams {
   level: Level;
   deck: CardId[];
+  keiko?: Keiko;       // 稽古の対局（戦績に数えない）
+  foeDeck?: CardId[];  // 稽古で札見せのときに決めた相手の持ち込み
   initial?: GameState; // 開発用：本当の局面を差し込む（演出の試し口 ?fx=）。通常は使わない
   fxKey?: boolean;     // 開発用：Space キーでカードを使う
   auto?: boolean;      // 開発用：人間側も CPU が指す自動対局（?auto=）。演出は短め・戦績に数えない
@@ -32,14 +35,17 @@ function paramsOf(p: unknown): MatchParams {
   const q = (p ?? {}) as Partial<MatchParams>;
   const level: Level = q.level ?? 'weak';
   const deck = q.deck ?? [];
+  const keiko = keikoOf(q.keiko);
+  // 相手の札が決まりに合わなければ、強さごとの札にする
+  const foeDeck = keiko && q.foeDeck && validateDeck(q.foeDeck) === null ? q.foeDeck : undefined;
   const bad = validateDeck(deck);
   if (bad) {
     console.error(`持ち込みが正しくないのでカードなしで始めます：${bad}`);
-    return { level, deck: [] };
+    return { level, deck: [], keiko, foeDeck };
   }
   // 開発用の口は開発中だけ通す
-  if (import.meta.env.DEV) return { level, deck, initial: q.initial, fxKey: q.fxKey, auto: q.auto };
-  return { level, deck };
+  if (import.meta.env.DEV) return { level, deck, keiko, foeDeck, initial: q.initial, fxKey: q.fxKey, auto: q.auto };
+  return { level, deck, keiko, foeDeck };
 }
 
 /** 出来事から、最後に動いた駒のマスを出す（なければ null） */
@@ -52,7 +58,7 @@ function lastSquare(events: GameEvent[]): Square | null {
 }
 
 export function matchScreen(params: unknown): Screen {
-  const { level, deck, initial, fxKey, auto } = paramsOf(params);
+  const { level, deck, keiko, foeDeck, initial, fxKey, auto } = paramsOf(params);
   let match: Match | null = null;
   let cpu: ReturnType<typeof createBrowserCpu> | null = null;
   let autoCpu: ReturnType<typeof createBrowserCpu> | null = null; // 自動対局で先手を指す2つ目の CPU
@@ -64,7 +70,7 @@ export function matchScreen(params: unknown): Screen {
   const record = (o: Outcome): void => {
     if (recorded) return;
     recorded = true;
-    if (auto) return; // 自動対局は戦績に数えない
+    if (auto || keiko) return; // 自動対局と稽古は戦績に数えない
     recordResult(safeStore(), level, o);
   };
 
@@ -103,7 +109,7 @@ export function matchScreen(params: unknown): Screen {
             if (at) lastMove = [at];
             setHighlights(stage, [], lastMove);
             thinking = step.actor === 'sente' && !step.after.result;
-            hud.render(step.after, 'sente', { thinking, level });
+            hud.render(step.after, 'sente', { thinking, level, keiko: !!keiko });
           } catch (e) {
             console.error('演出のあとの画面の更新に失敗しました', e);
           }
@@ -112,10 +118,10 @@ export function matchScreen(params: unknown): Screen {
 
       cpu = createBrowserCpu();
       const m = createMatch({
-        level, humanDeck: deck, cpu, presenter, initial, handicap: loadHandicap(safeStore()),
+        level, humanDeck: deck, foeDeck, cpu, presenter, initial, handicap: loadHandicap(safeStore()),
         onOver: (result: Result) => {
           record(outcomeOf(result));
-          void showScreen('result', { result, level, deck });
+          void showScreen('result', { result, level, deck, keiko });
         },
       });
       match = m;
@@ -126,7 +132,7 @@ export function matchScreen(params: unknown): Screen {
         return s;
       };
       const refresh = (): void => {
-        hud.render(m.view(), 'sente', { thinking, level, usable: usable() });
+        hud.render(m.view(), 'sente', { thinking, level, keiko: !!keiko, usable: usable() });
       };
 
       // 入力の状態に合わせて、光るマス・案内の帯・選んでいる札を出す
@@ -256,7 +262,7 @@ export function matchScreen(params: unknown): Screen {
           record(outcomeOf(r));
           m.dispose();
           fx.cancel();
-          void showScreen('result', { result: r, level, deck });
+          void showScreen('result', { result: r, level, deck, keiko });
           return;
         }
         // 投了：負けを記録し、王が伏せられて「負」を書く演出のあと結果画面へ
@@ -266,7 +272,7 @@ export function matchScreen(params: unknown): Screen {
         hud.lock(true);
         void fx.resign(m.view()).then(() => {
           if (disposed) return;
-          void showScreen('result', { result: { winner: 'gote', reason: 'resign' }, level, deck });
+          void showScreen('result', { result: { winner: 'gote', reason: 'resign' }, level, deck, keiko });
         });
       });
       const onAskKey = (e: KeyboardEvent): void => { if (e.key === 'Escape' && !ask.hidden) closeAsk(); };
