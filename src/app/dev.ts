@@ -288,9 +288,66 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
   }
 }
 
-/** Space キーで、試し口の行動を指す。戻り値で外す */
+// 試し口の切り替え（画面の左下）：札や場面を選ぶと、その試し口で開き直す。アドレスを書き換えなくて済むように
+const PICKS: [string, string][] = [
+  ['oshikaeshi', '術・押し返しの風'], ['irekae', '術・入れ替えの術'], ['shoryu', '術・成り上がり'],
+  ['yobimodoshi', '術・呼び戻し'], ['kakuotoshi', '術・格落とし'], ['rakurai', '術・落雷'],
+  ['itetsuku', '忍・凍てつく床'], ['otoshiana', '忍・落とし穴'], ['narifuuji', '忍・成り封じ'],
+  ['kagami', '忍・鏡の結界'], ['aiuchi', '忍・相討ち'], ['migawari', '忍・身代わり'],
+  ['hikijin', '纏・退き陣の旗'], ['tenma', '纏・天馬の蹄'], ['hagane', '纏・鋼の鎧'],
+  ['omori', '纏・重りの枷'], ['tsuranuki', '纏・貫きの槍'], ['idaten', '纏・韋駄天'],
+  ['hagane-block', '出番・鎧が守る'], ['spear-break', '出番・槍で跳び越える'], ['omori-break', '出番・枷が外れる'],
+  ['equips', '纏札の印を見る'], ['move', '1手・動かす'], ['capture', '1手・取る'], ['promote', '1手・成る'], ['drop', '1手・打つ'],
+];
+
+function installFxPicker(): () => void {
+  const q = new URLSearchParams(location.search);
+  const now = q.get('fx') ?? '';
+  const i = PICKS.findIndex(([id]) => id === now);
+  const go = (id: string): void => {
+    q.set('fx', id);
+    location.search = q.toString();
+  };
+  const bar = document.createElement('div');
+  bar.setAttribute('style', [
+    'position:fixed', 'left:8px', 'bottom:8px', 'z-index:2000', 'display:flex', 'gap:4px', 'align-items:center',
+    'padding:4px', 'border-radius:6px', 'background:rgba(29,26,23,.82)', 'font:13px/1 sans-serif',
+  ].join(';'));
+  const btn = (label: string, title: string, onClick: () => void): HTMLButtonElement => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.title = title;
+    b.setAttribute('style', 'min-width:32px;height:30px;border:0;border-radius:4px;background:#eee8dc;color:#1d1a17;font-weight:700');
+    b.addEventListener('click', onClick);
+    return b;
+  };
+  const sel = document.createElement('select');
+  sel.setAttribute('aria-label', '試し口');
+  sel.setAttribute('style', 'height:30px;max-width:150px;border:0;border-radius:4px;background:#eee8dc;color:#1d1a17');
+  for (const [id, name] of PICKS) {
+    const o = document.createElement('option');
+    o.value = id; o.textContent = name; o.selected = id === now;
+    sel.append(o);
+  }
+  sel.addEventListener('change', () => go(sel.value));
+  const n = PICKS.length;
+  bar.append(
+    btn('◀', '前の札', () => go(PICKS[(Math.max(0, i) - 1 + n) % n][0])),
+    sel,
+    btn('▶', '次の札', () => go(PICKS[(i + 1) % n][0])),
+    btn('もう一度', '同じ札をもう一度', () => location.reload()),
+  );
+  // Space は演出を流すキーなので、選んだあとは選択欄から外す
+  bar.addEventListener('click', () => sel.blur());
+  document.body.append(bar);
+  return () => bar.remove();
+}
+
+/** Space キーで、試し口の行動を指す。画面の左下に試し口の切り替えも出す。戻り値で外す */
 export function installFxKey(match: Match, submit: (a: Action) => void): () => void {
   if (!import.meta.env.DEV) return () => {};
+  const removePicker = installFxPicker();
   const scene = fxScene()?.scene ?? 'card';
   const onKey = (e: KeyboardEvent): void => {
     if (e.code !== 'Space' || e.repeat) return;
@@ -300,7 +357,7 @@ export function installFxKey(match: Match, submit: (a: Action) => void): () => v
     if (a) submit(a);
   };
   window.addEventListener('keydown', onKey);
-  return () => window.removeEventListener('keydown', onKey);
+  return () => { window.removeEventListener('keydown', onKey); removePicker(); };
 }
 
 // ---------- 自動対局（?auto=weak|normal|strong。開発中だけ） ----------
