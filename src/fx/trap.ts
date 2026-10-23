@@ -8,7 +8,7 @@ import { CARDS } from '../cards';
 import type { Cue } from './plan';
 import { PAL, rgba } from '../view/palette';
 import { ring, squarePos } from '../view/board3d';
-import { animateEl, atHome, cameraHome, cutIn, easeOut, localRect, overlay, startCardFly, transient, type FxCtx } from './kit';
+import { animateEl, atHome, cameraHome, cardBackToSlot, cutIn, easeOut, localRect, startCardFly, takeFromHand, transient, type FxCtx } from './kit';
 import { brighten, lightsUp } from './stagecraft';
 import { TRAP_FX } from './cards';
 import { getSound } from './sound';
@@ -40,44 +40,19 @@ function run(ctx: FxCtx, el: HTMLElement, kf: Keyframe[], ms: number, easing: st
   return animateEl(ctx, el, kf, { duration: Math.max(1, ms), easing });
 }
 
-/** 罠を伏せる：静かに。裏向きの札が伏せ札の枠へ滑り込む（300ms）。自分の落とし穴ならマスに罠の印 */
+/**
+ * 罠を伏せる：札の裏を盤の上で大きく見せてから、伏せ札の枠へ小さくなって滑り込む（中身は見せない）。
+ * 自分の札は手札から、相手の札は上から出る。自分の落とし穴ならマスに罠の印
+ */
 export async function playTrapSet(ctx: FxCtx, cue: TrapSetCue): Promise<void> {
   const owner = cue.side;
   const n = ctx.before.traps.filter((t) => t.owner === owner).length;
   const slot = slotOf(ctx, owner, Math.min(n, 2));
   if (!slot) return;
-  const root = ctx.hud.root;
   const to = localRect(ctx, slot);
   const mine = owner === ctx.me && cue.cardId !== null;
-  // 出どころ：自分は手札のその札、相手は上の帯の上から
-  let src: HTMLElement | undefined;
-  if (mine) {
-    src = [...root.querySelectorAll<HTMLElement>('.hand .card')]
-      .find((c) => c.dataset.card === cue.cardId && c.style.visibility !== 'hidden');
-  }
-  let dx: number, dy: number, k: number;
-  if (src) {
-    const r = localRect(ctx, src);
-    dx = r.x + r.w / 2 - (to.x + to.w / 2);
-    dy = r.y + r.h / 2 - (to.y + to.h / 2);
-    k = r.w / Math.max(1, to.w);
-    src.style.visibility = 'hidden'; // 後始末の clearLayers で戻し、描き直しで消える
-  } else {
-    dx = 0; dy = -70; k = 2.4;
-  }
-  const back = document.createElement('i');
-  back.className = 'slot back';
-  Object.assign(back.style, { left: `${to.x}px`, top: `${to.y}px`, width: `${to.w}px`, height: `${to.h}px`, boxSizing: 'border-box' });
-  overlay(ctx).append(back);
-  try {
-    await run(ctx, back, [
-      { transform: `translate(${dx}px, ${dy}px) scale(${k}) rotate(-14deg)`, opacity: src ? 1 : 0 },
-      { offset: 0.35, opacity: 1 },
-      { transform: 'none', opacity: 1 },
-    ], 300 * ctx.timing.scale, 'cubic-bezier(.2,.8,.25,1)');
-  } finally {
-    back.remove();
-  }
+  const from = mine && cue.cardId ? takeFromHand(ctx, cue.cardId) : null;
+  await cardBackToSlot(ctx, from, to);
   // 枠を埋めた見た目にしておく（このあとの描き直しで正しく描き直される）
   // aria-label も帯の描き直し（hud.ts）と同じ言い方にそろえる
   if (mine && cue.cardId) {

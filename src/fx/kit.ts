@@ -236,88 +236,109 @@ export function localRect(ctx: FxCtx, el: Element): { x: number; y: number; w: n
   return { x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height };
 }
 
-/** 相手の札を大きく見せておく時間。読めるように、演出の長さの設定では縮めない */
-export const FOE_CARD_IN_MS = 280;
-export const FOE_CARD_SHOW_MS = 1200;
-const FOE_CARD_OUT_MS = 380;
+/** 使った札・伏せる札を盤の上で大きく見せておく時間。読めるように、演出の長さの設定では縮めない */
+export const CARD_IN_MS = 280;
+export const CARD_SHOW_MS = 1200;
+const CARD_OUT_MS = 380;
+/** 見せるときの札の大きさ（縦横の倍率） */
+const SHOW_SCALE = 1.9;
 
 /**
  * 札が飛ぶのを始め、名前ドンへ進んでよいところまで待つ（飛び去るのは裏で続く。戻り値の done を最後に await する）。
- * 相手の札は、大きく見せ終わるまで待つ（一瞬で消えると何の札か読めないため）
+ * 自分の札も相手の札も、盤の上で大きく見せ終わるまで待つ（一瞬で消えると何の札か読めないため）
  */
 export async function startCardFly(ctx: FxCtx, cardId: CardId, side: Side): Promise<{ done: Promise<void> }> {
-  const foe = side !== ctx.me;
-  const fly = later(cardFly(ctx, cardId, foe ? 'foe' : 'me'));
-  if (foe) await ctx.tweenRaw(FOE_CARD_IN_MS + FOE_CARD_SHOW_MS, () => {});
-  else await ctx.wait(200);
+  const fly = later(cardFly(ctx, cardId, side === ctx.me ? 'me' : 'foe'));
+  await ctx.tweenRaw(CARD_IN_MS + CARD_SHOW_MS, () => {});
   return { done: fly };
 }
 
-/** 相手の札：上から落ちてきて止まり、見せたあと下へ飛び去る（区切りごとに緩急を付ける） */
-function foeKeyframes(peak: number): Keyframe[] {
-  const T = FOE_CARD_IN_MS + FOE_CARD_SHOW_MS + FOE_CARD_OUT_MS;
-  const shown = 'translateY(0) scale(1) rotate(-2deg)';
+/**
+ * 札（表でも裏でも）を盤の上の真ん中に、SHOW_SCALE 倍の大きさで置く。el は札の大きさ（--s で伸びる）の要素。
+ * from があれば、その四角から飛んでくる（手札の札など）。なければ上から落ちてくる
+ */
+function placeShown(ctx: FxCtx, el: HTMLElement, from: { x: number; y: number; w: number; h: number } | null): Keyframe {
+  el.style.setProperty('--s', String(SHOW_SCALE));
+  const b = localRect(ctx, ctx.hud.board);
+  const w = 74 * SHOW_SCALE, h = 112 * SHOW_SCALE;
+  const x = b.x + b.w / 2 - w / 2, y = b.y + b.h * 0.45 - h / 2;
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  if (!from) return { transform: 'translate(0, -140px) scale(.5) rotate(10deg)', opacity: 0 };
+  // 出どころの四角の真ん中・大きさから始める（拡大の基点は札の真ん中）
+  const dx = from.x + from.w / 2 - (x + w / 2), dy = from.y + from.h / 2 - (y + h / 2);
+  return { transform: `translate(${dx}px, ${dy}px) scale(${(from.w / w).toFixed(3)}) rotate(0deg)`, opacity: 1 };
+}
+
+/** 出てくる → 止まって見せる → 去る（区切りごとに緩急を付ける）。全体の長さは CARD_IN_MS + CARD_SHOW_MS + CARD_OUT_MS */
+function showKeyframes(enter: Keyframe, exit: Keyframe): Keyframe[] {
+  const T = CARD_IN_MS + CARD_SHOW_MS + CARD_OUT_MS;
+  const shown = 'translate(0, 0) scale(1) rotate(-2deg)';
   return [
-    { transform: 'translateY(-140px) scale(.5) rotate(10deg)', opacity: 0, filter: 'brightness(1)', easing: 'cubic-bezier(.2,.9,.3,1.25)' },
-    { offset: FOE_CARD_IN_MS / T, transform: shown, opacity: 1, filter: 'brightness(1.25)', easing: 'ease-out' },
-    { offset: (FOE_CARD_IN_MS + 200) / T, transform: shown, opacity: 1, filter: 'brightness(1)' },
-    { offset: (FOE_CARD_IN_MS + FOE_CARD_SHOW_MS) / T, transform: shown, opacity: 1, filter: 'brightness(1)', easing: 'cubic-bezier(.5,0,.8,.3)' },
-    { transform: 'translateY(260px) scale(1.2) rotate(-8deg)', opacity: 0, filter: `brightness(${peak})` },
+    { filter: 'brightness(1)', ...enter, easing: 'cubic-bezier(.2,.9,.3,1.25)' },
+    { offset: CARD_IN_MS / T, transform: shown, opacity: 1, filter: 'brightness(1.25)', easing: 'ease-out' },
+    { offset: (CARD_IN_MS + 200) / T, transform: shown, opacity: 1, filter: 'brightness(1)' },
+    { offset: (CARD_IN_MS + CARD_SHOW_MS) / T, transform: shown, opacity: 1, filter: 'brightness(1)', easing: 'cubic-bezier(.5,0,.8,.3)' },
+    exit,
   ];
 }
 
-/** 使った札が飛ぶ。自分は手札から上へ。相手は上の帯から現れ、盤の上で大きく見せてから下へ */
+/** 見せる動きを流して待つ（途中で消されても例外にしない。打ち切られたら FxCancelled） */
+async function playShown(ctx: FxCtx, el: HTMLElement, kf: Keyframe[]): Promise<void> {
+  layers(ctx).fly.append(el);
+  try {
+    await el.animate(kf, { duration: CARD_IN_MS + CARD_SHOW_MS + CARD_OUT_MS, easing: 'linear', fill: 'forwards' }).finished;
+  } catch { /* 途中で消されたときは何もしない */ } finally {
+    el.remove();
+  }
+  if (!ctx.alive()) throw new FxCancelled();
+}
+
+/** 自分の手札にあるその札（まだ隠していないもの）。見つかれば隠して、その四角を返す */
+export function takeFromHand(ctx: FxCtx, cardId: CardId): { x: number; y: number; w: number; h: number } | null {
+  const src = [...ctx.hud.root.querySelectorAll<HTMLElement>('.hand .card')]
+    .find((c) => c.dataset.card === cardId && c.style.visibility !== 'hidden');
+  if (!src) return null;
+  const r = localRect(ctx, src);
+  src.style.visibility = 'hidden'; // 本物は隠す（演出の最後の clearLayers で戻し、描き直しで消える）
+  return r;
+}
+
+/**
+ * 使った札を見せて飛ばす。自分は手札から盤の上へ浮き上がって止まり、上へ飛び去る。
+ * 相手は上から落ちてきて止まり、下へ飛び去る
+ */
 export async function cardFly(ctx: FxCtx, cardId: CardId, from: 'me' | 'foe'): Promise<void> {
-  const L = layers(ctx);
-  const root = ctx.hud.root;
   const wrap = document.createElement('div');
   wrap.innerHTML = cardHtml(cardId); // 定数だけでできた文字列
   const card = wrap.firstElementChild as HTMLElement;
   card.removeAttribute('aria-label');
-  let src: HTMLElement | undefined;
-  let x: number, y: number;
-  if (from === 'me') {
-    src = [...root.querySelectorAll<HTMLElement>('.hand .card')]
-      .find((c) => c.dataset.card === cardId && c.style.visibility !== 'hidden');
-  }
-  if (src) {
-    const r = localRect(ctx, src);
-    x = r.x; y = r.y;
-    src.style.visibility = 'hidden'; // 本物は隠す（演出の最後の clearLayers で戻し、描き直しで消える）
-  } else if (from === 'foe') {
-    // 相手の札は盤の上の真ん中に、字が読める大きさ（縦横 1.9 倍）で出す
-    const S = 1.9;
-    card.style.setProperty('--s', String(S));
-    const b = localRect(ctx, ctx.hud.board);
-    x = b.x + b.w / 2 - (74 * S) / 2;
-    y = b.y + b.h * 0.45 - (112 * S) / 2;
-  } else {
-    // 自分の札が手札に見つからないとき：下の真ん中から
-    const rr = root.getBoundingClientRect();
-    x = rr.width / 2 - 37;
-    y = rr.height - 140;
-  }
-  card.style.left = `${x}px`;
-  card.style.top = `${y}px`;
-  L.fly.append(card);
+  const enter = placeShown(ctx, card, from === 'me' ? takeFromHand(ctx, cardId) : null);
   // 動きを減らす設定では、飛び去る瞬間の白飛びを抑える（ふだんは 3）
   const peak = ctx.timing.flashMax < 0.9 ? 1.4 : 3;
-  const kf: Keyframe[] = from === 'me'
-    ? [
-      { transform: 'none', filter: 'brightness(1)' },
-      { offset: 0.3, transform: 'translateY(-60px) scale(1.25) rotate(-4deg)', filter: 'brightness(1.4)' },
-      { transform: 'translateY(-320px) scale(1.9) rotate(8deg)', opacity: 0, filter: `brightness(${peak})` },
-    ]
-    : foeKeyframes(peak);
-  // 相手の札は見せる時間を縮めない（startCardFly の待ちと同じ長さ）
-  const total = from === 'foe' ? FOE_CARD_IN_MS + FOE_CARD_SHOW_MS + FOE_CARD_OUT_MS : Math.max(1, 520 * ctx.timing.scale);
-  try {
-    const a = card.animate(kf, { duration: total, easing: from === 'foe' ? 'linear' : 'cubic-bezier(.5,0,.8,.3)', fill: 'forwards' });
-    await a.finished;
-  } catch { /* 途中で消されたときは何もしない */ } finally {
-    card.remove();
-  }
-  if (!ctx.alive()) throw new FxCancelled();
+  const exit: Keyframe = from === 'me'
+    ? { transform: 'translate(0, -300px) scale(1.2) rotate(8deg)', opacity: 0, filter: `brightness(${peak})` }
+    : { transform: 'translate(0, 260px) scale(1.2) rotate(-8deg)', opacity: 0, filter: `brightness(${peak})` };
+  await playShown(ctx, card, showKeyframes(enter, exit));
+}
+
+/**
+ * 伏せる札の裏を見せてから、伏せ札の枠 to（root の中の四角）へ小さくなって滑り込む。
+ * 自分の札は手札から、相手の札は上から出る。中身はどちらも見せない
+ */
+export async function cardBackToSlot(
+  ctx: FxCtx, from: { x: number; y: number; w: number; h: number } | null, to: { x: number; y: number; w: number; h: number },
+): Promise<void> {
+  const back = document.createElement('div');
+  back.className = 'card-back';
+  back.setAttribute('aria-hidden', 'true');
+  back.append(document.createElement('i'));
+  const enter = placeShown(ctx, back, from);
+  const x = parseFloat(back.style.left), y = parseFloat(back.style.top);
+  const w = 74 * SHOW_SCALE, h = 112 * SHOW_SCALE;
+  const dx = to.x + to.w / 2 - (x + w / 2), dy = to.y + to.h / 2 - (y + h / 2);
+  const exit: Keyframe = { transform: `translate(${dx}px, ${dy}px) scale(${(to.h / h).toFixed(3)}) rotate(0deg)`, opacity: 1, filter: 'brightness(1)' };
+  await playShown(ctx, back, showKeyframes(enter, exit));
 }
 
 /**
