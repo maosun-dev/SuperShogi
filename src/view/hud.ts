@@ -98,7 +98,8 @@ export function createHud(root: HTMLElement): Hud {
   const meRow = el('div', 'row');
   const meWho = el('div', 'who');
   const meTurn = el('span');
-  meWho.append(el('span', 'seal', '自'), meTurn);
+  const meSeal = el('span', 'seal', '自');
+  meWho.append(meSeal, meTurn);
   const meTraps = el('div', 'traps');
   meTraps.setAttribute('aria-label', '自分の伏せ札');
   meRow.append(meWho, meTraps);
@@ -259,7 +260,11 @@ export function createHud(root: HTMLElement): Hud {
       thinking.textContent = opts.thinking ? '考えています' : '';
       const myTurn = view.turn === side && !opts.thinking && !view.result;
       meTurn.textContent = myTurn ? 'あなたの手番' : '相手の手番';
+      // 判子：自分の手番は朱の「自」、相手の手番は藍の枠の「敵」（決着のあとは「自」のまま）
+      const foeTurn = !myTurn && !view.result;
+      meSeal.textContent = foeTurn ? '敵' : '自';
       me.classList.toggle('turn', myTurn);
+      me.classList.toggle('foe-turn', foeTurn);
       trapSlots(foeTraps, view, foeSide, false);
       trapSlots(meTraps, view, side, true);
       komadai(foeHands, view, foeSide, false, prev);
