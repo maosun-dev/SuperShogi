@@ -1019,15 +1019,16 @@ input:focus-visible {
   gap: 14px;
   padding: 2px 16px 0;
 }
-.cost-meter .left { display: flex; flex-direction: column; align-items: center; min-width: 76px; }
-.cost-meter .cap { font-size: 11px; font-weight: 800; opacity: .8; }
-.cost-meter .num { font-family: var(--font-display); font-size: 52px; line-height: 1; }
-.cost-meter .dots { display: flex; gap: 4px; }
+/* 「残りのコスト」と数字は1行にまとめ、丸の並びもその横に置く（上を低くして札の一覧を広く見せる） */
+.cost-meter .left { display: flex; align-items: baseline; gap: 6px; flex: none; }
+.cost-meter .cap { font-size: 12px; font-weight: 800; opacity: .8; }
+.cost-meter .num { min-width: 1.2em; font-family: var(--font-display); font-size: 30px; line-height: 1; text-align: center; }
+.cost-meter .dots { display: flex; gap: 3px; }
 /* 墨の丸。選んだカードの分は種類の色の判が押される */
 .cost-meter .dots i {
   --c: transparent;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--sumi);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gofun) 30%, transparent);
@@ -1040,7 +1041,8 @@ input:focus-visible {
   box-shadow: inset 0 0 0 2px var(--c), inset 0 0 0 3px var(--gofun);
   transform: rotate(-12deg) scale(1.08);
 }
-.deckb .msg { flex: none; min-height: 22px; padding: 2px 16px; font-size: 13px; font-weight: 800; color: var(--kaya-light); }
+.deckb .msg { flex: none; min-height: 20px; padding: 0 16px 2px; font-size: 12px; font-weight: 800; color: var(--kaya-light); }
+.deckb .page-head { padding: 8px 16px 2px; }
 .deckb .rows { flex: 1; min-height: 0; overflow-y: auto; }
 .deckb .kind-row { --c: var(--mahou); }
 .deckb .kind-row.wana { --c: var(--wana); }
@@ -1107,6 +1109,23 @@ input:focus-visible {
 }
 .deckb .pick:focus-visible, .deckb .chosen:focus-visible { outline: 2px solid var(--kaya); outline-offset: 3px; }
 .deckb .chosen .card { pointer-events: none; }
+/* 持ち込みの札は押すとすぐ外れる。そのしるしに、右上へ墨の丸に胡粉の × を添える */
+.deckb .chosen { position: relative; }
+.deckb .chosen::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    linear-gradient(45deg, transparent 44%, var(--gofun) 44% 56%, transparent 56%) center / 10px 10px no-repeat,
+    linear-gradient(-45deg, transparent 44%, var(--gofun) 44% 56%, transparent 56%) center / 10px 10px no-repeat,
+    var(--sumi);
+  box-shadow: 0 0 0 1.5px var(--gofun), 0 1px 3px rgba(0, 0, 0, .4);
+  pointer-events: none;
+}
 .deck-foot {
   flex: none;
   padding: 8px 16px 14px;

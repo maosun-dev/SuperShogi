@@ -1,6 +1,7 @@
 // カード選び：上に残りのコスト（大きな数字）とコストの目盛り10個、中に種類ごとの行、
 // 下に持ち込み中の札の列、駒落ちの選び、「おまかせ」「対局へ」。
-// どの札も押すと大きな札と説明が出て、そこで「入れる」「抜く」を選ぶ（図鑑と同じ部品 cardLook）
+// 上の一覧の札は押すと大きな札と説明が出て、そこで「入れる」「抜く」を選ぶ（図鑑と同じ部品 cardLook）。
+// 下の持ち込みの札は、押すとすぐ外れる
 import type { CardId, HandicapKind, Side } from '../../rules/types';
 import { HANDICAP_LABEL } from '../../rules/board';
 import type { CardKind } from '../../cards/types';
@@ -176,9 +177,10 @@ export function deckScreen(params: unknown): Screen {
         strip.replaceChildren();
         if (deck.length === 0) strip.append(el('p', 'none', '札なしでも対局できます。上の札を押すと説明が出て、入れられます'));
         deck.forEach((id) => {
-          const b = button('chosen', '', () => openLook(id, b));
+          // 持ち込みの札は、押すとすぐ外す（説明は上の一覧から見られる）
+          const b = button('chosen', '', () => { remove(id); pickBtns.get(id)?.focus({ preventScroll: true }); });
           b.innerHTML = cardHtml(id, { size: 'small' }); // 定数だけでできた文字列
-          b.setAttribute('aria-label', `${CARDS[id].name}の説明を見る（抜ける）`);
+          b.setAttribute('aria-label', `${CARDS[id].name}を外す`);
           strip.append(b);
         });
         go.disabled = validateDeck(deck) !== null;
