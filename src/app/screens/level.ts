@@ -1,5 +1,5 @@
 // 強さ選び：3枚の札「弱い」「ふつう」「強い」を縦に並べる。各札に CPU の持ち込みの小さな札と、その強さの戦績。
-// その下に「稽古」：相手の強さと持ち込みを自分で決める（前回決めた相手を小さく見せる。戦績は数えない）
+// その下に「稽古」：相手の強さと持ち込みを自分で決める（前回決めた札を小さく見せる。戦績は数えない）
 import type { Level } from '../../ai/levels';
 import { LEVELS } from '../../ai/levels';
 import { cardHtml } from '../../view/cardArt';
@@ -41,13 +41,14 @@ export function levelScreen(): Screen {
       kb.setAttribute('aria-label', `稽古。相手の強さと持ち込みを自分で決める。今は${LEVEL_NAME[k.level]}、${kuji ? '札はくじ' : `札${k.deck.length}枚`}`);
       const kName = el('span', 'lv-name');
       writeKouzan(kName, '稽古');
-      const kSub = el('span', 'lv-tally', `相手：${LEVEL_NAME[k.level]}`);
+      const kSub = el('span', 'lv-tally', '強さも選べます');
       const kCards = el('span', 'lv-cards');
       kCards.setAttribute('aria-hidden', 'true');
-      if (k.deck === 'kuji') kCards.innerHTML = kujiBacksHtml(3, 0.486); // 定数だけでできた文字列
+      // くじは枚数が毎局かわるので、札の裏は目印として1枚だけ
+      if (k.deck === 'kuji') kCards.innerHTML = kujiBacksHtml(1, 0.486); // 定数だけでできた文字列
       else if (k.deck.length > 0) kCards.innerHTML = k.deck.map((id) => cardHtml(id, { size: 'small' })).join('');
       else kCards.append(el('span', 'lv-none', '札なし'));
-      kb.append(kName, kSub, kCards, el('span', 'lv-note', '相手の強さと札を、自分で決める'));
+      kb.append(kName, kSub, kCards);
       kb.addEventListener('click', () => { void showScreen('deck', { level: k.level, role: 'foe' }); });
       list.append(kb);
 

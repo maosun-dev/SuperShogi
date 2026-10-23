@@ -220,8 +220,9 @@ export function deckScreen(params: unknown): Screen {
         }
         strip.replaceChildren();
         if (kuji) {
-          strip.insertAdjacentHTML('beforeend', kujiBacksHtml(3, 0.486)); // 定数だけでできた文字列
-          strip.append(el('p', 'none', '対局のたびに、くじで組みます'));
+          // 枚数は毎局かわるので、札の裏は目印として1枚だけ
+          strip.insertAdjacentHTML('beforeend', kujiBacksHtml(1, 0.486)); // 定数だけでできた文字列
+          strip.append(el('p', 'none', '対局のたびに、くじで組みます。札の枚数もかわります'));
         } else if (deck.length === 0) strip.append(el('p', 'none', foeRole ? '相手は札なしで指します。「くじ」なら毎局ちがう札です' : '持ち込みの札はまだありません。札なしでも対局できます'));
         deck.forEach((id) => {
           // 持ち込みの札は、押すとすぐ外す（説明は上の一覧から見られる）

@@ -1012,13 +1012,8 @@ input:focus-visible {
 .level-fuda .lv-tally { grid-area: tally; font-size: 14px; font-weight: 800; }
 .level-fuda .lv-cards { grid-area: cards; display: flex; flex-wrap: wrap; gap: 6px; }
 .level-fuda .card { cursor: inherit; }
-/* 稽古：稽古場の床の榧の帯の札。強さの3枚と少し間を空け、戦績の代わりに今の相手の強さ、下に一言 */
-.level-fuda.keiko {
-  --c: var(--kaya);
-  grid-template-areas: "name tally" "cards cards" "note note";
-  margin-top: 4px;
-}
-.level-fuda .lv-note { grid-area: note; font-size: 12px; opacity: .7; }
+/* 稽古：稽古場の床の榧の帯の札。強さの3枚と少し間を空け、戦績の代わりに「強さも選べます」 */
+.level-fuda.keiko { --c: var(--kaya); margin-top: 4px; }
 .level-fuda .lv-none { font-size: 13px; opacity: .6; }
 /* くじの札の裏：墨と榧の斜めの縞に「籤」の印（伏せ札の紅の裏と見分ける） */
 .card-back.kuji {
