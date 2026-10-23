@@ -14,7 +14,8 @@ export type SoundName =
 /** 札の演出の音（2026-10-23。すべて仮の音。docs/sound-wishlist.md におすすめの差し替え先） */
 type CardSoundName =
   | 'ice' | 'trapdoor' | 'thud' | 'paper' | 'glass' | 'slash' | 'poof'
-  | 'reel' | 'armor' | 'chain' | 'hoof' | 'flame' | 'tsuke' | 'splash';
+  | 'reel' | 'armor' | 'chain' | 'hoof' | 'flame' | 'tsuke' | 'splash'
+  | 'fude' | 'suzu'; // 決着（筆の擦れる音・負けの書き終わりの鈴）
 
 export interface Sound {
   unlock(): void;
@@ -252,6 +253,16 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
       noiseBurst(k, { at: t + d, dur: 0.05, gain: (0.6 + i * 0.2) * g, type: 'bandpass', f0: 1500, q: 3 });
       tone(k, t + d, 200, 0.08, (0.4 + i * 0.15) * g, 120);
     });
+  },
+  // 筆が紙を擦る「サッ」：短く柔らかい雑音（一画ごと。小さめ）
+  fude: (k, t, g) => {
+    noiseBurst(k, { at: t, dur: 0.16, gain: 0.22 * g, type: 'bandpass', f0: 2200, f1: 1200, q: 1.2, attack: 0.03 });
+  },
+  // 鈴：低めの澄んだ響きが長く残る
+  suzu: (k, t, g) => {
+    tone(k, t, 784, 1.8, 0.22 * g);
+    tone(k, t + 0.01, 1176, 1.4, 0.12 * g);
+    tone(k, t + 0.02, 1965, 0.9, 0.06 * g);
   },
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };

@@ -35,3 +35,10 @@ describe('札の演出の仮の音', () => {
     expect(() => { for (const n of names) s.play(n); }).not.toThrow();
   });
 });
+
+describe('決着の仮の音', () => {
+  it('筆の音と鈴も例外を出さない', () => {
+    const s = getSound();
+    expect(() => { s.play('fude'); s.play('suzu'); }).not.toThrow();
+  });
+});

@@ -72,7 +72,7 @@ export function makeCtx(
 }
 
 // ---------- 重ね板（対局画面の root の中に1組だけ作る） ----------
-interface Layers { dim: HTMLElement; lines: HTMLElement; cutin: HTMLElement; fly: HTMLElement; flash: HTMLElement; notice: HTMLElement }
+interface Layers { dim: HTMLElement; lines: HTMLElement; cutin: HTMLElement; brush: HTMLElement; fly: HTMLElement; flash: HTMLElement; notice: HTMLElement }
 const layerOf = new WeakMap<HTMLElement, Layers>();
 
 function layers(ctx: FxCtx): Layers {
@@ -85,7 +85,7 @@ function layers(ctx: FxCtx): Layers {
     d.setAttribute('aria-hidden', 'true');
     return d;
   };
-  const L: Layers = { dim: mk('fx-dim'), lines: mk('fx-lines'), cutin: mk('fx-cutin'), fly: mk('fx-fly'), flash: mk('fx-flash'), notice: mk('fx-notice') };
+  const L: Layers = { dim: mk('fx-dim'), lines: mk('fx-lines'), cutin: mk('fx-cutin'), brush: mk('fx-brush'), fly: mk('fx-fly'), flash: mk('fx-flash'), notice: mk('fx-notice') };
   // 小さな知らせだけは読み上げ対象にする（aria-hidden を外し、丁寧な読み上げにする）
   L.notice.removeAttribute('aria-hidden');
   L.notice.setAttribute('aria-live', 'polite');
@@ -94,7 +94,7 @@ function layers(ctx: FxCtx): Layers {
   L.cutin.innerHTML = '<div class="band"></div>'
     + '<svg class="ink" viewBox="-300 -150 600 300" preserveAspectRatio="xMidYMid meet"></svg>'
     + '<div class="word"></div><div class="sub"></div>';
-  root.append(L.dim, L.lines, L.cutin, L.fly, L.flash, L.notice);
+  root.append(L.dim, L.lines, L.cutin, L.brush, L.fly, L.flash, L.notice);
   layerOf.set(root, L);
   return L;
 }
@@ -106,6 +106,7 @@ export function clearLayers(ctx: FxCtx): void {
   L.dim.style.opacity = '0';
   L.lines.classList.remove('on');
   L.cutin.classList.remove('on', 'off');
+  if (L.brush.dataset.keep !== '1') L.brush.replaceChildren();
   L.fly.replaceChildren();
   L.flash.style.transition = 'none';
   L.flash.style.opacity = '0';
@@ -170,8 +171,9 @@ export function speedLines(ctx: FxCtx, on: boolean): void {
 }
 
 /** 墨しぶき：大きな塊＋飛び散る粒＋垂れ（試作の buildInk） */
-function inkSvg(): string {
-  const k = PALS.sumi;
+/** 墨しぶきの SVG の中身（viewBox -300 -150 600 300）。color で色を替えられる（王手は朱） */
+export function inkSvg(color: string = PALS.sumi): string {
+  const k = color;
   let s = `<path d="M-230 -40 Q-150 -110 -20 -95 Q120 -120 220 -60 Q260 0 210 55 Q90 115 -60 95 Q-210 90 -245 30Z" fill="${k}"/>`;
   for (let i = 0; i < 46; i++) {
     const a = Math.random() * Math.PI * 2, r = 120 + Math.random() * 170;
@@ -218,6 +220,14 @@ export function dim(ctx: FxCtx, opacity: number): void {
 /** 札や駒札を飛ばす重ね板（罠・装備の演出で HTML の物を置くところ） */
 export function overlay(ctx: FxCtx): HTMLElement {
   return layers(ctx).fly;
+}
+
+/**
+ * 決着の筆文字を置く層。dataset.keep を '1' にすると、演出の後始末（clearLayers）で消さない
+ * （書いた字を見せたまま結果画面への幕を引くため。対局画面ごと片付くので次の対局には残らない）
+ */
+export function brushLayer(ctx: FxCtx): HTMLElement {
+  return layers(ctx).brush;
 }
 
 /** root の中での位置（重ね板に置くため） */

@@ -2,7 +2,7 @@
 // しくみ：字の輪郭を clipPath にし、その中に「筆の通り道」（brushGlyphs の strokes）を太い線で描く。
 // 各画の線を stroke-dashoffset で頭から伸ばすと、伸びた所だけ字が見え、一画ずつ書いているように見える。
 // 通り道は輪郭を覆いきれないので、書き終わりに輪郭そのものを重ねて塗り、欠けを残さない。
-// 墨：gold＝墨に金の粉（勝）、kasure＝かすれ（負）、usuzumi＝薄墨（引分）、sumi＝墨（王手）
+// 色：gold＝金泥に金の粉（勝）、kasure＝胡粉のかすれ（負）、usuzumi＝淡い胡粉（引分）、sumi＝墨（王手）
 import { BRUSH_EM, BRUSH_GLYPHS, type BrushChar } from './brushGlyphs';
 
 export type Ink = 'gold' | 'kasure' | 'usuzumi' | 'sumi';
@@ -44,8 +44,8 @@ function inkDefs(defs: SVGDefsElement, ink: Ink, id: string): { paint: string; d
   if (ink === 'kasure') {
     // 横に流れる筋のノイズで紙の白を抜く
     rough.append(
-      node('feTurbulence', { type: 'fractalNoise', baseFrequency: '0.006 0.09', numOctaves: 2, seed: 3, result: 'k' }),
-      node('feColorMatrix', { in: 'k', type: 'matrix', values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -4.2 2.6', result: 'ka' }),
+      node('feTurbulence', { type: 'fractalNoise', baseFrequency: '0.003 0.04', numOctaves: 2, seed: 3, result: 'k' }),
+      node('feColorMatrix', { in: 'k', type: 'matrix', values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -7 5.2', result: 'ka' }),
       node('feComposite', { in: 'd', in2: 'ka', operator: 'in' }),
     );
   }
@@ -54,16 +54,22 @@ function inkDefs(defs: SVGDefsElement, ink: Ink, id: string): { paint: string; d
   if (ink === 'gold') {
     // 金の粉：小さな点を散らした模様
     const p = node('pattern', { id: `${id}-g`, width: 64, height: 64, patternUnits: 'userSpaceOnUse' });
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 6; i++) {
       p.append(node('circle', {
-        cx: (Math.random() * 64).toFixed(1), cy: (Math.random() * 64).toFixed(1), r: (1.5 + Math.random() * 3.5).toFixed(1),
-        fill: 'var(--brush-gold, #e9c46a)', opacity: (0.55 + Math.random() * 0.45).toFixed(2),
+        cx: (Math.random() * 64).toFixed(1), cy: (Math.random() * 64).toFixed(1), r: (2 + Math.random() * 4).toFixed(1),
+        fill: 'var(--brush-gold-dust, #fff1bf)', opacity: (0.7 + Math.random() * 0.3).toFixed(2),
       }));
     }
     defs.append(p);
     dust = `url(#${id}-g)`;
   }
-  const paint = ink === 'usuzumi' ? 'var(--brush-usuzumi, #5b5650)' : 'var(--brush-sumi, #17130f)';
+  // 暗転した舞台で読めるよう、王手（朱のしぶきの上）だけ墨、ほかは明るい色（金泥・胡粉）
+  const paint = {
+    sumi: 'var(--brush-sumi, #17130f)',
+    gold: 'var(--brush-gold, #d9a52e)',
+    kasure: 'var(--brush-gofun, #e4e6ec)',
+    usuzumi: 'var(--brush-usuzumi, #b9b2a6)',
+  }[ink];
   return { paint, dust, filter: `url(#${id}-r)` };
 }
 
