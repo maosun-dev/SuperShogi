@@ -1006,6 +1006,9 @@ input:focus-visible {
 .level-fuda.normal { --c: var(--soubi); }
 .level-fuda.strong { --c: var(--wana); }
 .level-fuda .lv-name { grid-area: name; font-family: var(--font-display); font-size: 34px; line-height: 1; }
+/* 衡山の筆の字（見出し・強さの名前）。字の大きさ（1em）を高さにして、横幅は字数なりに伸ばす */
+/* 筆の字は細めなので、題字と同じく字と同じ色の線で少し太らせる（ui.ts の stroke-width） */
+.kouzan { display: block; width: auto; height: 1.22em; overflow: visible; }
 .level-fuda .lv-tally { grid-area: tally; font-size: 14px; font-weight: 800; }
 .level-fuda .lv-cards { grid-area: cards; display: flex; flex-wrap: wrap; gap: 6px; }
 .level-fuda .card { cursor: inherit; }

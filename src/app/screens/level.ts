@@ -5,7 +5,7 @@ import { cardHtml } from '../../view/cardArt';
 import { loadTally, safeStore } from '../storage';
 import { LEVEL_NAME, tallyText } from '../outcome';
 import { showScreen, type Screen } from '../screens';
-import { el, pageHead } from './ui';
+import { el, pageHead, writeKouzan } from './ui';
 
 const ORDER: Level[] = ['weak', 'normal', 'strong'];
 
@@ -21,7 +21,8 @@ export function levelScreen(): Screen {
         const b = el('button', `level-fuda ${lv}`);
         b.type = 'button';
         b.setAttribute('aria-label', `${LEVEL_NAME[lv]}。戦績 ${t}`);
-        const name = el('span', 'lv-name', LEVEL_NAME[lv]);
+        const name = el('span', 'lv-name');
+        writeKouzan(name, LEVEL_NAME[lv]);
         const tally = el('span', 'lv-tally', t);
         const cards = el('span', 'lv-cards');
         cards.setAttribute('aria-hidden', 'true');
