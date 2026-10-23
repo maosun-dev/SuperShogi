@@ -651,12 +651,11 @@ button:focus-visible {
   filter: drop-shadow(0 0 2px color-mix(in srgb, var(--gofun) 70%, transparent)) drop-shadow(0 0 18px color-mix(in srgb, var(--gofun) 45%, transparent));
 }
 .match .fx-brush { z-index: 8; display: grid; place-items: center; }
-.match .fx-brush .brush { height: min(60vmin, 420px); width: auto; max-width: 92%; }
-.match .fx-brush .brush.two { height: min(42vmin, 300px); }
-/* 王手：朱の墨しぶきの上に「王手」 */
-.match .fx-brush .brush-check { position: relative; display: grid; place-items: center; width: 100%; }
-.match .fx-brush .brush-check .brush { position: relative; height: min(30vmin, 200px); }
-.match .fx-brush .brush-splash { position: absolute; left: 50%; top: 50%; width: min(110vmin, 760px); transform: translate(-50%, -50%); opacity: .9; }
+.match .fx-brush .brush { height: min(80%, 60vmin, 420px); width: auto; max-width: 92%; }
+.match .fx-brush .brush.two { height: min(56%, 42vmin, 300px); }
+/* 王手：墨の字だけ（胡粉のほのかな光で盤の上でも読める） */
+.match .fx-brush .brush-check { display: grid; place-items: center; width: 100%; height: 100%; }
+.match .fx-brush .brush-check .brush { height: min(40%, 26vmin, 170px); }
 .match .fx-cutin { z-index: 7; opacity: 0; overflow: hidden; }
 .match .fx-cutin.on { opacity: 1; }
 .match .fx-cutin.off { opacity: 0; transition: opacity .25s; }
@@ -1179,28 +1178,33 @@ input:focus-visible {
   gap: 12px;
   padding: 16px;
 }
-/* 紅の角判 */
-.hanko {
-  display: grid;
-  place-items: center;
-  width: 156px;
-  height: 156px;
-  margin-bottom: 10px;
-  background: color-mix(in srgb, var(--gofun) 94%, transparent);
-  color: var(--wana);
-  border: 7px solid var(--wana);
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 3px var(--gofun), inset 0 0 0 5px var(--wana);
+/* 決着で書いた筆文字（書き終わりの姿）に、朱の落款を押した一枚 */
+.verdict { position: relative; margin-bottom: 6px; }
+.verdict .brush { height: min(42vh, 60vmin, 320px); width: auto; max-width: 86vw; }
+.verdict .brush.two { height: min(28vh, 40vmin, 220px); }
+/* 落款：朱の地に字を白く抜いた角印（白文印）。2字を縦に */
+.rakkan {
+  position: absolute;
+  right: -6%;
+  bottom: 2%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 5px 4px;
+  background: var(--wana);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gofun) 35%, transparent);
+  color: var(--gofun);
   font-family: var(--font-display);
-  font-size: 104px;
-  line-height: 1;
-  transform: rotate(-6deg);
-  animation: hanko .32s cubic-bezier(.3,1.4,.4,1) both;
+  font-size: 22px;
+  line-height: 1.02;
+  transform: rotate(4deg);
+  animation: rakkan .26s .45s cubic-bezier(.3,1.5,.4,1) both;
 }
-.hanko.two { font-size: 60px; letter-spacing: .02em; }
-@keyframes hanko {
-  from { transform: rotate(-14deg) scale(1.7); opacity: 0; }
-  to { transform: rotate(-6deg) scale(1); opacity: 1; }
+@keyframes rakkan {
+  from { transform: rotate(10deg) scale(1.8); opacity: 0; }
+  70% { transform: rotate(3deg) scale(.94); opacity: 1; }
+  to { transform: rotate(4deg) scale(1); opacity: 1; }
 }
 .result .reason { font-size: 18px; font-weight: 800; }
 .result .vs { font-size: 13px; opacity: .7; }
@@ -1272,7 +1276,7 @@ input:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .reveal .iza { transform: translate(-50%, -50%) rotate(-6deg); }
   .reveal.on .iza { animation: still-fade .2s ease-out forwards; }
-  .hanko { animation: still-fade .2s ease-out both; }
+  .rakkan { animation: still-fade .2s .3s ease-out both; }
   .cost-meter .dots i:is(.mahou, .wana, .soubi) { transform: none; }
 }
 

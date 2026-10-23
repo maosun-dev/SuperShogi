@@ -25,6 +25,7 @@ export type HandicapKind = 'none' | 'kyo' | 'kaku' | 'hisha' | 'hikyo' | 'nimai'
 export interface Handicap { side: Side; kind: HandicapKind }
 export type Result =
   | { winner: Side; reason: 'king-captured' }
+  | { winner: Side; reason: 'resign' } // 投了（ルールは知らない。対局画面が作って結果画面へ渡す）
   | { winner: null; reason: 'repetition' | 'move-limit' };
 
 export interface GameState {

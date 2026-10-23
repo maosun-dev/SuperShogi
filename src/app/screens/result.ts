@@ -1,4 +1,4 @@
-// 結果画面：中央に紅の角判「勝」「負」「引分」（Yuji Boku）、下に理由。
+// 結果画面：中央に決着で書いた筆文字「勝」「負」「引分」（衡山。書き終わりの姿）と、右下に朱の落款（天晴・無念・互角）、下に理由。
 // ボタン「もう一度」（札見せへ）「カードを組み直す」（カード選びへ）、小さく「タイトルへ」。
 // 戦績はここではなく、対局画面の onOver・投了で記録する（二重に数えないため）。
 import type { CardId, Result } from '../../rules/types';
@@ -8,6 +8,9 @@ import { setHighlights } from '../../view/board3d';
 import { LEVEL_NAME, outcomeOf, resultWords } from '../outcome';
 import { showScreen, type Screen } from '../screens';
 import { button, el } from './ui';
+import { brushStill, type Ink } from '../../fx/brush';
+
+const INK: Record<'勝' | '負' | '引分', Ink> = { '勝': 'gold', '負': 'kasure', '引分': 'usuzumi' };
 
 export interface ResultParams { result: Result; level: Level; deck: CardId[] }
 
@@ -26,10 +29,16 @@ export function resultScreen(params: unknown): Screen {
       const stage = getStage();
 
       const center = el('div', 'result-center');
-      const seal = el('div', `hanko${w.seal.length > 1 ? ' two' : ''}`, w.seal);
-      seal.setAttribute('role', 'img');
-      seal.setAttribute('aria-label', w.seal === '引分' ? '引き分け' : w.seal === '勝' ? '勝ち' : '負け');
-      center.append(seal, el('p', 'reason', w.reason), el('p', 'vs', `相手：${LEVEL_NAME[level]}`));
+      // 筆文字に落款を押した一枚
+      const verdict = el('div', 'verdict');
+      verdict.setAttribute('role', 'img');
+      verdict.setAttribute('aria-label', w.seal === '引分' ? '引き分け' : w.seal === '勝' ? '勝ち' : '負け');
+      const word = brushStill(w.seal, INK[w.seal]);
+      if (w.seal.length > 1) word.classList.add('two');
+      const stamp = el('div', 'rakkan');
+      for (const ch of w.stamp) stamp.append(el('span', '', ch));
+      verdict.append(word, stamp);
+      center.append(verdict, el('p', 'reason', w.reason), el('p', 'vs', `相手：${LEVEL_NAME[level]}`));
 
       const acts = el('nav', 'result-acts');
       acts.append(

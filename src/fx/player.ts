@@ -15,7 +15,7 @@ import { playMagic, prepareMagic } from './magic';
 import { resetStagecraft } from './stagecraft';
 import { playTrapFire, playTrapSet } from './trap';
 import { playArmor, playEquip, playEquipBreak, playEquipMove, playSecond } from './equip';
-import { playCheck, playGameOver } from './finale';
+import { playCheck, playGameOver, playResign } from './finale';
 import { playDrop, playMove } from './move';
 
 const SETTLE_MS = 400; // 途中で止まったとき、カメラを普段の視点へ戻す時間
@@ -87,13 +87,23 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
   }
 }
 
-/** 演出役。cancel() で打ち切ると、流している演出は残りを流さず、共有の舞台（カメラ・盤）にも触れずに終わる */
-export interface FxPresenter extends Presenter { cancel(): void }
+/** 自分の王のマス（なければ null） */
+function kingOf(s: GameState, side: Side): Square | null {
+  const i = s.board.findIndex((p) => p?.kind === 'OU' && p.side === side);
+  return i < 0 ? null : { r: Math.floor(i / 9), c: i % 9 };
+}
+
+/**
+ * 演出役。cancel() で打ち切ると、流している演出は残りを流さず、共有の舞台（カメラ・盤）にも触れずに終わる。
+ * resign(state) は、流している演出を打ち切ってから投了の演出（王が伏せられる → 「負」）を流す。cancel() で途中でも止まる
+ */
+export interface FxPresenter extends Presenter { cancel(): void; resign(state: GameState): Promise<void> }
 
 export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 'short' | 'long' }): FxPresenter {
   prepareMagic(stage);
   let cancelled = false;
-  const alive = (): boolean => !cancelled;
+  let resigning = false; // 投了の演出に移った：それまでの演出（present）は打ち切り扱い
+  const alive = (): boolean => !cancelled && !resigning;
   return {
     cancel() {
       if (cancelled) return;
@@ -104,28 +114,46 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 
       try { resetStagecraft(); } catch (e) { console.error('照明を戻せませんでした', e); }
       stage.shake = 0;
     },
+    async resign(state) {
+      if (cancelled || resigning) return;
+      resigning = true;
+      // 流していた演出の物・照明・揺れを片付け、盤を局面どおりに揃えてから始める
+      try { clearTransients(); } catch (e) { console.error('演出の物を片付けられませんでした', e); }
+      try { resetStagecraft(); } catch (e) { console.error('照明を戻せませんでした', e); }
+      stage.shake = 0;
+      let ctx: FxCtx | null = null;
+      try {
+        ctx = makeCtx(stage, hud, currentTiming(opts?.fx), me, state, state, () => !cancelled);
+        clearLayers(ctx);
+        ctx.sync();
+        await playResign(ctx, kingOf(state, me));
+      } catch (e) {
+        if (!cancelled && !(e instanceof FxCancelled)) console.error('投了の演出に失敗しました', e);
+      }
+    },
     async present(step) {
-      if (cancelled) return;
+      if (!alive()) return;
       let ctx: FxCtx | null = null;
       try {
         ctx = makeCtx(stage, hud, currentTiming(opts?.fx), me, step.before, step.after, alive);
         const kingAt = capturedKingAt(step.before, step.events);
         for (const cue of planFx(step.events, step.actor)) {
-          if (cancelled) break;
+          if (!alive()) break;
           try {
             await playCue(ctx, cue, step, kingAt);
           } catch (e) {
-            if (!cancelled && !(e instanceof FxCancelled)) console.error(`演出に失敗しました（${cue.kind}）`, e);
+            if (alive() && !(e instanceof FxCancelled)) console.error(`演出に失敗しました（${cue.kind}）`, e);
           }
         }
       } catch (e) {
-        if (!cancelled) console.error('演出の段取りを作れませんでした', e);
+        if (alive()) console.error('演出の段取りを作れませんでした', e);
       } finally {
         // 後始末：カメラが寄ったままなら戻し（鏡で無効にされた魔法など）、重ね板を消して隠した手札を戻し、
         // 盤を局面どおりに揃える。1つの失敗がほかを止めないよう、それぞれ別に包む
-        if (cancelled) {
-          // 打ち切られた：重ね板（対局画面の中）だけ片付け、カメラと盤は次の画面に任せる
-          if (ctx) { try { clearLayers(ctx); } catch { /* 片付けの失敗は無視 */ } }
+        if (!alive()) {
+          // 打ち切られた：重ね板（対局画面の中）だけ片付け、カメラと盤は次の画面（や投了の演出）に任せる。
+          // 投了の演出が重ね板を使っているときは触らない
+          if (ctx && !resigning) { try { clearLayers(ctx); } catch { /* 片付けの失敗は無視 */ } }
           return;
         }
         if (ctx) {
@@ -133,11 +161,11 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 
             // 王が取られて決着したときは、見得を切ったまま結果画面へ（カメラは戻さない）
             const finale = step.after.result?.winner != null;
             if (!finale && !atHome(ctx)) await cameraHome(ctx, SETTLE_MS);
-          } catch (e) { if (!cancelled) console.error('カメラを戻せませんでした', e); }
+          } catch (e) { if (alive()) console.error('カメラを戻せませんでした', e); }
           try { clearLayers(ctx); } catch (e) { console.error('重ね板を消せませんでした', e); }
         }
-        // カメラを戻している間に打ち切られたら、盤は次の画面に任せる
-        if (!cancelled) {
+        // カメラを戻している間に打ち切られたら、盤は次の画面（や投了の演出）に任せる
+        if (alive()) {
           try { sync(stage, step.after, me); } catch (e) { console.error('盤を揃えられませんでした', e); }
         }
       }

@@ -67,6 +67,7 @@ export function titleView(): GameState {
 // ?fx=win          自分の金が相手の王の前にいる。Space で王を取る
 // ?fx=lose         相手の金が自分の王の前にいる。Space で歩を進め、CPU が王を取る
 // ?fx=draw         手数を上限にしておく。Space で歩を進めると手数の上限で引き分け
+// ?fx=resign       初期配置のまま。Space で投了する（王が伏せられて「負」→ 結果画面）
 // ?fx=itetsuku    相手が 7六 に凍てつく床を伏せた状態。Space で歩がそのマスへ進んで凍る
 // ?fx=aiuchi      相手が相討ちを伏せ、相手の歩が 7六 にいる。Space で自分の歩が取り、取った歩も壊れる
 // ?fx=migawari    相手が身代わりを伏せ、自分の金が相手の王の前にいる。Space で王を取りにいく
@@ -83,10 +84,10 @@ export function titleView(): GameState {
 
 type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw'
   | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'equips' | 'spear-break' | 'omori-break'
-  | 'move' | 'capture' | 'promote' | 'drop';
+  | 'move' | 'capture' | 'promote' | 'drop' | 'resign';
 const SCENES: FxScene[] = [
   'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'equips', 'spear-break', 'omori-break',
-  'move', 'capture', 'promote', 'drop',
+  'move', 'capture', 'promote', 'drop', 'resign',
 ];
 const TRAP_SCENES = ['otoshiana', 'kagami', 'narifuuji', 'itetsuku', 'aiuchi', 'migawari'];
 const PIT: Square = { c: 2, r: 5 };   // 落とし穴を伏せるマス（7六）
@@ -280,6 +281,8 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
       return legal.filter(isMove).find((a) => same(a.to, PROMO) && a.promote);
     case 'drop':
       return legal.find((a) => a.type === 'drop' && a.kind === 'FU' && same(a.to, MEET));
+    case 'resign':
+      return undefined; // Space で投了する（installFxKey）
     case 'move':
     case 'lose':
     case 'draw':
@@ -353,6 +356,13 @@ export function installFxKey(match: Match, submit: (a: Action) => void): () => v
     if (e.code !== 'Space' || e.repeat) return;
     e.preventDefault();
     if (match.phase() !== 'human') return;
+    if (scene === 'resign') {
+      // 「戻る」→「投了する」を押したことにする
+      const btn = (t: string): HTMLButtonElement | undefined => [...document.querySelectorAll<HTMLButtonElement>('.match button')].find((b) => b.textContent === t);
+      btn('戻る')?.click();
+      btn('投了する')?.click();
+      return;
+    }
     const a = pickFxAction(scene, match.view(), match.legal());
     if (a) submit(a);
   };

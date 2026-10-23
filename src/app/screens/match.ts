@@ -11,6 +11,7 @@ import { releaseLift, setLifted, sync } from '../../view/pieces3d';
 import { getSound } from '../../fx/sound';
 import { createHud } from '../../view/hud';
 import { createPresenter } from '../../fx/player';
+import { skipFinale } from '../../fx/finale';
 import { showScreen, type Screen } from '../screens';
 import { installAutoPlay, installFxKey } from '../dev';
 import { loadHandicap, recordResult, safeStore } from '../storage';
@@ -198,6 +199,10 @@ export function matchScreen(params: unknown): Screen {
         if (sq) dispatch({ type: 'square', sq });
       };
       const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') { hud.hideDetail(); dispatch({ type: 'cancel' }); } };
+      // 決着・投了の筆文字を書いている間は、画面のどこを押しても残りを飛ばす（それより前は skipFinale が何もしない）
+      let resigning = false;
+      const onSkip = (): void => { if (resigning || m.result()) skipFinale(); };
+      box.addEventListener('pointerdown', onSkip);
       host.addEventListener('pointerdown', onDown);
       host.addEventListener('pointerup', onUp);
       window.addEventListener('keydown', onKey);
@@ -205,6 +210,7 @@ export function matchScreen(params: unknown): Screen {
         () => host.removeEventListener('pointerdown', onDown),
         () => host.removeEventListener('pointerup', onUp),
         () => window.removeEventListener('keydown', onKey),
+        () => box.removeEventListener('pointerdown', onSkip),
         () => setHighlights(stage, [], []),
         () => setLifted(stage, null),
       ];
@@ -219,7 +225,7 @@ export function matchScreen(params: unknown): Screen {
       ask.hidden = true;
       ask.setAttribute('role', 'alertdialog');
       ask.setAttribute('aria-modal', 'true');
-      const askText = el('p', '', '投了してタイトルへ戻りますか？');
+      const askText = el('p', '', '投了しますか？');
       askText.id = 'resign-text';
       ask.setAttribute('aria-labelledby', 'resign-text');
       const askBox = el('div', 'resign-box');
@@ -243,12 +249,25 @@ export function matchScreen(params: unknown): Screen {
       yes.addEventListener('click', () => {
         if (m.phase() === 'over' || yes.disabled) return;
         yes.disabled = true;
-        // 決着の演出の最中なら本当の結果を、そうでなければ負けを記録する
+        ask.hidden = true;
+        // 決着の演出の最中なら、本当の結果を記録してすぐ結果画面へ
         const r = m.result();
-        record(r ? outcomeOf(r) : 'loss');
+        if (r) {
+          record(outcomeOf(r));
+          m.dispose();
+          fx.cancel();
+          void showScreen('result', { result: r, level, deck });
+          return;
+        }
+        // 投了：負けを記録し、王が伏せられて「負」を書く演出のあと結果画面へ
+        record('loss');
         m.dispose();
-        fx.cancel(); // 演出の続きをタイトルの盤に描かない
-        void showScreen('title');
+        resigning = true;
+        hud.lock(true);
+        void fx.resign(m.view()).then(() => {
+          if (disposed) return;
+          void showScreen('result', { result: { winner: 'gote', reason: 'resign' }, level, deck });
+        });
       });
       const onAskKey = (e: KeyboardEvent): void => { if (e.key === 'Escape' && !ask.hidden) closeAsk(); };
       window.addEventListener('keydown', onAskKey);

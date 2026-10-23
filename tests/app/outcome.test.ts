@@ -7,10 +7,14 @@ describe('結果の言葉', () => {
     expect(outcomeOf({ winner: 'sente', reason: 'king-captured' })).toBe('win');
     expect(outcomeOf({ winner: 'gote', reason: 'king-captured' })).toBe('loss');
     expect(outcomeOf({ winner: null, reason: 'repetition' })).toBe('draw');
-    expect(resultWords({ winner: 'sente', reason: 'king-captured' })).toEqual({ seal: '勝', reason: '王を取りました' });
-    expect(resultWords({ winner: 'gote', reason: 'king-captured' })).toEqual({ seal: '負', reason: '王を取られました' });
-    expect(resultWords({ winner: null, reason: 'repetition' })).toEqual({ seal: '引分', reason: '同じ局面が4回出ました' });
-    expect(resultWords({ winner: null, reason: 'move-limit' })).toEqual({ seal: '引分', reason: '300手を超えました' });
+    expect(resultWords({ winner: 'sente', reason: 'king-captured' })).toEqual({ seal: '勝', reason: '王を取りました', stamp: '天晴' });
+    expect(resultWords({ winner: 'gote', reason: 'king-captured' })).toEqual({ seal: '負', reason: '王を取られました', stamp: '無念' });
+    expect(resultWords({ winner: null, reason: 'repetition' })).toEqual({ seal: '引分', reason: '同じ局面が4回出ました', stamp: '互角' });
+    expect(resultWords({ winner: null, reason: 'move-limit' })).toEqual({ seal: '引分', reason: '300手を超えました', stamp: '互角' });
+  });
+  it('投了は負けで、理由は「投了しました」', () => {
+    expect(outcomeOf({ winner: 'gote', reason: 'resign' })).toBe('loss');
+    expect(resultWords({ winner: 'gote', reason: 'resign' })).toEqual({ seal: '負', reason: '投了しました', stamp: '無念' });
   });
   it('戦績の言葉', () => {
     expect(tallyText({ wins: 3, losses: 1, draws: 0 })).toBe('3勝 1敗');

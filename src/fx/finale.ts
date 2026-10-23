@@ -1,5 +1,5 @@
 // 王手と決着の演出（歌舞伎の幕切れ。設計書 docs/superpowers/specs/2026-10-23-finale-design.md）。
-// 王手：盤の上に衡山の「王手」を墨でドンと置く（朱の墨しぶき・拍子木）。カメラは動かさない。王手中の王の輪は sync が出す。
+// 王手：盤の上に衡山の「王手」の墨の字が小さく跳ねて出る（拍子木だけ。しぶきは怖く見えるのでやめた）。カメラは動かさない。王手中の王の輪は sync が出す。
 // 決着：取られる王へカメラが寄る → スローで取る駒がじわりと入る（カメラは王の周りを一周。camera:false なら省く）
 //       → 当たった瞬間に時が止まる（色が抜け、拍子木がチョン、チョン）
 //       → 勝ちは取った王が回りながら天高く飛び、負けは自分の王が伏せられる
@@ -15,7 +15,7 @@ import { PAL, PALS } from '../view/palette';
 import { squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
 import {
-  animateEl, atHome, brushLayer, cameraHome, cameraTo, dim, easeInOut, easeOut, flash, inkSvg, later, lightCap, shakeBy,
+  animateEl, atHome, brushLayer, cameraHome, cameraTo, dim, easeInOut, easeOut, flash, later, lightCap, localRect, shakeBy,
   transient, type FxCtx,
 } from './kit';
 import { darken, timeStop } from './stagecraft';
@@ -35,6 +35,14 @@ const STOP_MS = 600;     // 時が止まっている長さ
 const CHECK_MS = 900;    // 王手の字を見せる長さ
 const MIE_MS = 700;      // 書き終わりの見得
 
+/** 筆文字の層を、盤の場所（上下の駒台の間）に合わせて返す。字は盤の真ん中に出る */
+function boardLayer(ctx: FxCtx): HTMLElement {
+  const L = brushLayer(ctx);
+  const r = localRect(ctx, ctx.hud.board);
+  if (r.h > 0) { L.style.top = `${r.y}px`; L.style.height = `${r.h}px`; L.style.bottom = 'auto'; }
+  return L;
+}
+
 // ---------- タップで飛ばす ----------
 let skipNow: (() => void) | null = null;
 
@@ -43,28 +51,22 @@ export function skipFinale(): void {
   skipNow?.();
 }
 
-/** 王手：盤の上に「王手」を墨でドンと置き、すぐ消す */
+/** 王手：盤の上に「王手」の墨の字が小さく跳ねて出て、拍子木がチョン。すぐ消す（1局に何度も出るので軽く） */
 export async function playCheck(ctx: FxCtx, _cue: CheckCue): Promise<void> {
-  const L = brushLayer(ctx);
+  const L = boardLayer(ctx);
   const word = brushWord('王手', 'sumi');
-  word.el.classList.add('two');
   word.finish();
-  const splash = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  splash.setAttribute('viewBox', '-300 -150 600 300');
-  splash.classList.add('brush-splash');
-  splash.innerHTML = inkSvg(PALS.wana);
   const box = document.createElement('div');
   box.className = 'brush-check';
-  box.append(splash, word.el);
+  box.append(word.el);
   L.replaceChildren(box);
   getSound().play('hyoshigi');
   try {
     await animateEl(ctx, box, [
-      { transform: 'scale(2.4) rotate(-10deg)', opacity: 0 },
+      { transform: 'scale(1.25) rotate(-6deg)', opacity: 0 },
       { transform: 'scale(1) rotate(-4deg)', opacity: 1 },
-    ], { duration: 280, easing: 'cubic-bezier(.2,1.5,.3,1)' });
-    shakeBy(ctx, 0.12);
-    await ctx.wait(CHECK_MS - 280);
+    ], { duration: 220, easing: 'cubic-bezier(.2,1.4,.3,1)' });
+    await ctx.wait(CHECK_MS - 220);
     await animateEl(ctx, box, [{ opacity: 1 }, { opacity: 0 }], { duration: 220 });
   } finally {
     box.remove();
@@ -159,7 +161,7 @@ function endSound(v: Verdict): void {
  */
 export async function writeVerdict(ctx: FxCtx, v: Verdict, spot: THREE.Vector3 | null): Promise<void> {
   await darken(ctx, spot, 600, spot ? 0.12 : 0.5);
-  const L = brushLayer(ctx);
+  const L = boardLayer(ctx);
   L.dataset.keep = '1';
   const word = brushWord(v, INK[v]);
   if (v === '引分') word.el.classList.add('two');
