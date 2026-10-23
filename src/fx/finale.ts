@@ -2,10 +2,10 @@
 // 王手：盤の上に衡山の「王手」の墨の字が小さく跳ねて出る（拍子木だけ。しぶきは怖く見えるのでやめた）。カメラは動かさない。王手中の王の輪は sync が出す。
 // 決着：取られる王へカメラが寄る → スローで取る駒がじわりと入る（カメラは王の周りを一周。camera:false なら省く）
 //       → 当たった瞬間に時が止まる（色が抜け、拍子木がチョン、チョン）
-//       → 勝ちは取った王が回りながら天高く飛び、負けは自分の王が足元の墨のにじみへ沈む（取る駒は手前で待ち、沈んでから収まる）
+//       → 勝ちは取った王が回りながら天高く飛び、負けは自分の王が墨になって泡のように消える（取る駒は手前で待ち、消えてから収まる）
 //       → 暗転してスポットライト、筆文字（勝＝金泥・負＝胡粉のかすれ・引分＝淡い胡粉）を一画ずつ書く → 見得
 //       → 結果画面への幕は画面の切り替えが引く（字は層に残したまま。結果画面が同じ字を描く）
-// 引き分けは盤全体を映したまま、浅い暗転で「引分」を書く。投了は playResign（王が墨に沈む → 「負」）。
+// 引き分けは盤全体を映したまま、浅い暗転で「引分」を書く。投了は playResign（王が墨の泡になって消える → 「負」）。
 // 筆文字を書き始めてから見得の終わりまでは、skipFinale（画面のタップ）で飛ばせる。
 // 王を取る手の駒の移動は、演出役（player.ts）が普段の移動として流さずに、ここでゆっくり流す
 import * as THREE from 'three';
@@ -34,7 +34,7 @@ const FLY_MS = 1100;
 const STOP_MS = 600;     // 時が止まっている長さ
 const CHECK_MS = 900;    // 王手の字を見せる長さ
 const MIE_MS = 700;      // 書き終わりの見得
-const REACH = 0.62;     // 負けで取る駒が止まる所（王のマスまでの割合）
+const REACH = 0.45;     // 負けで取る駒が止まる所（王のマスまでの割合）
 
 /** 筆文字の層を、盤の場所（上下の駒台の間）に合わせて返す。字は盤の真ん中に出る */
 function boardLayer(ctx: FxCtx): HTMLElement {
@@ -119,33 +119,81 @@ function inkPool(ctx: FxCtx, at: THREE.Vector3): void {
   });
 }
 
+/** 墨の泡：王の足元から湧いて昇り、膨らんで弾ける。ms のあいだ少しずつ湧かせる */
+function inkBubbles(ctx: FxCtx, at: THREE.Vector3, size: number, ms: number): void {
+  // 墨の玉：つやのある黒（照り返しで泡の丸みが見える）
+  const mat = new THREE.MeshStandardMaterial({ color: PAL.sumi, roughness: 0.08, metalness: 0.35, transparent: true, opacity: 0.95 });
+  const geo = new THREE.SphereGeometry(1, 14, 10);
+  const grp = new THREE.Group();
+  const N = 44;
+  const bs = Array.from({ length: N }, (_, i) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.visible = false;
+    grp.add(m);
+    return {
+      m,
+      born: (i / N) * ms * (0.6 + Math.random() * 0.4),   // 湧く時刻
+      life: 520 + Math.random() * 640,                       // 弾けるまで
+      r: (0.06 + Math.random() * 0.1) * size,
+      x: at.x + (Math.random() - 0.5) * 0.42 * size,
+      z: at.z + (Math.random() - 0.5) * 0.42 * size,
+      y: at.y + 0.04 + Math.random() * 0.14 * size,
+      rise: 0.6 + Math.random() * 0.8,
+      ph: Math.random() * Math.PI * 2,
+    };
+  });
+  transient(ctx, grp, ms * ctx.timing.scale + 1400, (_dt, age) => {
+    for (const b of bs) {
+      const k = (age - b.born * ctx.timing.scale) / b.life;
+      if (k < 0 || k > 1) { b.m.visible = false; continue; }
+      b.m.visible = true;
+      const t = k * b.life / 1000;
+      // ふくらむ → 最後に少し大きくなって弾ける
+      const s = k < 0.8 ? easeOut(k / 0.8) : 1 + (k - 0.8) * 1.6;
+      b.m.scale.setScalar(b.r * s * (k > 0.96 ? 0.2 : 1));
+      b.m.position.set(b.x + Math.sin(b.ph + t * 7) * 0.03, b.y + b.rise * t, b.z + Math.cos(b.ph + t * 6) * 0.03);
+    }
+  });
+}
+
 /**
- * 王が墨に沈む（負け・投了）：足元に墨がにじみ、王はその中へゆっくり沈んで消える（盤の面より下は盤に隠れる）。
- * 取る駒と重ならないよう、負けでは取る駒を手前で止めてから呼び、沈みきってからマスに収める。
- * 動きを減らす設定では、沈めずにふっと消す。王の駒が見つからなければ何もしない
+ * 王が墨になって泡のように消える（負け・投了）：足元に墨がにじみ、王の木と字が墨の黒に染まり、
+ * しぼみながら墨の泡がぷつぷつと湧いて弾けて消える。取る駒と重ならないよう、負けでは取る駒を手前で止めてから呼び、
+ * 消えてからマスに収める。動きを減らす設定では泡を出さず、染まってから静かに薄れる。王の駒が見つからなければ何もしない。
+ * 材質は駒どうしで共有なので複製に差し替える（sync が元に戻す）
  */
-export async function playKingSink(ctx: FxCtx, at: Square): Promise<void> {
+export async function playKingInk(ctx: FxCtx, at: Square): Promise<void> {
   const king = ctx.before.board[at.r * 9 + at.c];
   const km = king ? pieceMesh(king.id) : undefined;
   if (!km) return;
-  // 王手の輪・纏札の印は王と一緒に沈めず消す
+  // 王手の輪・纏札の印は王と一緒に染めず消す
   for (const c of km.children.slice(2)) c.visible = false;
+  const parts = km.children.slice(0, 2).filter((c): c is THREE.Mesh => c instanceof THREE.Mesh);
+  const mats = parts.map((m) => {
+    const c = (m.material as THREE.MeshStandardMaterial).clone();
+    c.transparent = true;
+    m.material = c;
+    return { c, from: c.color.clone() };
+  });
+  const ink = new THREE.Color(PAL.sumi);
   const p = squarePos(at);
+  const s = (km.userData.s as number | undefined) ?? 1;
   inkPool(ctx, p);
-  getSound().play('thud', { gain: 0.6 });
-  if (!ctx.timing.camera) {
-    await ctx.wait(250);
-    km.visible = false;
-    await ctx.wait(200);
-    return;
-  }
-  await ctx.wait(220); // にじみが広がってから沈み始める
-  const y0 = km.position.y;
-  await ctx.tween(900, (t) => {
-    km.position.y = y0 - 0.7 * t;
+  getSound().play('thud', { gain: 0.5 });
+  // 1. 墨に染まる
+  await ctx.tween(520, (t) => {
+    for (const m of mats) m.c.color.copy(m.from).lerp(ink, t);
+  }, easeOut);
+  // 2. しぼみながら泡になって消える
+  const DISSOLVE = 1000;
+  if (ctx.timing.camera) inkBubbles(ctx, km.position.clone(), s, DISSOLVE);
+  const sc = km.scale.clone();
+  await ctx.tween(DISSOLVE, (t) => {
+    for (const m of mats) m.c.opacity = 1 - t;
+    if (ctx.timing.camera) km.scale.set(sc.x * (1 - 0.35 * t), sc.y * (1 - 0.8 * t), sc.z * (1 - 0.35 * t));
   }, easeInOut);
   km.visible = false;
-  await ctx.wait(250);
+  await ctx.wait(ctx.timing.camera ? 450 : 200); // 最後の泡が弾けるのを待つ
 }
 
 /** 墨の種類と、書き終わりの音 */
@@ -185,11 +233,11 @@ export async function writeVerdict(ctx: FxCtx, v: Verdict, spot: THREE.Vector3 |
   }
 }
 
-/** 投了：自分の王が墨に沈み、「負」を書く（時は止めない）。kingAt は自分の王のマス */
+/** 投了：自分の王が墨の泡になって消え、「負」を書く（時は止めない）。kingAt は自分の王のマス */
 export async function playResign(ctx: FxCtx, kingAt: Square | null): Promise<void> {
   if (kingAt) {
     if (ctx.timing.camera) await cameraTo(ctx, squarePos(kingAt), 600);
-    await playKingSink(ctx, kingAt);
+    await playKingInk(ctx, kingAt);
   }
   await writeVerdict(ctx, '負', kingAt ? squarePos(kingAt) : null);
 }
@@ -235,7 +283,7 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
     // 2. 時間がゆっくりになる。camera:false なら一周は省き、短く間を取るだけ
     dim(ctx, 0.3);
     const round = later(ctx.timing.camera ? orbit(ctx, at, ORBIT_MS) : ctx.wait(MOVE_MS * SLOW + 500));
-    // 取る駒がじわりと入る。負けは王と重ならないよう手前（REACH）で止め、王が沈んでから収める
+    // 取る駒がじわりと入る。負けは王と重ならないよう手前（REACH）で止め、王が消えてから収める
     const reach = win ? 1 : REACH;
     const a = from ? squarePos(from) : null, ay = am?.position.y ?? 0;
     const step = (t: number): void => {
@@ -249,9 +297,9 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
     await round;
     dim(ctx, 0);
     await freeze(ctx);
-    // 3. 王の最後：勝ちは取った王が回りながら天高く飛ぶ、負けは自分の王が墨に沈み、取った駒が収まる
+    // 3. 王の最後：勝ちは取った王が回りながら天高く飛ぶ、負けは自分の王が墨の泡になって消え、取った駒が収まる
     if (!win) {
-      await playKingSink(ctx, kingAt);
+      await playKingInk(ctx, kingAt);
       if (am && a) await ctx.tween(360, (t) => step(reach + (1 - reach) * t), easeOut);
     } else if (km) {
       for (const c of km.children.slice(2)) c.visible = false;
