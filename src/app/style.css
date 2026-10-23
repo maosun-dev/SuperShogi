@@ -1183,7 +1183,7 @@ input:focus-visible {
 .verdict .brush { height: min(42vh, 60vmin, 320px); width: auto; max-width: 86vw; }
 .verdict .brush.two { height: min(28vh, 40vmin, 220px); }
 /* 落款：朱の地に字を白く抜いた角印（白文印）。2字を縦に */
-.rakkan {
+.verdict .rakkan {
   position: absolute;
   right: -6%;
   bottom: 2%;
@@ -1199,9 +1199,9 @@ input:focus-visible {
   font-size: 22px;
   line-height: 1.02;
   transform: rotate(4deg);
-  animation: rakkan .26s .45s cubic-bezier(.3,1.5,.4,1) both;
+  animation: verdict-rakkan .26s .45s cubic-bezier(.3,1.5,.4,1) both;
 }
-@keyframes rakkan {
+@keyframes verdict-rakkan {
   from { transform: rotate(10deg) scale(1.8); opacity: 0; }
   70% { transform: rotate(3deg) scale(.94); opacity: 1; }
   to { transform: rotate(4deg) scale(1); opacity: 1; }
@@ -1276,7 +1276,7 @@ input:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .reveal .iza { transform: translate(-50%, -50%) rotate(-6deg); }
   .reveal.on .iza { animation: still-fade .2s ease-out forwards; }
-  .rakkan { animation: still-fade .2s .3s ease-out both; }
+  .verdict .rakkan { animation: still-fade .2s .3s ease-out both; }
   .cost-meter .dots i:is(.mahou, .wana, .soubi) { transform: none; }
 }
 
