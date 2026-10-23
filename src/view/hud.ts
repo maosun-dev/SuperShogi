@@ -73,7 +73,7 @@ export function createHud(root: HTMLElement): Hud {
   const foe = el('header', 'side foe');
   const foeRow = el('div', 'row');
   const foeWho = el('div', 'who');
-  const foeName = el('span');
+  const foeName = el('span', 'name');
   const thinking = el('span', 'thinking');
   thinking.setAttribute('aria-live', 'polite');
   foeWho.append(el('span', 'seal', '敵'), foeName, thinking);
@@ -257,7 +257,7 @@ export function createHud(root: HTMLElement): Hud {
       last = { view, me: side };
       const foeSide: Side = side === 'sente' ? 'gote' : 'sente';
       foeName.textContent = `CPU・${LEVEL_LABEL[opts.level]}`;
-      thinking.textContent = opts.thinking ? '考えています' : '';
+      thinking.textContent = opts.thinking ? '考え中' : '';
       const myTurn = view.turn === side && !opts.thinking && !view.result;
       meTurn.textContent = myTurn ? 'あなたの手番' : '相手の手番';
       // 判子：自分の手番は朱の「自」、相手の手番は藍の枠の「敵」（決着のあとは「自」のまま）

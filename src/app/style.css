@@ -377,7 +377,10 @@ button:focus-visible {
 .match .side.me.turn .who { color: var(--kaya); }
 .match .side.me.turn .seal { border-color: var(--kaya); }
 /* CPU の考え中：小さく、ゆっくり明滅する */
-.match .thinking { font-size: 12px; font-weight: 500; color: var(--kaya-light); }
+/* 名前と「考え中」は1行に収める（折り返すと帯が太り、盤の大きさが変わってちらつく）。狭ければ名前を省く */
+.match .side.foe .who { white-space: nowrap; }
+.match .side.foe .who .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.match .thinking { flex: none; font-size: 12px; font-weight: 500; color: var(--kaya-light); }
 .match .thinking:not(:empty) { animation: breathe 1.4s ease-in-out infinite; }
 @keyframes breathe { 50% { opacity: .45; } }
 

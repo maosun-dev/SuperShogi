@@ -73,6 +73,7 @@ function createStage(): Stage {
   let titleDist = 30;   // タイトルのカメラの距離（fit で画面の縦横比から決める）
   let host: HTMLElement | null = null;
   const ro = new ResizeObserver(() => fit());
+  let sizedW = 0, sizedH = 0; // 今の描画の大きさ（同じなら setSize しない）
 
   const s: Stage = {
     scene, camera, canvas,
@@ -113,6 +114,8 @@ function createStage(): Stage {
     if (!host) return;
     const w = host.clientWidth, h = host.clientHeight;
     if (w === 0 || h === 0) return;
+    if (w === sizedW && h === sizedH) return;
+    sizedW = w; sizedH = h;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -123,6 +126,12 @@ function createStage(): Stage {
     s.home.pos.copy(LOOK).addScaledVector(VIEW_DIR, d);
     s.home.look.copy(LOOK);
     if (atHome || mode === 'title') { s.cam.pos.copy(s.home.pos); s.cam.look.copy(s.home.look); }
+    // setSize で絵が消えるので、次のフレームを待たずにすぐ描き直す（消えたまま1コマ出るとちらつく）
+    if (canvas.isConnected) {
+      camera.position.copy(s.cam.pos);
+      camera.lookAt(s.cam.look);
+      renderer.render(scene, camera);
+    }
   }
 
   buildBoard(s);
