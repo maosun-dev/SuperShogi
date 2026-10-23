@@ -115,7 +115,10 @@ export function settingsScreen(): Screen {
       volSec.append(lab, row);
       show();
 
-      box.append(pageHead('設定', 'title'), stSec, mvSec, fxSec, volSec);
+      // 項目は和紙の一枚に墨で書く（舞台の絵の上でも読めるように）
+      const sheet = el('div', 'sheet');
+      sheet.append(stSec, mvSec, fxSec, volSec);
+      box.append(pageHead('設定', 'title'), sheet);
       root.append(box);
     },
     unmount() { clearTimeout(timer); },
