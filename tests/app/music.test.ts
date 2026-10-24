@@ -1,21 +1,39 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { musicFor } from '../../src/app/music';
-import { TRACKS } from '../../src/fx/sound';
+import { SAMPLES, TRACKS } from '../../src/fx/sound';
 
 describe('musicFor（画面ごとの曲）', () => {
-  it('対局の画面だけ対局の曲', () => {
-    expect(musicFor('match')).toBe('taikyoku');
+  it('対局は2曲を1局ごとに交互に', () => {
+    expect(musicFor('match', 0)).toBe('taikyoku');
+    expect(musicFor('match', 1)).toBe('sakura');
+    expect(musicFor('match', 2)).toBe('taikyoku');
   });
-  it('ほかの画面は曲なし（いまは対局の曲だけ）', () => {
-    for (const n of ['title', 'level', 'deck', 'reveal', 'result', 'zukan', 'settings'] as const) {
-      expect(musicFor(n)).toBeNull();
+  it('結果画面は無音（決着の決め音を聞かせる）', () => {
+    expect(musicFor('result')).toBeNull();
+  });
+  it('タイトル〜対局の前の画面はタイトルの曲', () => {
+    for (const n of ['title', 'level', 'deck', 'reveal', 'zukan', 'settings'] as const) {
+      expect(musicFor(n)).toBe('title');
     }
   });
 });
 
-describe('対局の曲のループ位置', () => {
-  it('ループの頭は終わりより前で、長さは約36.9秒（88拍）', () => {
+describe('曲のループ位置', () => {
+  it('対局の曲は約36.9秒（88拍）', () => {
     const t = TRACKS.taikyoku;
     expect(t.loopEnd - t.loopStart).toBeCloseTo(36.865, 2);
+  });
+  it('サクラドリフトは102.4秒（150BPM の256拍）', () => {
+    const t = TRACKS.sakura;
+    expect(t.loopEnd - t.loopStart).toBeCloseTo(102.4, 2);
+  });
+  it('タイトルの曲は120拍（136BPM の30小節）', () => {
+    const t = TRACKS.title;
+    expect(t.loopEnd - t.loopStart).toBeCloseTo(120 * 60 / 136, 3);
+  });
+  it('曲と録った効果音のファイルが public にある', () => {
+    const paths = [...Object.values(TRACKS).map((t) => t.path), ...Object.values(SAMPLES).flatMap((s) => s.files)];
+    for (const p of paths) expect(existsSync(`public/${p}`), p).toBe(true);
   });
 });

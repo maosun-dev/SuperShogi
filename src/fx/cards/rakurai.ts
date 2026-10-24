@@ -99,7 +99,7 @@ export const rakurai: CardFx<MagicCue> = {
       transient(ctx, bolt(q0, q1, 0.025, cap, 8, 0.8), 90);
       st.glow = 1;
       pointLight(ctx, at.clone().setY(CLOUD_Y + 0.2), 25);
-      getSound().play('thunder', { gain: 0.25 });
+      if (k === 0) getSound().play('raimei', { gain: 0.6 }); // 雷鳴は1回だけ。光のためと一緒に転がっていく
       await ctx.wait(90);
       st.glow = 0;
       pointOff();
@@ -118,7 +118,7 @@ export const rakurai: CardFx<MagicCue> = {
     st.glow = 1;
     pointLight(ctx, at.clone().setY(1.6), 140);
     flash(ctx, PALS.mahouFlash, 0.95, 320);
-    getSound().play('thunder');
+    getSound().play('rakurai');
     getSound().play('shatter');
     shatter(ctx, e.pieceId);
     shakeBy(ctx, 0.9);

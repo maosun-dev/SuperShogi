@@ -199,8 +199,9 @@ export async function playKingInk(ctx: FxCtx, at: Square): Promise<void> {
 /** 墨の種類と、書き終わりの音 */
 const INK: Record<Verdict, Ink> = { '勝': 'gold', '負': 'kasure', '引分': 'usuzumi' };
 function endSound(v: Verdict): void {
-  if (v === '勝') getSound().play('drum');
-  else getSound().play('suzu', { gain: v === '負' ? 1 : 0.6 });
+  if (v === '勝') getSound().play('kachi');
+  else if (v === '負') getSound().play('make');
+  else getSound().play('suzu', { gain: 0.6 });
 }
 
 /**
@@ -262,6 +263,7 @@ async function freeze(ctx: FxCtx): Promise<void> {
  */
 export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square | null): Promise<void> {
   const r = cue.result;
+  getSound().music(null); // 対局の曲はここで消し、書き終わりの決め音を聞かせる
   if (r.winner === null || !kingAt) {
     // 引き分け：盤全体を映したまま「引分」
     getSound().play('drum', { gain: 0.6 });

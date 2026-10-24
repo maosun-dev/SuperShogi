@@ -1,4 +1,4 @@
-// 効果音。Web Audio で合成する（音のファイルは使わない）。
+// 効果音。Web Audio で合成する。録った音（public/sfx）がある名前は、読み込めたらそちらを鳴らす（読めるまでは合成の音）。
 // 決まり：
 // - AudioContext は最初の unlock()（最初の操作）で作る。作れない・失敗したときは何もしない
 // - play は決して例外を出さない（音の失敗で演出を止めない）
@@ -15,9 +15,11 @@ export type SoundName =
 type CardSoundName =
   | 'ice' | 'trapdoor' | 'thud' | 'paper' | 'glass' | 'slash' | 'poof'
   | 'reel' | 'armor' | 'chain' | 'hoof' | 'flame' | 'tsuke' | 'splash'
-  | 'fude' | 'suzu'; // 決着（筆の擦れる音・負けの書き終わりの鈴）
+  | 'fude' | 'suzu' // 決着（筆の擦れる音・負けの書き終わりの鈴）
+  | 'raimei' | 'rakurai' // 落雷のためる雷鳴・本命の一撃（2026-10-24 録った音）
+  | 'kachi' | 'make'; // 決着の書き終わりの決め音（勝ち・負け）
 
-export type MusicName = 'taikyoku';
+export type MusicName = 'taikyoku' | 'sakura' | 'title';
 
 /** 曲（public/bgm）。ループの位置は秒。gain は効果音に対する大きさ */
 interface Track { path: string; loopStart: number; loopEnd: number; gain: number }
@@ -25,8 +27,31 @@ interface Track { path: string; loopStart: number; loopEnd: number; gain: number
 // 対局の曲（2026-10-24、SUNO）：元の曲は 32.010秒→68.875秒（88拍）をくり返す作り。
 // ファイルは「頭〜68.875秒」＋「ループ区間の写し（頭15msを重ねてつないだもの）」＋「写しの頭0.5秒」に作り直してあり、
 // 写しの中（68.875〜105.740秒）だけをくり返すと波形が切れ目なくつながる
+// 対局の曲2「サクラドリフト」とタイトルの曲（2026-10-24、SUNO）：ファイルは「頭〜ループの終わり」＋「戻った先の続き0.5秒」。
+// 終わりの手前60ms までに戻った先の音へ重ねて移してあるので、読み込みで位置が少しずれても切れ目が出ない。
+// - サクラドリフト：150BPM。86.925秒〜189.327秒（256拍）をくり返す
+// - タイトル：136BPM。くり返しのない通しの曲なので、最後の一打の余韻のあと頭へ戻す（0.1秒〜120拍＝30小節）
 export const TRACKS: Record<MusicName, Track> = {
   taikyoku: { path: 'bgm/taikyoku.mp3', loopStart: 68.875, loopEnd: 105.74, gain: 0.5 },
+  sakura: { path: 'bgm/sakura.mp3', loopStart: 86.925, loopEnd: 189.327, gain: 0.5 },
+  title: { path: 'bgm/title.mp3', loopStart: 0.1, loopEnd: 0.1 + 120 * 60 / 136, gain: 0.45 },
+};
+
+/**
+ * 録った効果音（public/sfx、SUNO の音を録画から切り出したもの・頭の山を -1dB にそろえてある）。
+ * files が複数なら交互に鳴らす。jitter は鳴らすたびの高さの揺れ（±の割合）
+ */
+interface Sample { files: string[]; gain: number; jitter?: number }
+export const SAMPLES: Partial<Record<SoundName, Sample>> = {
+  koma: { files: ['sfx/koma1.mp3', 'sfx/koma2.mp3'], gain: 0.6, jitter: 0.04 },
+  komaHard: { files: ['sfx/koma1.mp3', 'sfx/koma2.mp3'], gain: 0.85, jitter: 0.03 },
+  slash: { files: ['sfx/slash.mp3'], gain: 0.8 },
+  armor: { files: ['sfx/zankin.mp3'], gain: 0.6 },
+  clang: { files: ['sfx/kenkin.mp3'], gain: 0.55 },
+  raimei: { files: ['sfx/raimei.mp3'], gain: 0.8 },
+  rakurai: { files: ['sfx/rakurai.mp3'], gain: 1 },
+  kachi: { files: ['sfx/kachi.mp3'], gain: 0.8 },
+  make: { files: ['sfx/make.mp3'], gain: 0.8 },
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -286,8 +311,18 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
     tone(k, t + 0.01, 1176, 1.4, 0.12 * g);
     tone(k, t + 0.02, 1965, 0.9, 0.06 * g);
   },
+  // 録った音が読めないときの代わり
+  raimei: (k, t, g) => BASE_RECIPES.thunder(k, t, 0.4 * g),
+  rakurai: (k, t, g) => BASE_RECIPES.thunder(k, t, g),
+  kachi: (k, t, g) => BASE_RECIPES.drum(k, t, g),
+  make: (k, t, g) => CARD_RECIPES.suzu(k, t, g),
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
+
+/** 録った音に重ねる合成の音（強めのパチンの低い響き） */
+const SAMPLE_EXTRA: Partial<Record<SoundName, Recipe>> = {
+  komaHard: (k, t, g) => tone(k, t, 160, 0.16, 0.45 * g, 90),
+};
 
 const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false, music() {}, sleep() {} };
 
@@ -307,22 +342,53 @@ function createSound(): Sound {
   let playing: { name: MusicName; src: AudioBufferSourceNode; gain: GainNode } | null = null;
   const buffers = new Map<MusicName, Promise<AudioBuffer | null>>();
 
+  /** 音のファイルを読んで AudioBuffer にする。読めなければ null */
+  function fetchAudio(c: Ctx, path: string): Promise<AudioBuffer | null> {
+    // iPhone アプリ（Capacitor）は mp3 を範囲の指定なしで頼むと番号のない返事（status 0）を返すので、
+    // ファイル全体を範囲で頼んで 206 を受け取る。番号がなくても中身が届いていれば使う
+    return fetch(`${import.meta.env.BASE_URL}${path}`, { headers: { Range: 'bytes=0-' } })
+      .then(async (r) => {
+        const b = await r.arrayBuffer();
+        if (!musicResponseUsable(r.status, b.byteLength)) throw new Error(`読めませんでした（${r.status}・${b.byteLength}バイト）`);
+        return b;
+      })
+      .then((b) => c.decodeAudioData(b))
+      .catch((e: unknown) => { console.error(`音のファイルを使えませんでした（${path}）`, e); return null; });
+  }
+
   function load(c: Ctx, name: MusicName): Promise<AudioBuffer | null> {
     let p = buffers.get(name);
     if (!p) {
-      // iPhone アプリ（Capacitor）は mp3 を範囲の指定なしで頼むと番号のない返事（status 0）を返すので、
-      // ファイル全体を範囲で頼んで 206 を受け取る。番号がなくても中身が届いていれば使う
-      p = fetch(`${import.meta.env.BASE_URL}${TRACKS[name].path}`, { headers: { Range: 'bytes=0-' } })
-        .then(async (r) => {
-          const b = await r.arrayBuffer();
-          if (!musicResponseUsable(r.status, b.byteLength)) throw new Error(`曲を読めませんでした（${r.status}・${b.byteLength}バイト）`);
-          return b;
-        })
-        .then((b) => c.decodeAudioData(b))
-        .catch((e: unknown) => { console.error(`曲を使えませんでした（${name}）`, e); return null; });
+      p = fetchAudio(c, TRACKS[name].path);
       buffers.set(name, p);
     }
     return p;
+  }
+
+  // 録った効果音：AudioContext を作ったら全部読み始める。読めたものから録った音に替わる
+  const clips = new Map<string, AudioBuffer>();
+  const turn = new Map<SoundName, number>(); // 交互に鳴らす番
+  function loadSamples(c: Ctx): void {
+    const paths = new Set(Object.values(SAMPLES).flatMap((s) => s.files));
+    for (const path of paths) void fetchAudio(c, path).then((b) => { if (b && ctx === c) clips.set(path, b); });
+  }
+
+  /** 録った音を鳴らす。まだ読めていなければ false */
+  function playSample(c: Ctx, out: AudioNode, name: SoundName, at: number, g: number): boolean {
+    const s = SAMPLES[name];
+    if (!s) return false;
+    const n = turn.get(name) ?? 0;
+    const buf = clips.get(s.files[n % s.files.length]);
+    if (!buf) return false;
+    turn.set(name, n + 1);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    if (s.jitter) src.playbackRate.value = 1 + (Math.random() * 2 - 1) * s.jitter;
+    const gain = c.createGain();
+    gain.gain.value = s.gain * g;
+    src.connect(gain).connect(out);
+    src.start(at);
+    return true;
   }
 
   function stopMusic(): void {
@@ -392,6 +458,7 @@ function createSound(): Sound {
           master.gain.value = volumeToGain(volume);
           master.connect(ctx.destination);
           kit = { ctx, out: master, noise: noiseBuffer(ctx) };
+          loadSamples(ctx);
           // 音が出せるようになったら、待っていた曲を流す
           ctx.addEventListener('statechange', () => syncMusic());
         }
@@ -409,7 +476,9 @@ function createSound(): Sound {
         if (!ctx || !kit || failed) return;
         // 音が出せない間は再開だけ試し、音は予約せず捨てる（解錠の瞬間に溜まった音が一斉に鳴らないように）
         if (ctx.state !== 'running') { void ctx.resume().catch(() => {}); return; }
-        RECIPES[name](kit, ctx.currentTime + 0.005, opts?.gain ?? 1);
+        const at = ctx.currentTime + 0.005, g = opts?.gain ?? 1;
+        if (playSample(ctx, kit.out, name, at, g)) SAMPLE_EXTRA[name]?.(kit, at, g);
+        else RECIPES[name](kit, at, g);
       } catch (e) {
         console.error(`効果音に失敗しました（${name}）`, e);
       }
