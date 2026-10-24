@@ -51,7 +51,7 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   raimei: { files: ['sfx/raimei.mp3'], gain: 0.8 },
   rakurai: { files: ['sfx/rakurai.mp3'], gain: 1 },
   kachi: { files: ['sfx/kachi.mp3'], gain: 0.8 },
-  make: { files: ['sfx/make.mp3'], gain: 0.8 },
+  make: { files: ['sfx/make.mp3'], gain: 0.5 }, // 0.8 は大きいとユーザー（2026-10-24）
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */

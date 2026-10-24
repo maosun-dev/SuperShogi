@@ -23,8 +23,16 @@ describe('保存', () => {
   });
   it('設定を保存して読み戻せる', () => {
     const st = fakeStore();
-    saveSettings(st, { fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low' });
-    expect(loadSettings(st)).toEqual({ fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low' });
+    saveSettings(st, { fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low', bgm: 'random' });
+    expect(loadSettings(st)).toEqual({ fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low', bgm: 'random' });
+  });
+  it('対局の曲は最初は対局BGM1。前の版の保存（bgm なし）や変な値も対局BGM1', () => {
+    expect(DEFAULT_SETTINGS.bgm).toBe('taikyoku');
+    const st = fakeStore();
+    st.setItem('superShogi.settings', '{"fx":"short","volume":0.5,"stage":"kabuki","motion":"auto"}');
+    expect(loadSettings(st).bgm).toBe('taikyoku');
+    st.setItem('superShogi.settings', '{"bgm":"rock"}');
+    expect(loadSettings(st).bgm).toBe('taikyoku');
   });
   it('何もなければ既定の設定（舞台は歌舞伎、背景の動きは端末に合わせる）', () => {
     expect(loadSettings(fakeStore())).toEqual(DEFAULT_SETTINGS);

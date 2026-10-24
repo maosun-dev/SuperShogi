@@ -1430,6 +1430,94 @@ input:focus-visible {
 .stage-pick:focus-visible { outline: 2px solid var(--wana); outline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) { .stage-pick img { transition: none; } }
 
+/* 対局の曲：和紙に書いた曲目。点線で区切り、選んだ行の頭に朱の「此」を押す。右の朱の丸印「聴」で試聴、流している間は墨の「止」 */
+.bgm-list { margin: 0; padding: 0; list-style: none; }
+.bgm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--sumi) 32%, transparent);
+}
+.bgm-row:last-child { border-bottom: 0; }
+.bgm-pick {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  padding: 10px 0 10px 36px;
+  background: none;
+  border: 0;
+  color: var(--sumi);
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: .04em;
+  text-align: left;
+}
+.bgm-pick small {
+  margin-left: .7em;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: color-mix(in srgb, var(--sumi) 66%, transparent);
+}
+/* 印を押す枠：選ぶ前は薄い墨の角だけ、選ぶと朱の「此」 */
+.bgm-pick::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  border: 1.5px solid color-mix(in srgb, var(--sumi) 28%, transparent);
+  border-radius: 3px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  transform: rotate(-4deg);
+}
+.bgm-pick[aria-pressed="true"]::before {
+  content: "此";
+  border-color: transparent;
+  background: var(--wana);
+  color: #f3eee2;
+  transform: rotate(8deg);
+  box-shadow: 0 1px 2px rgba(29, 26, 23, .35);
+}
+.bgm-pick:focus-visible { outline: 2px solid var(--wana); outline-offset: -3px; }
+.bgm-listen {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e9535f 0 18%, var(--wana) 45%, #8f1424 100%);
+  box-shadow: inset 0 0 0 2px rgba(238, 232, 220, .35), 0 1px 2px rgba(29, 26, 23, .3);
+  color: #f3eee2;
+  font-size: 16px;
+  font-weight: 800;
+}
+.bgm-listen[aria-pressed="true"] { background: var(--sumi); }
+/* 流している間は、墨の輪が水紋のように広がる */
+.bgm-listen[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 1.5px solid var(--sumi);
+  border-radius: 50%;
+  animation: bgm-ripple 1.6s ease-out infinite;
+}
+@keyframes bgm-ripple { from { transform: scale(1); opacity: .7; } to { transform: scale(1.55); opacity: 0; } }
+.bgm-listen:focus-visible { outline: 2px solid var(--wana); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .bgm-listen[aria-pressed="true"]::after { animation: none; opacity: .5; } }
+
 /* ======== 対局中の「戻る」と投了の確かめ ======== */
 .match .side .back { padding: 3px 9px; font-size: 12px; }
 .match .resign {

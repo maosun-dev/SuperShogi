@@ -1,13 +1,12 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { musicFor } from '../../src/app/music';
+import { musicFor, pickMatchTrack } from '../../src/app/music';
 import { SAMPLES, TRACKS } from '../../src/fx/sound';
 
 describe('musicFor（画面ごとの曲）', () => {
-  it('対局は2曲を1局ごとに交互に', () => {
-    expect(musicFor('match', 0)).toBe('taikyoku');
-    expect(musicFor('match', 1)).toBe('sakura');
-    expect(musicFor('match', 2)).toBe('taikyoku');
+  it('対局はその局に決めた曲（決めていなければ対局BGM1）', () => {
+    expect(musicFor('match', 'sakura')).toBe('sakura');
+    expect(musicFor('match')).toBe('taikyoku');
   });
   it('結果画面は無音（決着の決め音を聞かせる）', () => {
     expect(musicFor('result')).toBeNull();
@@ -16,6 +15,19 @@ describe('musicFor（画面ごとの曲）', () => {
     for (const n of ['title', 'level', 'deck', 'reveal', 'zukan', 'settings'] as const) {
       expect(musicFor(n)).toBe('title');
     }
+  });
+});
+
+describe('pickMatchTrack（対局の曲の決め方）', () => {
+  it('決めた曲はそのまま', () => {
+    expect(pickMatchTrack('taikyoku', 0.9)).toBe('taikyoku');
+    expect(pickMatchTrack('sakura', 0.1)).toBe('sakura');
+  });
+  it('おまかせは乱数で2曲のどちらか', () => {
+    expect(pickMatchTrack('random', 0)).toBe('taikyoku');
+    expect(pickMatchTrack('random', 0.49)).toBe('taikyoku');
+    expect(pickMatchTrack('random', 0.5)).toBe('sakura');
+    expect(pickMatchTrack('random', 0.999)).toBe('sakura');
   });
 });
 

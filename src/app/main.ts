@@ -25,7 +25,7 @@ import { prepareSaves } from './native';
 import { autoMatchParams, fxMatchParams } from './dev';
 import { bannerOn, initAds, setBannerWanted } from './ads';
 import { playSplash } from './splash';
-import { musicFor } from './music';
+import { musicFor, pickMatchTrack } from './music';
 
 function start(): void {
   const root = document.getElementById('app');
@@ -33,11 +33,11 @@ function start(): void {
   initScreens(root);
   // バナー広告（アプリ版だけ）：対局の外の画面で出し、対局では隠す。広告を動かし始める（initAds）のは起動の画面のあと
   // 曲：画面に合わせて流す・止める（幕が閉じている間に切り替わる）
-  let round = -1; // 何局目か（対局の曲を交互にする）
   setScreenHook((name) => {
     setBannerWanted(bannerOn(name));
-    if (name === 'match') round++;
-    getSound().music(musicFor(name, Math.max(0, round)));
+    // 対局の曲は対局の画面を開くたびに設定から決める（おまかせなら毎局引き直す）
+    const track = name === 'match' ? pickMatchTrack(loadSettings(safeStore()).bgm, Math.random()) : undefined;
+    getSound().music(musicFor(name, track));
   });
   // 効果音：音量は設定から。音は最初の操作のあとに鳴らし始める（それまでは無音）。幕の拍子木もここで差し込む
   const settings = loadSettings(safeStore());
