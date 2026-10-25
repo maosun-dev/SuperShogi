@@ -1699,3 +1699,119 @@ input:focus-visible {
   background: linear-gradient(#FCEBC2, #F2D392 60%, #E6BC66);
   clip-path: polygon(50% 0, 86% 17%, 100% 100%, 0 100%, 14% 17%);
 }
+
+/* ======== 友と対局 ======== */
+.fuda.soubi { --c: var(--soubi); height: 164px; }
+
+/* つなぐ画面：合言葉は五角形の駒に墨で縦書き（本物の駒の字の並び）。一覧も同じ駒の形のボタン */
+/* 絵の上の文字は和紙の切れ端に墨で書く（板や金の線は使わない）。知らせは朱 */
+.link-msg { align-self: center; margin-top: 10px; font-size: 14px; font-weight: 800; color: var(--wana-deep); text-align: center; }
+.link-msg:empty { display: none; }
+.link-msg, .link-lead, .link-note {
+  padding: 7px 14px 6px;
+  background: #f3eee2;
+  color: var(--sumi);
+  clip-path: polygon(0 4%, 9% 0, 31% 3%, 55% 0, 78% 2.5%, 100% 0, 99% 50%, 100% 100%, 72% 97%, 46% 100%, 21% 96.5%, 0 100%, 1% 48%);
+}
+.link-msg { color: var(--wana-deep); }
+.link-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 8px 16px 40px;
+  text-align: center;
+}
+.link-lead { font-size: 15px; font-weight: 800; line-height: 1.7; max-width: 22em; }
+.link-note { font-size: 13px; line-height: 1.7; max-width: 22em; }
+.link-note.hint { color: var(--wana-deep); }
+.link-fuda { display: flex; gap: 22px; align-items: flex-end; }
+.link-fuda .fuda { height: 150px; font-size: 22px; }
+.link-koma {
+  --w: 74px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--w);
+  height: calc(var(--w) * 1.18);
+  padding-top: calc(var(--w) * .16);
+  background: var(--kaya-light);
+  color: var(--sumi);
+  clip-path: polygon(50% 0, 86% 15%, 100% 100%, 0 100%, 14% 15%);
+  filter: drop-shadow(0 6px 8px rgba(29, 26, 23, .45));
+}
+/* 木目：細い縞をうっすら */
+.link-koma::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(96deg, rgba(138, 90, 34, .10) 0 2px, transparent 2px 7px);
+}
+.link-koma .ji {
+  position: relative;
+  writing-mode: vertical-rl;
+  font-family: var(--font-display);
+  font-size: calc(var(--w) * .2);
+  line-height: 1;
+  letter-spacing: .02em;
+}
+.link-koma.big { --w: 150px; animation: link-koma-in .5s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes link-koma-in { from { transform: translateY(-24px) scale(1.15); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .link-koma.big { animation: none; } }
+.link-peers { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; min-height: 110px; align-items: center; }
+.link-peer { padding: 4px; background: none; border: 0; }
+.link-peer:active .link-koma { transform: translateY(2px); }
+.link-peer:focus-visible { outline: 2px solid var(--gofun); outline-offset: 4px; }
+
+/* 札見せ：くじで決まった先手・後手を朱の判で押す（駒落ちのときは出さない） */
+.reveal-row.me { position: relative; }
+.kuji-ban {
+  position: absolute;
+  right: -4px;
+  top: -30px;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  background: var(--wana);
+  color: var(--gofun);
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1;
+  box-shadow: inset 0 0 0 3px var(--wana), inset 0 0 0 5px var(--gofun);
+  opacity: 0;
+  transform: scale(2) rotate(-18deg);
+}
+.kuji-ban.ato { background: var(--mahou); box-shadow: inset 0 0 0 3px var(--mahou), inset 0 0 0 5px var(--gofun); }
+.kuji-ban.on { animation: kuji-ban .3s cubic-bezier(.2, 1.6, .4, 1) forwards; }
+@keyframes kuji-ban { to { opacity: 1; transform: rotate(-8deg); } }
+@media (prefers-reduced-motion: reduce) { .kuji-ban.on { animation: still-fade .2s ease-out forwards; transform: rotate(-8deg); } }
+
+/* 対局：下の駒台の「待った」の判（押せないときは薄墨） */
+.match .matta-ban {
+  flex: none;
+  padding: 4px 8px 3px;
+  background: var(--sumi);
+  color: var(--gofun);
+  border: 0;
+  border-radius: 3px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1.1;
+  box-shadow: inset 0 0 0 2px var(--sumi), inset 0 0 0 3px rgba(238, 232, 220, .6);
+  transform: rotate(-3deg);
+}
+.match .matta-ban:disabled { opacity: .3; }
+.match .matta-ban:not(:disabled):active { transform: translateY(1px) rotate(-6deg); }
+.match .matta-ban:focus-visible { outline: 2px solid var(--wana); outline-offset: 2px; }
+/* つなぎ直している間：字がゆっくり明滅する */
+.match .net-wait.waiting .resign-box p { animation: net-breathe 1.6s ease-in-out infinite; }
+@keyframes net-breathe { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .match .net-wait.waiting .resign-box p { animation: none; } }
+.match .net-wait .resign-box button { width: 100%; margin-top: 16px; }
+
+/* 開発中だけ：切断のふり */
+.dev-cut { position: absolute; left: 8px; top: 46%; z-index: 30; padding: 4px 8px; font-size: 11px; opacity: .7; }

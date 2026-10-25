@@ -1,6 +1,7 @@
 // 対局前の札見せ：上に CPU の持ち込み、下に自分の持ち込みを表向きで並べ、
 // 拍子木と同時に中央で「いざ」の筆文字。1.6 秒で対局へ。タップ（Enter・Space）で飛ばせる。
 // 稽古の「くじ」は、この画面を開くたびに相手の札を引き直す（ここで初めて中身がわかる）。
+// 友と対局（friend）では、相手は「友」。駒落ちが無ければ、くじで決まった先手・後手を朱の判で押してから「いざ」
 import type { CardId } from '../../rules/types';
 import type { Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
@@ -12,18 +13,31 @@ import { HANDICAP_LABEL } from '../../rules/board';
 import { loadHandicap, safeStore } from '../storage';
 import { showScreen, type Screen } from '../screens';
 import { el, pageHead } from './ui';
+import { endSession, peekSession } from '../../net/current';
+import type { Handicap } from '../../rules/types';
 
-export interface RevealParams { level: Level; deck: CardId[]; keiko?: Keiko }
+export interface RevealParams { level: Level; deck: CardId[]; keiko?: Keiko; friend?: boolean }
 
 const SHOW_MS = 1600; // 札見せの長さ
 const IZA_AT = 260;   // 幕が開ききるころに「いざ」と拍子木
+const KUJI_AT = 300;  // 友と対局：くじの判を押す
+const FRIEND_DELAY = 1000; // 友と対局：くじの判のぶん「いざ」を遅らせる
 
 export function revealScreen(params: unknown): Screen {
   const q = (params ?? {}) as Partial<RevealParams>;
   const level: Level = q.level === 'normal' || q.level === 'strong' ? q.level : 'weak';
-  const deck = q.deck && validateDeck(q.deck) === null ? q.deck : [];
   const keiko = keikoOf(q.keiko);
-  const foeDeck = drawFoeDeck(level, keiko, makeRng(Date.now()));
+  // 友と対局：札・駒落ち・先手は Session の setup から（自分の席から見た形にする）
+  const setup = q.friend ? peekSession()?.setup() ?? null : null;
+  const seat = peekSession()?.seat() ?? 'sente';
+  const friend = setup !== null;
+  const deck = setup ? setup.decks[seat] : q.deck && validateDeck(q.deck) === null ? q.deck : [];
+  const foeDeck = setup ? setup.decks[seat === 'sente' ? 'gote' : 'sente'] : drawFoeDeck(level, keiko, makeRng(Date.now()));
+  // 駒落ちは「自分（sente）／相手（gote）」の形にそろえる
+  const handi: Handicap | null = setup
+    ? { kind: setup.handicap.kind, side: setup.handicap.side === seat ? 'sente' : 'gote' }
+    : null;
+  const iFirst = setup ? setup.first === seat : true;
   let timers: number[] = [];
   let onKey: ((e: KeyboardEvent) => void) | null = null;
   let gone = false;
@@ -32,7 +46,8 @@ export function revealScreen(params: unknown): Screen {
   const go = (): void => {
     if (gone) return;
     gone = true;
-    void showScreen('match', { level, deck, keiko, foeDeck });
+    if (friend) void showScreen('match', { friend: true, level, deck });
+    else void showScreen('match', { level, deck, keiko, foeDeck });
   };
 
   return {
@@ -40,7 +55,7 @@ export function revealScreen(params: unknown): Screen {
       const box = el('div', 'page reveal');
       box.dataset.screen = 'reveal';
 
-      const h = loadHandicap(safeStore());
+      const h = handi ?? loadHandicap(safeStore());
       const row = (who: string, ids: CardId[], cls: string): HTMLElement => {
         const sec = el('section', `reveal-row ${cls}`);
         const list = el('div', 'reveal-cards');
@@ -61,10 +76,22 @@ export function revealScreen(params: unknown): Screen {
       skip.setAttribute('aria-label', '札見せを飛ばして対局を始める');
       const iza = el('div', 'iza', 'いざ');
       iza.setAttribute('aria-hidden', 'true');
-      skip.append(row(`相手（${foeLabel(level, keiko)}）の持ち込み`, foeDeck, 'foe'), iza, row('自分の持ち込み', deck, 'me'));
+      const foeRow = row(friend ? '友の持ち込み' : `相手（${foeLabel(level, keiko)}）の持ち込み`, foeDeck, 'foe');
+      const meRow = row('自分の持ち込み', deck, 'me');
+      skip.append(foeRow, iza, meRow);
+      // くじの判（駒落ちがあれば落とした側が先なので、くじは引いていない）
+      const kuji = friend && h.kind === 'none' ? el('div', `kuji-ban ${iFirst ? 'saki' : 'ato'}`, iFirst ? '先' : '後') : null;
+      if (kuji) {
+        kuji.setAttribute('role', 'img');
+        kuji.setAttribute('aria-label', iFirst ? 'くじで先手になりました' : 'くじで後手になりました');
+        meRow.append(kuji);
+      }
       skip.addEventListener('click', go);
 
-      box.append(pageHead('札見せ', () => { gone = true; void showScreen('deck', { level, keiko }); }), skip);
+      const back = friend
+        ? () => { gone = true; endSession(); void showScreen('title'); }
+        : () => { gone = true; void showScreen('deck', { level, keiko }); };
+      box.append(pageHead('札見せ', back), skip);
       root.append(box);
 
       onKey = (e) => {
@@ -75,12 +102,20 @@ export function revealScreen(params: unknown): Screen {
         }
       };
       window.addEventListener('keydown', onKey);
+      const delay = kuji ? FRIEND_DELAY : 0;
+      if (kuji) {
+        timers.push(window.setTimeout(() => {
+          if (gone) return;
+          kuji.classList.add('on');
+          getSound().play('komaHard'); // 判をドンと押す（録った駒の音）
+        }, KUJI_AT));
+      }
       timers.push(window.setTimeout(() => {
         if (gone) return;
         box.classList.add('on');
         getSound().play('hyoshigi');
-      }, IZA_AT));
-      timers.push(window.setTimeout(go, SHOW_MS));
+      }, IZA_AT + delay));
+      timers.push(window.setTimeout(go, SHOW_MS + delay));
     },
     unmount() {
       gone = true;

@@ -9,6 +9,7 @@ describe('結果の言葉', () => {
     expect(outcomeOf({ winner: null, reason: 'repetition' })).toBe('draw');
     expect(resultWords({ winner: 'sente', reason: 'king-captured' })).toEqual({ seal: '勝', reason: '王を取りました', stamp: '天晴' });
     expect(resultWords({ winner: 'gote', reason: 'king-captured' })).toEqual({ seal: '負', reason: '王を取られました', stamp: '無念' });
+    expect(resultWords({ winner: 'sente', reason: 'resign' }).reason).toBe('相手が投了しました');
     expect(resultWords({ winner: null, reason: 'repetition' })).toEqual({ seal: '引分', reason: '同じ局面が4回出ました', stamp: '互角' });
     expect(resultWords({ winner: null, reason: 'move-limit' })).toEqual({ seal: '引分', reason: '300手を超えました', stamp: '互角' });
   });

@@ -9,7 +9,8 @@ type HudEvent = 'hand' | 'card' | 'use' | 'promote' | 'pick' | 'stop' | 'cancel'
 
 export interface Hud {
   /** 帯・駒台・伏せ札・手札を描き直す。usable は今使えるカードの uid（なければ全部使えない扱い） */
-  render(view: GameState, me: Side, opts: { thinking: boolean; level: Level; keiko?: boolean; usable?: Set<number> }): void;
+  // foe：友との対局のときの相手の名前・判子・待っている間の一言（無ければ CPU）
+  render(view: GameState, me: Side, opts: { thinking: boolean; level: Level; keiko?: boolean; usable?: Set<number>; foe?: FoeLabel }): void;
   setPrompt(text: string | null, opts?: { stop?: boolean; choices?: HandKind[] }): void;
   askPromote(): void;          // 成る／成らないの2つのボタン
   on(ev: HudEvent, fn: (arg?: unknown) => void): void;
@@ -32,6 +33,9 @@ const TRAP_SLOTS = 3;
 const DIGITS = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 
 /** 枚数を漢数字にする（1〜18 くらいまで） */
+/** 友との対局の相手の見せ方 */
+export interface FoeLabel { name: string; seal: string; waiting: string }
+
 export function kansuji(n: number): string {
   if (n < 10) return DIGITS[n] ?? String(n);
   const tens = Math.floor(n / 10);
@@ -82,7 +86,8 @@ export function createHud(root: HTMLElement): Hud {
   const foeName = el('span', 'name');
   const thinking = el('span', 'thinking');
   thinking.setAttribute('aria-live', 'polite');
-  foeWho.append(el('span', 'seal', '敵'), foeName, thinking);
+  const foeSeal = el('span', 'seal', '敵');
+  foeWho.append(foeSeal, foeName, thinking);
   const foeTraps = el('div', 'traps');
   foeTraps.setAttribute('aria-label', '相手の伏せ札');
   const restBtn = button('rest-open', '残り札');
@@ -270,13 +275,14 @@ export function createHud(root: HTMLElement): Hud {
       const prev = last && last.me === side ? last.view : null;
       last = { view, me: side };
       const foeSide: Side = side === 'sente' ? 'gote' : 'sente';
-      foeName.textContent = `CPU・${opts.keiko ? '稽古・' : ''}${LEVEL_LABEL[opts.level]}`;
-      thinking.textContent = opts.thinking ? '考え中' : '';
+      foeName.textContent = opts.foe?.name ?? `CPU・${opts.keiko ? '稽古・' : ''}${LEVEL_LABEL[opts.level]}`;
+      foeSeal.textContent = opts.foe?.seal ?? '敵';
+      thinking.textContent = opts.thinking ? opts.foe?.waiting ?? '考え中' : '';
       const myTurn = view.turn === side && !opts.thinking && !view.result;
       meTurn.textContent = myTurn ? 'あなたの手番' : '相手の手番';
       // 判子：自分の手番は朱の「自」、相手の手番は藍の枠の「敵」（決着のあとは「自」のまま）
       const foeTurn = !myTurn && !view.result;
-      meSeal.textContent = foeTurn ? '敵' : '自';
+      meSeal.textContent = foeTurn ? opts.foe?.seal ?? '敵' : '自';
       me.classList.toggle('turn', myTurn);
       me.classList.toggle('foe-turn', foeTurn);
       trapSlots(foeTraps, view, foeSide, false);

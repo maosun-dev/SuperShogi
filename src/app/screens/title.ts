@@ -1,6 +1,6 @@
 // タイトル画面：3D の盤がゆっくり回る。右上に題字（大きな筆の「超」、後ろに朱の払い、左下に小さな「将棋」、
 // その下に一言の短冊）、
-// 下に千社札の形の縦長ボタン「対局」「カード図鑑」、左下に小さな角印「設」（設定）。
+// 下に千社札の形の縦長ボタン「対局」「カード図鑑」「友と対局」（アプリだけ）、左下に小さな角印「設」（設定）。
 import { getStage } from '../../view/stage';
 import { sync } from '../../view/pieces3d';
 import { setHighlights } from '../../view/board3d';
@@ -8,6 +8,7 @@ import { titleView } from '../dev';
 import { showScreen, type Screen } from '../screens';
 import { button, el } from './ui';
 import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
+import { linkAvailable } from '../../net/link';
 
 /** 筆の字1文字の SVG。縁（rim）を太い線で先に描き、その上に字を塗る。thick で字そのものも太らせる */
 function brushChar(ch: keyof typeof TITLE_GLYPHS, cls: string, fill: string, rim: string, rimW: number, thick: number): string {
@@ -69,6 +70,8 @@ export function titleScreen(): Screen {
       const play = button('fuda wana', '対局', () => { void showScreen('level'); });
       const zukan = button('fuda mahou', '札図鑑', () => { void showScreen('zukan'); });
       nav.append(play, zukan);
+      // 友と対局（近くの iPhone 2台）。アプリと開発中の ?link=fake でだけ出す
+      if (linkAvailable()) nav.append(button('fuda soubi', '友と対局', () => { void showScreen('link'); }));
 
       const seal = button('kakuin', '設', () => { void showScreen('settings'); });
       seal.setAttribute('aria-label', '設定');

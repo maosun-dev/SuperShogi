@@ -20,6 +20,7 @@ import { levelScreen } from './screens/level';
 import { deckScreen } from './screens/deck';
 import { revealScreen } from './screens/reveal';
 import { settingsScreen } from './screens/settings';
+import { linkScreen } from './screens/link';
 import { armSoundUnlock, watchResume } from './unlock';
 import { prepareSaves } from './native';
 import { autoMatchParams, fxMatchParams } from './dev';
@@ -70,6 +71,7 @@ function start(): void {
   registerScreen('deck', (p) => deckScreen(p));
   registerScreen('reveal', (p) => revealScreen(p));
   registerScreen('settings', () => settingsScreen());
+  registerScreen('link', (p) => linkScreen(p));
   // 開発中に ?fx=<カード> が付いていれば演出の試し口として、?auto=<強さ> なら自動対局として、対局画面から始める
   const dev = fxMatchParams() ?? autoMatchParams();
   // 起動の画面（maosun-dev のしるし）。開発の試し口・自動対局では出さない

@@ -20,6 +20,7 @@ export function createFriendMatch(opts: {
   onOver(r: Result): void;   // 決着（自分から見た形）。相手の投了もここ
   onDesync(): void;          // 2台の盤面が食い違った
   onRewind(): void;          // 待ったで盤面が戻った（画面は描き直す）
+  onTurn?(): void;           // 手番が決まった（相手の手の演出のあとに自分の番が来た、など）
 }): FriendMatch {
   const { session, presenter } = opts;
   const setup = session.setup();
@@ -53,6 +54,7 @@ export function createFriendMatch(opts: {
     if (disposed() || phase === 'over') return;
     if (real.result) { over(flip ? mirrorResult(real.result) : real.result); return; }
     phase = real.turn === me ? 'human' : 'cpu';
+    opts.onTurn?.();
   }
 
   async function applyAndPresent(a: Action): Promise<void> {

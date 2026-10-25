@@ -95,16 +95,28 @@ function kingOf(s: GameState, side: Side): Square | null {
 
 /**
  * 演出役。cancel() で打ち切ると、流している演出は残りを流さず、共有の舞台（カメラ・盤）にも触れずに終わる。
- * resign(state) は、流している演出を打ち切ってから投了の演出（王が墨の泡になって消える → 「負」）を流す。cancel() で途中でも止まる
+ * resign(state) は、流している演出を打ち切ってから投了の演出（王が墨の泡になって消える → 「負」）を流す。cancel() で途中でも止まる。
+ * interrupt() は、いま流している演出だけを打ち切る（そのあとの present は流れる。友と対局の待ったで使う）
  */
-export interface FxPresenter extends Presenter { cancel(): void; resign(state: GameState): Promise<void> }
+export interface FxPresenter extends Presenter { cancel(): void; interrupt(): void; resign(state: GameState): Promise<void> }
 
 export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 'short' | 'long' }): FxPresenter {
   prepareMagic(stage);
   let cancelled = false;
   let resigning = false; // 投了の演出に移った：それまでの演出（present）は打ち切り扱い
+  let epoch = 0;         // interrupt のたびに進める（それより前に始めた present は打ち切り扱い）
   const alive = (): boolean => !cancelled && !resigning;
+  const tidy = (): void => {
+    try { clearTransients(); } catch (e) { console.error('演出の物を片付けられませんでした', e); }
+    try { resetStagecraft(); } catch (e) { console.error('照明を戻せませんでした', e); }
+    stage.shake = 0;
+  };
   return {
+    interrupt() {
+      if (cancelled || resigning) return;
+      epoch++;
+      tidy();
+    },
     cancel() {
       if (cancelled) return;
       cancelled = true;
@@ -133,24 +145,26 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 
     },
     async present(step) {
       if (!alive()) return;
+      const mine = epoch;
+      const live = (): boolean => !cancelled && !resigning && epoch === mine; // この present がまだ生きているか
       let ctx: FxCtx | null = null;
       try {
-        ctx = makeCtx(stage, hud, currentTiming(opts?.fx), me, step.before, step.after, alive);
+        ctx = makeCtx(stage, hud, currentTiming(opts?.fx), me, step.before, step.after, live);
         const kingAt = capturedKingAt(step.before, step.events);
         for (const cue of planFx(step.events, step.actor)) {
-          if (!alive()) break;
+          if (!live()) break;
           try {
             await playCue(ctx, cue, step, kingAt);
           } catch (e) {
-            if (alive() && !(e instanceof FxCancelled)) console.error(`演出に失敗しました（${cue.kind}）`, e);
+            if (live() && !(e instanceof FxCancelled)) console.error(`演出に失敗しました（${cue.kind}）`, e);
           }
         }
       } catch (e) {
-        if (alive()) console.error('演出の段取りを作れませんでした', e);
+        if (live()) console.error('演出の段取りを作れませんでした', e);
       } finally {
         // 後始末：カメラが寄ったままなら戻し（鏡で無効にされた魔法など）、重ね板を消して隠した手札を戻し、
         // 盤を局面どおりに揃える。1つの失敗がほかを止めないよう、それぞれ別に包む
-        if (!alive()) {
+        if (!live()) {
           // 打ち切られた：重ね板（対局画面の中）だけ片付け、カメラと盤は次の画面（や投了の演出）に任せる。
           // 投了の演出が重ね板を使っているときは触らない
           if (ctx && !resigning) { try { clearLayers(ctx); } catch { /* 片付けの失敗は無視 */ } }
@@ -161,11 +175,11 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 
             // 王が取られて決着したときは、見得を切ったまま結果画面へ（カメラは戻さない）
             const finale = step.after.result?.winner != null;
             if (!finale && !atHome(ctx)) await cameraHome(ctx, SETTLE_MS);
-          } catch (e) { if (alive()) console.error('カメラを戻せませんでした', e); }
+          } catch (e) { if (live()) console.error('カメラを戻せませんでした', e); }
           try { clearLayers(ctx); } catch (e) { console.error('重ね板を消せませんでした', e); }
         }
         // カメラを戻している間に打ち切られたら、盤は次の画面（や投了の演出）に任せる
-        if (alive()) {
+        if (live()) {
           try { sync(stage, step.after, me); } catch (e) { console.error('盤を揃えられませんでした', e); }
         }
       }

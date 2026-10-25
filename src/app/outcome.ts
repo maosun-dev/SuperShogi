@@ -17,7 +17,7 @@ export function outcomeOf(r: Result): Outcome {
 
 /** 結果の筆文字・理由・落款の字（落款は仮。見てから直す） */
 export function resultWords(r: Result): { seal: '勝' | '負' | '引分'; reason: string; stamp: '天晴' | '無念' | '互角' } {
-  if (r.winner === 'sente') return { seal: '勝', reason: '王を取りました', stamp: '天晴' };
+  if (r.winner === 'sente') return { seal: '勝', reason: r.reason === 'resign' ? '相手が投了しました' : '王を取りました', stamp: '天晴' };
   if (r.winner === 'gote') return { seal: '負', reason: r.reason === 'resign' ? '投了しました' : '王を取られました', stamp: '無念' };
   return { seal: '引分', reason: r.reason === 'repetition' ? '同じ局面が4回出ました' : '300手を超えました', stamp: '互角' };
 }

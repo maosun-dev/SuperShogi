@@ -4,6 +4,7 @@
 // 下の持ち込みの札は、押すとすぐ外れる。
 // role が 'foe' のときは稽古の相手の札を組む：駒落ちの代わりに相手の強さ、「おまかせ」の代わりに「くじ」（毎局引き直す）、
 // 「対局へ」の代わりに「次へ」（自分の札選びへ）。稽古の自分の札選び（keiko あり）の「戻る」は相手の札選びへ
+// friend のときは友と対局の札選び：駒落ちの欄は誘った側だけ、「次へ」で相手を待ち、そろったら札見せへ。戻るでつながりを捨てる
 import type { CardId, HandicapKind, Side } from '../../rules/types';
 import { HANDICAP_LABEL } from '../../rules/board';
 import type { CardKind } from '../../cards/types';
@@ -17,11 +18,12 @@ import { loadDeck, loadHandicap, loadKeiko, safeStore, saveDeck, saveHandicap, s
 import { LEVEL_NAME, costMarks } from '../outcome';
 import { keikoOf, type Keiko } from '../keiko';
 import { showScreen, type Screen } from '../screens';
+import { endSession, peekSession } from '../../net/current';
 import { button, el, kujiBacksHtml, pageHead } from './ui';
 
 const KINDS: CardKind[] = ['magic', 'trap', 'equip'];
 
-export interface DeckParams { level: Level; role?: 'me' | 'foe'; keiko?: Keiko }
+export interface DeckParams { level: Level; role?: 'me' | 'foe'; keiko?: Keiko; friend?: boolean }
 
 function levelOf(p: unknown): Level {
   const lv = (p as Partial<DeckParams> | undefined)?.level;
@@ -32,7 +34,9 @@ export function deckScreen(params: unknown): Screen {
   const level = levelOf(params);
   const foeRole = (params as Partial<DeckParams> | undefined)?.role === 'foe';
   const keiko = keikoOf((params as Partial<DeckParams> | undefined)?.keiko);
+  const friend = (params as Partial<DeckParams> | undefined)?.friend === true;
   let look: CardLook | null = null;
+  let off: (() => void) | null = null;
   return {
     mount(root) {
       const lk = createCardLook();
@@ -43,6 +47,7 @@ export function deckScreen(params: unknown): Screen {
       let foeLevel: Level = saved?.level ?? level;
       let kuji = saved?.deck === 'kuji';
       let deck: CardId[] = saved ? (saved.deck === 'kuji' ? [] : [...saved.deck]) : [...(loadDeck(store) ?? [])];
+      let waiting = false; // 友と対局：札を送って相手を待っている
 
       const box = el('div', 'page deckb');
       box.dataset.screen = 'deck';
@@ -118,8 +123,9 @@ export function deckScreen(params: unknown): Screen {
         handicap = { ...handicap, side };
         renderHandi();
       });
+      const foeWord = friend ? '友' : '相手';
       const meBtn = sideBtn('sente', '自分');
-      const foeBtn = sideBtn('gote', '相手');
+      const foeBtn = sideBtn('gote', foeWord);
       sideSeg.append(meBtn, foeBtn);
       const handiNote = el('p', 'handi-note');
       kindSel.addEventListener('change', () => {
@@ -133,11 +139,25 @@ export function deckScreen(params: unknown): Screen {
           b.setAttribute('aria-pressed', String(!none && handicap.side === side));
           b.disabled = none;
         }
-        handiNote.textContent = none ? '' : `${handicap.side === 'sente' ? '自分' : '相手'}が${HANDICAP_LABEL[handicap.kind]}で、先に指します`;
+        handiNote.textContent = none ? '' : `${handicap.side === 'sente' ? '自分' : foeWord}が${HANDICAP_LABEL[handicap.kind]}で、先に指します`;
       }
       renderHandi();
 
-      const go = foeRole
+      // 友と対局：札を送って相手を待つ（駒落ちは誘った側だけが決める）
+      // 作らずに見るだけ（つながっていない・相手のやめるが先に届いて閉じていたら、下でつなぐ画面へ戻す）
+      const session = friend ? peekSession() : null;
+      const isHost = session?.role() === 'host';
+      const go = session
+        ? button('primary', '次へ', () => {
+          if (validateDeck(deck) !== null) return;
+          saveDeck(store, deck);
+          if (isHost) saveHandicap(store, handicap);
+          session.ready([...deck], isHost ? handicap : undefined);
+          waiting = true;
+          msg.textContent = '相手が札を選んでいます';
+          render();
+        })
+        : foeRole
         ? button('primary', '次へ', () => {
           if (!kuji && validateDeck(deck) !== null) return;
           const k: Keiko = { level: foeLevel, deck: kuji ? 'kuji' : [...deck] };
@@ -171,6 +191,7 @@ export function deckScreen(params: unknown): Screen {
 
       // 見出しは置かない（下の段を低くして、上の札18枚を横送りなしで見せる）
       if (foeRole) foot.append(strip, lvRow, acts);
+      else if (session && !isHost) foot.append(strip, acts);
       else foot.append(strip, handi, handiNote, acts);
 
       function add(id: CardId): void {
@@ -231,18 +252,33 @@ export function deckScreen(params: unknown): Screen {
           b.setAttribute('aria-label', `${CARDS[id].name}を外す`);
           strip.append(b);
         });
-        go.disabled = validateDeck(deck) !== null;
+        go.disabled = waiting || validateDeck(deck) !== null;
       }
 
       render();
       // 稽古の自分の札選びは、相手の札選びへ戻る
-      const head = foeRole ? pageHead('相手の札', 'level')
+      const head = session ? pageHead('札選び', () => { endSession(); void showScreen('title'); })
+        : foeRole ? pageHead('相手の札', 'level')
         : keiko ? pageHead('札選び', 'deck', { level, role: 'foe' })
         : pageHead('札選び', 'level');
       box.append(head, meter, msg, rows, foot, lk.el);
       root.append(box);
+      if (friend && (!session || (session.phase() !== 'deck' && session.phase() !== 'over'))) {
+        endSession();
+        void showScreen('link', { notice: '相手が対局をやめました' });
+      } else if (session) {
+        // そろったら札見せへ。相手がやめた・切れたら、つなぐ画面で知らせる
+        const leave = (notice: string): void => { endSession(); void showScreen('link', { notice }); };
+        off = session.on((e) => {
+          if (e.type === 'start') void showScreen('reveal', { friend: true });
+          else if (e.type === 'foeQuit') leave('相手が対局をやめました');
+          else if (e.type === 'closed') leave('つながりが切れました');
+        });
+      }
     },
     unmount() {
+      off?.();
+      off = null;
       look?.destroy();
       look = null;
     },
