@@ -1868,3 +1868,5 @@ input:focus-visible {
 }
 .name-origin .origin-text p { font-size: 14px; line-height: 1.85; }
 .name-origin .origin-text p + p { margin-top: 8px; }
+/* 文節のまとまり：途中で折り返さない */
+.name-origin .origin-text .ph { display: inline-block; }

@@ -175,9 +175,15 @@ export function settingsScreen(): Screen {
       const markBox = el('div', 'origin-mark');
       markBox.append(furi, mark);
       const text = el('div', 'origin-text');
+      // 文節ごとに区切り、言葉の途中では折り返さない（画面の幅で切れ目が変わっても読みやすく）
+      const phrases = (p: HTMLElement, parts: string[]): HTMLElement => {
+        for (const t of parts) p.append(el('span', 'ph', t));
+        return p;
+      };
       text.append(
-        el('p', '', '「傾く（かぶく）」は、まわりが目を丸くするほど派手な身なりや、型破りなふるまいをすること。戦国の終わりから江戸のはじめ、そんな人たちは「傾奇者（かぶきもの）」と呼ばれ、歌舞伎の名もここから生まれました。'),
-        el('p', '', '定跡に従わず、札で盤をひっくり返す。この将棋の名は、その心意気から取りました。'),
+        phrases(el('p'), ['「傾く', '（かぶく）」は、', 'まわりが', '目を', '丸くするほど', '派手な', '身なりや、', '型破りな', 'ふるまいを', 'すること。',
+          '戦国の', '終わりから', '江戸の', 'はじめ、', 'そんな', '人たちは', '「傾奇者', '（かぶきもの）」と', '呼ばれ、', '歌舞伎の', '名も', 'ここから', '生まれました。']),
+        phrases(el('p'), ['定跡に', '従わず、', '札で', '盤を', 'ひっくり返す。', 'この', '将棋の', '名は、', 'その', '心意気から', '取りました。']),
       );
       const body = el('div', 'origin-body');
       body.append(markBox, text);
