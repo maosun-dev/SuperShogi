@@ -53,7 +53,7 @@ export function skipFinale(): void {
   skipNow?.();
 }
 
-/** 王手：盤の上に「王手」の墨の字が小さく跳ねて出て、拍子木がチョン。すぐ消す（1局に何度も出るので軽く） */
+/** 王手：盤の上に「王手」の墨の字が小さく跳ねて出て、低い拍子木がチョン。すぐ消す（1局に何度も出るので軽く） */
 export async function playCheck(ctx: FxCtx, _cue: CheckCue): Promise<void> {
   const L = boardLayer(ctx);
   const word = brushWord('王手', 'sumi');
@@ -62,7 +62,7 @@ export async function playCheck(ctx: FxCtx, _cue: CheckCue): Promise<void> {
   box.className = 'brush-check';
   box.append(word.el);
   L.replaceChildren(box);
-  getSound().play('hyoshigi');
+  getSound().play('ote');
   try {
     await animateEl(ctx, box, [
       { transform: 'scale(1.25) rotate(-6deg)', opacity: 0 },

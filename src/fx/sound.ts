@@ -23,7 +23,8 @@ type CardSoundName =
   | 'cardOut' // 札が盤の上に大きく出る（カードのシャッフルのはじき）
   | 'bubble' | 'kirakira' // 水鏡で札が沈む泡・札の力が宿る（格落とし・呼び戻し）
   | 'kotsuzumi' | 'flameShort' // カットイン（札の名前）の小鼓・韋駄天の短い炎
-  | 'shakuhachi'; // 対局の始まりの「開戦」
+  | 'shakuhachi' // 対局の始まりの「開戦」
+  | 'ote'; // 王手
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
 
@@ -68,7 +69,6 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   drum: { files: ['sfx/drum.mp3'], gain: 0.8 },
   fude: { files: ['sfx/fude1.mp3', 'sfx/fude2.mp3', 'sfx/fude3.mp3'], gain: 0.35, jitter: 0.08 }, // 紙のこすれ（カードの音から）
   poof: { files: ['sfx/poof1.mp3', 'sfx/poof2.mp3'], gain: 0.7 },
-  glass: { files: ['sfx/glass.mp3'], gain: 0.6 },
   ice: { files: ['sfx/ice.mp3'], gain: 1 }, // 氷のぱちぱち→パキーン→木が砕ける打ち を重ねたもの
   frost: { files: ['sfx/frost.mp3'], gain: 0.5 },
   shatter: { files: ['sfx/shatter.mp3'], gain: 0.6 },
@@ -95,8 +95,10 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   flame: { files: ['sfx/lic/kaen.mp3'], gain: 0.6 }, // 火炎魔法（1.0 はくどくて大きいとユーザー）
   flameShort: { files: ['sfx/lic/kaen-short.mp3'], gain: 0.45 }, // 火炎魔法の頭1秒（韋駄天が戻る・歩くとき）
   maku: { files: ['sfx/lic/maku.mp3'], gain: 0.6 }, // 拍子木2「キキン」（長い刻みは長すぎるとユーザー）
-  shakuhachi: { files: ['sfx/lic/shakuhachi.mp3'], gain: 0.6 }, // 尺八の頭1.6秒
-  kotsuzumi: { files: ['sfx/lic/kotsuzumi.mp3'], gain: 0.5 }, // 小鼓「ポン」を4半音ほど高く（低く大きいとユーザー）
+  shakuhachi: { files: ['sfx/lic/shakuhachi.mp3'], gain: 0.4 }, // 尺八の頭1.6秒（0.6 は大きいとユーザー）
+  ote: { files: ['sfx/lic/ote.mp3'], gain: 0.7 }, // 拍子木1を低く太く（王手）
+  glass: { files: ['sfx/lic/wareru.mp3'], gain: 0.6 }, // 金属の打撃＋きらきら（格落としで成り字が割れる）
+  kotsuzumi: { files: ['sfx/lic/kotsuzumi.mp3'], gain: 0.5 }, // 小鼓「ポン」（大きいとユーザー。高くした案は戻した）
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -373,6 +375,7 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   kotsuzumi: (k, t, g) => BASE_RECIPES.hyoshigi(k, t, g),
   flameShort: (k, t, g) => CARD_RECIPES.flame(k, t, 0.6 * g),
   shakuhachi: () => {}, // 合成の代わりはない
+  ote: (k, t, g) => BASE_RECIPES.hyoshigi(k, t, g),
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 
