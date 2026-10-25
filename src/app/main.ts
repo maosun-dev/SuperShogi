@@ -34,11 +34,16 @@ function start(): void {
   initScreens(root);
   // バナー広告（アプリ版だけ）：対局の外の画面で出し、対局では隠す。広告を動かし始める（initAds）のは起動の画面のあと
   // 曲：画面に合わせて流す・止める（幕が閉じている間に切り替わる）
+  // 起動の画面（maosun-dev のしるし）を出している間は曲を流さず、消えてから流す
+  let splashing = true;
+  let pendingMusic: ReturnType<typeof musicFor> = null;
   setScreenHook((name) => {
     setBannerWanted(bannerOn(name));
     // 対局の曲は対局の画面を開くたびに設定から決める（おまかせなら毎局引き直す）
     const track = name === 'match' ? pickMatchTrack(loadSettings(safeStore()).bgm, Math.random()) : undefined;
-    getSound().music(musicFor(name, track));
+    const music = musicFor(name, track);
+    if (splashing) { pendingMusic = music; return; }
+    getSound().music(music);
   });
   // 効果音：音量は設定から。音は最初の操作のあとに鳴らし始める（それまでは無音）。幕の拍子木もここで差し込む
   const settings = loadSettings(safeStore());
@@ -90,6 +95,8 @@ function start(): void {
         await splash.leave();
       }
       document.getElementById('boot-cover')?.remove(); // 起動の画面を出さないとき（開発の試し口）の分
+      splashing = false;
+      sound.music(pendingMusic);
       initAds();
     }
   });
