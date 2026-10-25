@@ -48,3 +48,6 @@ export function setTrap(s: GameState, owner: Side, cardId: CardId, at: Square | 
   s.traps.push({ uid, owner, cardId, at });
   return uid;
 }
+
+/** 待っている知らせ（マイクロタスク・setTimeout 0）を流しきる */
+export const flush = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
