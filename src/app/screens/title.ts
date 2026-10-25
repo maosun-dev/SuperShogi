@@ -47,10 +47,15 @@ export function titleScreen(): Screen {
       logo.innerHTML = FUDE; // 定数だけでできた文字列
       // 「超」を大きく、「将棋」は小さく左下に縦に積む（writing-mode は iPhone の Safari で幅を取り違えるため使わない）
       const h1 = el('h1');
-      h1.setAttribute('aria-label', '超将棋');
+      h1.setAttribute('aria-label', '傾将棋（かぶきしょうぎ）');
       // 字は衡山毛筆の形（titleGlyphs.ts）。超は墨に胡粉の縁、将棋は胡粉に墨の縁
       const cho = el('span', 'cho');
-      cho.innerHTML = brushChar('超', 'cho-svg', 'var(--sumi)', 'var(--gofun)', 80, 18); // 定数だけでできた文字列
+      cho.innerHTML = brushChar('傾', 'cho-svg', 'var(--sumi)', 'var(--gofun)', 80, 18); // 定数だけでできた文字列
+      // ふりがな「かぶき」：「傾」の左上に、墨の細い帯に胡粉の字で縦に（writing-mode は使わず1字ずつ積む）
+      const furi = el('span', 'furi');
+      furi.setAttribute('aria-hidden', 'true');
+      for (const ch of 'かぶき') furi.append(el('span', '', ch));
+      cho.append(furi);
       const shogi = el('span', 'shogi');
       shogi.innerHTML = brushChar('将', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 24) + brushChar('棋', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 24); // 同上
       h1.append(cho, shogi);
