@@ -81,7 +81,8 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   fuuin: { files: ['sfx/fuuin.mp3'], gain: 0.8 }, // 大太鼓の重い一打＋パキーンのきらめき
   cardOut: { files: ['sfx/card1.mp3', 'sfx/card2.mp3'], gain: 0.6, jitter: 0.03 }, // カードを切る「しゃっしゃっ」（シャッフルの長い録音から2回続く所）
   thud: { files: ['sfx/anaThud.mp3'], gain: 0.8 }, // 落とし穴の底と同じ音（ユーザーが選んだ、2026-10-25）
-  // 2026-10-25 フリー素材（効果音ラボ・On-Jin ～音人～）。public/sfx/lic は公開のリポジトリに入れない（再配布の禁止）
+  // 2026-10-25 フリー素材（効果音ラボ・On-Jin ～音人～）。public/sfx/lic は公開のリポジトリに入れない（再配布の禁止）。
+  // 鍵をかけた tools/sfx/sfx-lic.locked を置き、組み立てのときに戻す。ここの音を足し替えたら npm run sfx:lock
   tsuke: { files: ['sfx/lic/tsuke.mp3'], gain: 0.7 }, // 拍子木の1打を3回重ねた「バタバタッ」
   hoof: { files: ['sfx/lic/hoof.mp3'], gain: 0.5, jitter: 0.04 }, // 馬の駆け足から蹄3打のまとまり
   bubble: { files: ['sfx/lic/bubble.mp3'], gain: 0.5 }, // 水中の泡

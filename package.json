@@ -12,7 +12,9 @@
     "sync": "npm run build && npx cap sync ios",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.core.json && tsc --noEmit",
-    "icon": "node tools/icon/make-ios-assets.mjs"
+    "icon": "node tools/icon/make-ios-assets.mjs",
+    "sfx:lock": "node tools/sfx/lock.mjs lock",
+    "sfx:unlock": "node tools/sfx/lock.mjs unlock"
   },
   "keywords": [],
   "author": "",

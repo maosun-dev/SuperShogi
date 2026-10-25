@@ -6,6 +6,7 @@
 #   APPSTORE_API_KEY_ID        App Store Connect API キーの Key ID
 #   APPSTORE_API_ISSUER_ID     App Store Connect API キーの Issuer ID
 #   APPSTORE_API_PRIVATE_KEY   ダウンロードした AuthKey_XXXX.p8 の中身（全文）
+#   SFX_KEY                    素材の効果音の鍵（手元の tools/sfx/sfx.key の中身）
 name: iPhone版をTestFlightへ
 
 on:
@@ -39,6 +40,12 @@ jobs:
         with:
           node-version: 24
           cache: npm
+
+      # 素材の効果音は再配布できないので、鍵をかけたファイルだけをリポジトリに置いている
+      - name: 素材の効果音を戻す
+        env:
+          SFX_KEY: ${{ secrets.SFX_KEY }}
+        run: node tools/sfx/lock.mjs unlock
 
       - name: ゲームのファイルをアプリに入れる
         run: |
