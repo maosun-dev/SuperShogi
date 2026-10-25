@@ -146,8 +146,11 @@ export function createHud(root: HTMLElement): Hud {
   const restBox = el('div', 'rest-box');
   const restTitle = el('b', 'rest-title', '相手の残り札');
   const restList = el('div', 'rest-list');
+  // 術札・纏札を押すと、その札の説明をここに出す（忍札は中身を見せないので押せない）
+  const restAbout = el('div', 'rest-about');
+  restAbout.setAttribute('aria-live', 'polite');
   const restClose = button('rest-close', '閉じる');
-  restBox.append(restTitle, restList, restClose);
+  restBox.append(restTitle, restList, restAbout, restClose);
   rest.append(restBox);
 
   root.append(foe, board, footer, rest);
@@ -160,10 +163,32 @@ export function createHud(root: HTMLElement): Hud {
     restList.replaceChildren();
     if (left.length === 0) restList.append(el('p', 'rest-none', '残りの札はありません'));
     const { open, hiddenTraps } = restView(left.map(c => c.cardId));
+    const about = (id: CardId | null): void => {
+      restAbout.replaceChildren();
+      if (!id) {
+        restAbout.append(el('p', 'rest-hint', open.length > 0 ? '札を押すと説明が出ます' : ''));
+        return;
+      }
+      const c = CARDS[id];
+      const k = KIND_MARK[c.kind];
+      restAbout.className = `rest-about ${k.color}`;
+      const head = el('div', 'rest-about-head');
+      head.append(el('b', '', c.name), el('span', '', `${k.label}・コスト${c.cost}`));
+      restAbout.append(head, el('p', '', c.text));
+    };
+    about(null);
+    restAbout.className = 'rest-about';
     for (const id of open) {
-      const fig = el('figure', 'rest-card');
+      const fig = button('rest-card', '');
+      fig.setAttribute('aria-pressed', 'false');
+      fig.setAttribute('aria-label', `${CARDS[id].name}の説明`);
       fig.innerHTML = cardHtml(id, { size: 'small' }); // 定数だけでできた文字列
-      fig.append(el('figcaption', '', CARDS[id].name));
+      fig.append(el('span', 'cap', CARDS[id].name));
+      fig.addEventListener('click', () => {
+        for (const b of restList.querySelectorAll('.rest-card[aria-pressed]')) b.setAttribute('aria-pressed', 'false');
+        fig.setAttribute('aria-pressed', 'true');
+        about(id);
+      });
       restList.append(fig);
     }
     // 忍札は伏せるときと同じ札の裏（紅の縞に「忍」）で、何の札かは見せない

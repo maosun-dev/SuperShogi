@@ -624,7 +624,20 @@ button:focus-visible {
 .match .rest-card { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 56px; }
 .match .rest-card .card { cursor: default; }
 .match .rest-card .card-back { position: relative; display: block; box-shadow: inset 0 0 0 1px var(--sumi), 0 0 0 1px color-mix(in srgb, var(--sumi) 45%, transparent); }
-.match .rest-card figcaption { font-size: 11px; text-align: center; line-height: 1.3; }
+.match .rest-card :is(figcaption, .cap) { font-size: 11px; text-align: center; line-height: 1.3; }
+/* 押せる札（術札・纏札）：選んだ札は朱の下線で示し、説明を下に出す */
+.match button.rest-card { margin: 0; padding: 0 0 3px; background: none; border: 0; border-bottom: 2px solid transparent; color: inherit; font: inherit; cursor: pointer; }
+.match button.rest-card .card { cursor: pointer; }
+.match button.rest-card[aria-pressed="true"] { border-bottom-color: var(--wana); }
+.match button.rest-card:focus-visible { outline: 2px solid var(--gofun); outline-offset: 2px; }
+.match .rest-about { align-self: stretch; min-height: 44px; padding-left: 10px; border-left: 3px solid var(--c, transparent); }
+.match .rest-hint { margin: 0; font-size: 12px; opacity: .65; }
+.match .rest-about-head { display: flex; align-items: baseline; gap: 8px; }
+.match .rest-about-head b { font-size: 15px; font-weight: 800; }
+.match .rest-about-head span { font-size: 11px; opacity: .7; }
+.match .rest-about p { margin: 4px 0 0; font-size: 13px; line-height: 1.7; }
+.match .rest-about.mahou { --c: var(--mahou); }
+.match .rest-about.soubi { --c: var(--soubi); }
 .match .rest-none { font-size: 13px; opacity: .7; }
 .match .rest-close {
   align-self: flex-end;
