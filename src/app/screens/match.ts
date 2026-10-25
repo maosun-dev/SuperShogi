@@ -18,10 +18,11 @@ import { releaseLift, setLifted, sync } from '../../view/pieces3d';
 import { getSound } from '../../fx/sound';
 import { createHud } from '../../view/hud';
 import { createPresenter } from '../../fx/player';
-import { skipFinale } from '../../fx/finale';
+import { setKingFx, skipFinale } from '../../fx/finale';
+import { drawKingFx, isKingFx, type KingFx } from '../../fx/kingfx/kinds';
 import { showScreen, type Screen } from '../screens';
 import { installAutoPlay, installFxKey } from '../dev';
-import { loadHandicap, recordResult, safeStore } from '../storage';
+import { loadHandicap, loadSettings, recordResult, safeStore } from '../storage';
 import { outcomeOf, type Outcome } from '../outcome';
 import { button, el } from './ui';
 
@@ -35,6 +36,7 @@ export interface MatchParams {
   auto?: boolean;      // 開発用：人間側も CPU が指す自動対局（?auto=）。演出は短め・戦績に数えない
   friend?: boolean;    // 友と対局（札・先手はつながりの setup から）
   first?: Side;        // 札見せのくじで決めた先手（CPU 戦）
+  kingFx?: KingFx;     // 札見せのくじで決めた王を取る演出（CPU 戦。友と対局は setup から）
 }
 
 const TAP_SLOP = 10; // これ以上指が動いたらタップとみなさない（px）
@@ -49,14 +51,15 @@ function paramsOf(p: unknown): MatchParams {
   const foeDeck = keiko && q.foeDeck && validateDeck(q.foeDeck) === null ? q.foeDeck : undefined;
   if (q.friend) return { level, deck, friend: true };
   const first: Side | undefined = q.first === 'sente' || q.first === 'gote' ? q.first : undefined;
+  const kingFx = isKingFx(q.kingFx) ? q.kingFx : undefined;
   const bad = validateDeck(deck);
   if (bad) {
     console.error(`持ち込みが正しくないのでカードなしで始めます：${bad}`);
-    return { level, deck: [], keiko, foeDeck, first };
+    return { level, deck: [], keiko, foeDeck, first, kingFx };
   }
   // 開発用の口は開発中だけ通す
-  if (import.meta.env.DEV) return { level, deck, keiko, foeDeck, first, initial: q.initial, fxKey: q.fxKey, auto: q.auto };
-  return { level, deck, keiko, foeDeck, first };
+  if (import.meta.env.DEV) return { level, deck, keiko, foeDeck, first, kingFx, initial: q.initial, fxKey: q.fxKey, auto: q.auto };
+  return { level, deck, keiko, foeDeck, first, kingFx };
 }
 
 /** 出来事から、最後に動いた駒のマスを出す（なければ null） */
@@ -69,7 +72,7 @@ function lastSquare(events: GameEvent[]): Square | null {
 }
 
 export function matchScreen(params: unknown): Screen {
-  const { level, deck, keiko, foeDeck, first, initial, fxKey, auto, friend } = paramsOf(params);
+  const { level, deck, keiko, foeDeck, first, kingFx, initial, fxKey, auto, friend } = paramsOf(params);
   const session = friend ? peekSession() : null;
   // 友の帯：判子は「友」、名前は合言葉（「友 友」と並ばないように）
   const foe: FoeLabel | undefined = session ? { name: session.code() ?? '友だち', seal: '友', waiting: '友の番' } : undefined;
@@ -96,6 +99,10 @@ export function matchScreen(params: unknown): Screen {
   return {
     mount(root) {
       if (friend && !session?.setup()) { void showScreen('link', { notice: 'つながりが切れました' }); return; }
+      // 王を取る演出の案：友と対局は2台で同じ案（setup）、CPU 戦は札見せのくじ。開発中は ?king= で差し替えられる
+      const devKing = import.meta.env.DEV ? new URLSearchParams(location.search).get('king') : null;
+      setKingFx(isKingFx(devKing) ? devKing
+        : session?.setup()?.kingFx ?? kingFx ?? drawKingFx(loadSettings(safeStore()).kingFx, Math.random()));
       const box = document.createElement('div');
       box.className = 'match';
       box.dataset.screen = 'match';

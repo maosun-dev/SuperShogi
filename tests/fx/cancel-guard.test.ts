@@ -5,10 +5,11 @@ import { join } from 'node:path';
 // 演出の打ち切り（投了・画面の片付け）のあとに共有の舞台へ手を出さないよう、
 // 演出のファイルは舞台を直接さわらず kit.ts の道具を通す。その決まりを文字で見張る
 const DIR = 'src/fx';
-// 札ごとの演出（src/fx/cards）も同じ決まりで見る
+// 札ごとの演出（src/fx/cards）と王を取る演出の案（src/fx/kingfx）も同じ決まりで見る
 const files = [
   ...readdirSync(DIR).filter((f) => f.endsWith('.ts') && f !== 'kit.ts'),
   ...readdirSync(join(DIR, 'cards')).filter((f) => f.endsWith('.ts')).map((f) => join('cards', f)),
+  ...readdirSync(join(DIR, 'kingfx')).filter((f) => f.endsWith('.ts')).map((f) => join('kingfx', f)),
 ];
 
 // [見張る形, 例外として許す行]

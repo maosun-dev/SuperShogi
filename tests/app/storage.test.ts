@@ -23,8 +23,8 @@ describe('保存', () => {
   });
   it('設定を保存して読み戻せる', () => {
     const st = fakeStore();
-    saveSettings(st, { fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low', bgm: 'random' });
-    expect(loadSettings(st)).toEqual({ fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low', bgm: 'random' });
+    saveSettings(st, { fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low', bgm: 'random', kingFx: 'iai' });
+    expect(loadSettings(st)).toEqual({ fx: 'short', volume: 0.3, stage: 'byobu', motion: 'low', bgm: 'random', kingFx: 'iai' });
   });
   it('対局の曲は最初は対局BGM1。前の版の保存（bgm なし）や変な値も対局BGM1', () => {
     expect(DEFAULT_SETTINGS.bgm).toBe('taikyoku');

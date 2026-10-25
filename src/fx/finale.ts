@@ -1,8 +1,7 @@
 // 王手と決着の演出（歌舞伎の幕切れ。設計書 docs/superpowers/specs/2026-10-23-finale-design.md）。
 // 王手：盤の上に衡山の「王手」の墨の字が小さく跳ねて出る（拍子木だけ。しぶきは怖く見えるのでやめた）。カメラは動かさない。王手中の王の輪は sync が出す。
-// 決着：取られる王へカメラが寄る → スローで取る駒がじわりと入る（カメラは王の周りを一周。camera:false なら省く）
-//       → 当たった瞬間に時が止まる（色が抜け、拍子木がチョン、チョン）
-//       → 勝ちは取った王が回りながら天高く飛び、負けは自分の王が墨になって泡のように消える（取る駒は手前で待ち、消えてから収まる）
+// 決着：王を取る一手は、勝ちでも負けでも同じ案で流す（src/fx/kingfx の4案から、対局の始まりに setKingFx で決めた1つ。
+//       動きを減らす設定ではどの案でも、取る駒がまっすぐ入って王がふっと消えるだけ）
 //       → 暗転してスポットライト、筆文字（勝＝金泥・負＝胡粉のかすれ・引分＝淡い胡粉）を一画ずつ書く → 見得
 //       → 結果画面への幕は画面の切り替えが引く（字は層に残したまま。結果画面が同じ字を描く）
 // 引き分けは盤全体を映したまま、浅い暗転で「引分」を書く。投了は playResign（王が墨の泡になって消える → 「負」）。
@@ -15,27 +14,25 @@ import { PAL, PALS } from '../view/palette';
 import { squarePos } from '../view/board3d';
 import { pieceMesh } from '../view/pieces3d';
 import {
-  animateEl, atHome, brushLayer, cameraHome, cameraTo, dim, easeInOut, easeOut, flash, later, lightCap, localRect, shakeBy,
-  transient, type FxCtx,
+  animateEl, atHome, brushLayer, cameraHome, cameraTo, dim, easeInOut, easeOut, flash, localRect, transient, type FxCtx,
 } from './kit';
 import { darken, timeStop } from './stagecraft';
 import { brushWord, type Ink } from './brush';
 import { getSound } from './sound';
 import { squareOf } from './trap';
+import type { KingFx } from './kingfx/kinds';
+import { hideDecor, settleTaker, takerAlong, type KingCapture } from './kingfx/common';
+import { KING_FX_PLAY } from './kingfx';
 
 type CheckCue = Extract<Cue, { kind: 'check' }>;
 type GameOverCue = Extract<Cue, { kind: 'gameOver' }>;
 export type Verdict = '勝' | '負' | '引分';
 
-const SLOW = 4;          // 時間がゆっくり（0.25 倍）
 const MOVE_MS = 160;     // 普段の駒の移動（player.ts と同じ）
-const ORBIT_MS = 2400;
-const FLY_MS = 1100;
 const STOP_MS = 600;     // 時が止まっている長さ
 const CHECK_MS = 900;    // 王手の字を見せる長さ
 const OPEN_MS = 1300;    // 開戦の字を見せる長さ
 const MIE_MS = 700;      // 書き終わりの見得
-const REACH = 0.45;     // 負けで取る駒が止まる所（王のマスまでの割合）
 
 /** 筆文字の層を、盤の場所（上下の駒台の間）に合わせて返す。字は盤の真ん中に出る */
 function boardLayer(ctx: FxCtx): HTMLElement {
@@ -95,38 +92,6 @@ export async function playOpening(ctx: FxCtx): Promise<void> {
   } finally {
     box.remove();
   }
-}
-
-/** カメラが center の周りを一周する（高さと距離はいまの寄りのまま） */
-function orbit(ctx: FxCtx, center: THREE.Vector3, ms: number): Promise<void> {
-  const s = ctx.stage;
-  const off = s.cam.pos.clone().sub(center);
-  const look = s.cam.look.clone();
-  const up = THREE.Object3D.DEFAULT_UP;
-  return ctx.tween(ms, (t) => {
-    s.cam.pos.copy(center).add(off.clone().applyAxisAngle(up, Math.PI * 2 * t));
-    s.cam.look.copy(look);
-  }, easeInOut);
-}
-
-/** 王が飛んだ跡に残る金の粒 */
-function trail(ctx: FxCtx, obj: THREE.Object3D, ms: number): void {
-  const N = 90, geo = new THREE.BufferGeometry(), arr = new Float32Array(N * 3);
-  for (let i = 0; i < N; i++) arr.set([obj.position.x, obj.position.y, obj.position.z], i * 3);
-  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const peak = lightCap(ctx, 0.9);
-  const pm = new THREE.PointsMaterial({ color: PAL.soubiPale, size: 0.12, transparent: true, opacity: peak, blending: THREE.AdditiveBlending, depthWrite: false });
-  let k = 0;
-  transient(ctx, new THREE.Points(geo, pm), ms + 900, (_dt, age) => {
-    const pos = geo.attributes.position as THREE.BufferAttribute;
-    if (age < ms) {
-      // 王の今の位置に1粒ずつ置いていく
-      pos.setXYZ(k % N, obj.position.x + (Math.random() - 0.5) * 0.3, obj.position.y, obj.position.z + (Math.random() - 0.5) * 0.3);
-      k++;
-      pos.needsUpdate = true;
-    }
-    pm.opacity = peak * Math.max(0, Math.min(1, (ms + 900 - age) / 900));
-  });
 }
 
 /** 足元に広がる墨のにじみ（盤の上に寝かせた円） */
@@ -266,22 +231,26 @@ export async function playResign(ctx: FxCtx, kingAt: Square | null): Promise<voi
   await writeVerdict(ctx, '負', kingAt ? squarePos(kingAt) : null);
 }
 
-/** 時が止まる：色が抜け、拍子木がチョン、チョン。動きを減らす設定では色を抜かず、間だけ取る */
-async function freeze(ctx: FxCtx): Promise<void> {
-  getSound().play('hyoshigi');
-  if (!ctx.timing.camera) { await ctx.wait(STOP_MS / 2); return; }
-  try {
-    await ctx.tween(120, (t) => timeStop(ctx, 0.85 * t));
-    await ctx.wait(STOP_MS - 240);
-    getSound().play('hyoshigi');
-    await ctx.tween(120, (t) => timeStop(ctx, 0.85 * (1 - t)));
-  } finally {
-    timeStop(ctx, 0);
-  }
+/** 案の名前（setKingFx で対局の始まりに決める） */
+let kingFx: KingFx = 'tataki';
+
+/** この対局の王を取る演出の案を決める（対局画面が始まりに呼ぶ） */
+export function setKingFx(k: KingFx): void {
+  kingFx = k;
+}
+
+/** 動きを減らす設定：どの案でも、取る駒がまっすぐ入って王がふっと消えるだけ */
+async function plainCapture(ctx: FxCtx, k: KingCapture): Promise<void> {
+  if (k.taker && k.from) await ctx.tween(MOVE_MS * 2, (t) => takerAlong(k, t, 0.2), easeOut);
+  flash(ctx, PALS.soubiPale, 0.4, 260);
+  getSound().play('drum');
+  if (k.king) k.king.visible = false;
+  await ctx.wait(STOP_MS);
 }
 
 /**
  * 決着。kingAt は取られた王のマス（演出役が前の局面から出す。引き分けなら null）。
+ * 王を取る一手は、勝ちでも負けでも同じ案（kingFx）で流し、そのあと暗転して「勝」「負」を書く。
  * 終わったあとカメラは戻さない（見得を切ったまま結果画面へ。次に対局画面を開くとき普段の視点に戻る）
  */
 export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square | null): Promise<void> {
@@ -296,55 +265,30 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
   }
   const win = r.winner === ctx.me;
   const king = ctx.before.board[kingAt.r * 9 + kingAt.c];
-  const km = king ? pieceMesh(king.id) : undefined;
   const taker = ctx.after.board[kingAt.r * 9 + kingAt.c];
+  const km = king ? pieceMesh(king.id) : undefined;
   const am = taker ? pieceMesh(taker.id) : undefined;
   const from = taker ? squareOf(ctx.before, taker.id) : null;
   const at = squarePos(kingAt);
+  const k: KingCapture = {
+    kingAt, at, win,
+    kingId: king?.id ?? null, king: km,
+    takerId: taker?.id ?? null, taker: am,
+    from: from && am ? new THREE.Vector3(am.position.x, 0, am.position.z) : null,
+    takerY: am?.position.y ?? 0,
+    takerRot: am ? am.rotation.clone() : null,
+  };
   try {
-    // 1. 取られる王へカメラが寄る
-    flash(ctx, win ? PALS.soubiPale : PALS.mahou, 0.45, 260);
-    await cameraTo(ctx, at, 700);
-    // 2. 時間がゆっくりになる。camera:false なら一周は省き、短く間を取るだけ
-    dim(ctx, 0.3);
-    const round = later(ctx.timing.camera ? orbit(ctx, at, ORBIT_MS) : ctx.wait(MOVE_MS * SLOW + 500));
-    // 取る駒がじわりと入る。負けは王と重ならないよう手前（REACH）で止め、王が消えてから収める
-    const reach = win ? 1 : REACH;
-    const a = from ? squarePos(from) : null, ay = am?.position.y ?? 0;
-    const step = (t: number): void => {
-      if (am && a) am.position.set(a.x + (at.x - a.x) * t, ay + Math.sin(Math.PI * t) * 0.18 * 2, a.z + (at.z - a.z) * t);
-    };
-    if (am && a) await ctx.tween(MOVE_MS * SLOW, (t) => step(reach * t), easeOut);
-    // 当たった瞬間：光と揺れ、そして時が止まる
-    flash(ctx, PALS.hakkou, 0.8, 200 * SLOW);
-    getSound().play('drum');
-    shakeBy(ctx, 0.45);
-    await round;
-    dim(ctx, 0);
-    await freeze(ctx);
-    // 3. 王の最後：勝ちは取った王が回りながら天高く飛ぶ、負けは自分の王が墨の泡になって消え、取った駒が収まる
-    if (!win) {
-      await playKingInk(ctx, kingAt);
-      if (am && a) await ctx.tween(360, (t) => step(reach + (1 - reach) * t), easeOut);
-    } else if (km) {
-      for (const c of km.children.slice(2)) c.visible = false;
-      flash(ctx, PALS.soubiPale, 0.5, 300);
-      if (!ctx.timing.camera) {
-        km.visible = false;
-      } else {
-        const p0 = km.position.clone(), ry = km.rotation.y, rx = km.rotation.x;
-        trail(ctx, km, FLY_MS * ctx.timing.scale);
-        await ctx.tween(FLY_MS, (t) => {
-          km.position.set(p0.x + t * 0.8, p0.y + 22 * t * t, p0.z - t * 0.6);
-          km.rotation.y = ry + Math.PI * 10 * t;
-          km.rotation.x = rx - Math.PI * 1.5 * t;
-        }, (t) => t);
-        km.visible = false;
-      }
-    }
-    // 4. 暗転して筆文字 → 見得
+    hideDecor(km);
+    hideDecor(am);
+    if (!ctx.timing.camera) await plainCapture(ctx, k);
+    else await KING_FX_PLAY[kingFx](ctx, k);
+    // 案がどこで終わっても、王は消え、取る駒は王のマスにいる
+    if (km) km.visible = false;
+    settleTaker(k);
     await writeVerdict(ctx, win ? '勝' : '負', at);
   } finally {
     dim(ctx, 0);
+    timeStop(ctx, 0);
   }
 }

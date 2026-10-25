@@ -6,6 +6,7 @@ import type { Link, LinkEvent } from './link';
 import { APP_VERSION } from './link';
 import { encodeMsg, parseMsg, type Msg } from './protocol';
 import { buildState, lastTurnStart, type Setup } from './record';
+import { drawKingFx, type KingFxChoice } from '../fx/kingfx/kinds';
 
 export type SessionPhase = 'idle' | 'hosting' | 'browsing' | 'deck' | 'match' | 'reconnecting' | 'over' | 'closed';
 
@@ -58,7 +59,8 @@ export function makeCode(rng: () => number): string {
   return `${PIECE_NAMES[Math.floor(rng() * PIECE_NAMES.length)]}の${KANSUJI[Math.floor(rng() * KANSUJI.length)]}`;
 }
 
-export function createSession(link: Link, opts: { version?: string; rng?: () => number; stopDelayMs?: number } = {}): Session {
+/** kingFx は誘った側の設定（王を取る演出。おまかせならくじ）を読む。無ければくじ */
+export function createSession(link: Link, opts: { version?: string; rng?: () => number; stopDelayMs?: number; kingFx?: () => KingFxChoice } = {}): Session {
   const version = opts.version ?? APP_VERSION;
   const rng = opts.rng ?? Math.random;
   const stopDelayMs = opts.stopDelayMs ?? 300; // 最後の知らせが届くのを待ってから切る
@@ -117,7 +119,8 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
     if (role !== 'host' || !myReady || !foeReady) return;
     const handicap = myReady.handicap ?? NO_HANDICAP;
     const first: Side = handicap.kind !== 'none' ? handicap.side : rng() < 0.5 ? 'sente' : 'gote';
-    const s: Setup = { decks: { sente: myReady.deck, gote: foeReady.deck }, handicap, first };
+    const kingFx = drawKingFx(opts.kingFx?.() ?? 'random', rng());
+    const s: Setup = { decks: { sente: myReady.deck, gote: foeReady.deck }, handicap, first, kingFx };
     const id = Math.floor(rng() * 0x100000000).toString(16).padStart(8, '0');
     clearMatch();
     matchId = id; setup = s; phase = 'match';

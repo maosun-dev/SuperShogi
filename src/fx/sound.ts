@@ -24,7 +24,9 @@ type CardSoundName =
   | 'bubble' | 'kirakira' // 水鏡で札が沈む泡・札の力が宿る（格落とし・呼び戻し）
   | 'kotsuzumi' | 'flameShort' // カットイン（札の名前）の小鼓・韋駄天の短い炎
   | 'shakuhachi' // 対局の始まりの「開戦」
-  | 'ote'; // 王手
+  | 'ote' // 王手
+  // 王を取る・取られる演出（2026-10-25 仮の4案。素材の音）
+  | 'bakuhatsu' | 'bakuhatsu2' | 'iai' | 'daiken' | 'naguru' | 'slowWhoosh' | 'slowmo';
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
 
@@ -99,6 +101,14 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   ote: { files: ['sfx/lic/ote.mp3'], gain: 0.7 }, // 拍子木1を低く太く（王手）
   glass: { files: ['sfx/lic/wareru.mp3'], gain: 0.6 }, // 金属の打撃＋きらきら（格落としで成り字が割れる）
   kotsuzumi: { files: ['sfx/lic/kotsuzumi.mp3'], gain: 0.5 }, // 小鼓「ポン」（大きいとユーザー。高くした案は戻した）
+  // 王を取る演出（仮の4案・2026-10-25。大きさは推測）
+  bakuhatsu: { files: ['sfx/lic/bakuhatsu1.mp3'], gain: 0.7 }, // 爆発1（花火・屋台崩し・龍が呑む）
+  bakuhatsu2: { files: ['sfx/lic/bakuhatsu2.mp3'], gain: 0.6 }, // 爆発2
+  iai: { files: ['sfx/lic/iai.mp3'], gain: 0.8 }, // 居合抜き
+  daiken: { files: ['sfx/lic/daiken.mp3'], gain: 0.7 }, // 大剣で斬る
+  naguru: { files: ['sfx/lic/naguru.mp3'], gain: 0.8 }, // ロボットを強く殴る（叩き割りの一撃）
+  slowWhoosh: { files: ['sfx/lic/slowWhoosh.mp3'], gain: 0.7 }, // パンチの風切り音（スロー）
+  slowmo: { files: ['sfx/lic/slowmo.mp3'], gain: 0.6 }, // スローモーション（頭2.6秒）
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -376,6 +386,13 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   flameShort: (k, t, g) => CARD_RECIPES.flame(k, t, 0.6 * g),
   shakuhachi: () => {}, // 合成の代わりはない
   ote: (k, t, g) => BASE_RECIPES.hyoshigi(k, t, g),
+  bakuhatsu: (k, t, g) => BASE_RECIPES.thunder(k, t, g),
+  bakuhatsu2: (k, t, g) => BASE_RECIPES.thunder(k, t, 0.7 * g),
+  iai: (k, t, g) => BASE_RECIPES.whoosh(k, t, g),
+  daiken: (k, t, g) => CARD_RECIPES.slash(k, t, g),
+  naguru: (k, t, g) => BASE_RECIPES.drum(k, t, g),
+  slowWhoosh: (k, t, g) => BASE_RECIPES.whoosh(k, t, 0.6 * g),
+  slowmo: () => {}, // 合成の代わりはない
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 

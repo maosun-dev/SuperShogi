@@ -2,7 +2,7 @@
 // 拍子木と同時に中央で「いざ」の筆文字。1.6 秒で対局へ。タップ（Enter・Space）で飛ばせる。
 // 稽古の「くじ」は、この画面を開くたびに相手の札を引き直す（ここで初めて中身がわかる）。
 // 駒落ちが無ければ、くじで決まった先手・後手を「自分の持ち込み」の見出しの横に判で押してから「いざ」。
-// CPU 戦はここでくじを引き、対局へ first として渡す。友と対局（friend）では相手は「友」、くじは誘った側が引いたもの
+// CPU 戦はここでくじを引き、対局へ first（と王を取る演出の案 kingFx）として渡す。友と対局（friend）では相手は「友」、くじは誘った側が引いたもの
 import type { CardId } from '../../rules/types';
 import type { Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
@@ -11,7 +11,8 @@ import { getSound } from '../../fx/sound';
 import { makeRng } from '../../ai/random';
 import { drawFoeDeck, foeLabel, keikoOf, type Keiko } from '../keiko';
 import { HANDICAP_LABEL } from '../../rules/board';
-import { loadHandicap, safeStore } from '../storage';
+import { loadHandicap, loadSettings, safeStore } from '../storage';
+import { drawKingFx } from '../../fx/kingfx/kinds';
 import { showScreen, type Screen } from '../screens';
 import { el, pageHead } from './ui';
 import { endSession, peekSession } from '../../net/current';
@@ -41,6 +42,8 @@ export function revealScreen(params: unknown): Screen {
   // CPU 戦のくじ（駒落ちがあれば落とした側が先なので引かない）。自分＝sente
   const cpuHandi = setup ? null : loadHandicap(safeStore());
   const cpuFirst: Side = cpuHandi && cpuHandi.kind !== 'none' ? cpuHandi.side : Math.random() < 0.5 ? 'sente' : 'gote';
+  // 王を取る演出の案も、CPU 戦はここで先手と一緒に引く（設定で1案に決めていればその案）
+  const cpuKingFx = drawKingFx(loadSettings(safeStore()).kingFx, Math.random());
   const iFirst = setup ? setup.first === seat : cpuFirst === 'sente';
   let timers: number[] = [];
   let onKey: ((e: KeyboardEvent) => void) | null = null;
@@ -51,7 +54,7 @@ export function revealScreen(params: unknown): Screen {
     if (gone) return;
     gone = true;
     if (friend) void showScreen('match', { friend: true, level, deck });
-    else void showScreen('match', { level, deck, keiko, foeDeck, first: cpuFirst });
+    else void showScreen('match', { level, deck, keiko, foeDeck, first: cpuFirst, kingFx: cpuKingFx });
   };
 
   return {

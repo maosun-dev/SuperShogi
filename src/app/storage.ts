@@ -4,6 +4,7 @@ import { HANDICAP_LABEL } from '../rules/board';
 import type { Level } from '../ai/levels';
 import { sanitizeDeck } from '../cards';
 import { isNativeApp, mirrorStore, nativePrefs } from './native';
+import { isKingFx, type KingFxChoice } from '../fx/kingfx/kinds';
 
 export interface KeyValueStore { getItem(k: string): string | null; setItem(k: string, v: string): void }
 export type StageId = 'kabuki' | 'ukiyoe' | 'byobu';
@@ -11,13 +12,14 @@ export type Motion = 'auto' | 'full' | 'low'; // auto は端末の「動きを�
 // volume は 0〜1。stage は背景の舞台、motion は背景の動き
 /** 対局の曲：決めた1曲か、毎局どちらか（random） */
 export type BgmChoice = 'taikyoku' | 'taikyoku2' | 'sakura' | 'random';
-export interface Settings { fx: 'short' | 'long'; volume: number; stage: StageId; motion: Motion; bgm: BgmChoice }
+// kingFx は王を取る・取られる演出（決めた1案か毎局くじ）
+export interface Settings { fx: 'short' | 'long'; volume: number; stage: StageId; motion: Motion; bgm: BgmChoice; kingFx: KingFxChoice }
 export interface Tally { wins: number; losses: number; draws: number }
 // 稽古の相手：強さと、持ち込みの札（決めた並びか、毎局引き直す 'kuji'）
 export interface Keiko { level: Level; deck: CardId[] | 'kuji' }
 export const DEFAULT_KEIKO: Keiko = { level: 'normal', deck: 'kuji' };
 
-export const DEFAULT_SETTINGS: Settings = { fx: 'long', volume: 0.7, stage: 'kabuki', motion: 'auto', bgm: 'taikyoku' };
+export const DEFAULT_SETTINGS: Settings = { fx: 'long', volume: 0.7, stage: 'kabuki', motion: 'auto', bgm: 'taikyoku', kingFx: 'random' };
 
 const KEY_SETTINGS = 'superShogi.settings';
 const KEY_DECK = 'superShogi.deck';
@@ -69,7 +71,8 @@ export function loadSettings(st: KeyValueStore): Settings {
   const stage = o.stage === 'kabuki' || o.stage === 'ukiyoe' || o.stage === 'byobu' ? o.stage : DEFAULT_SETTINGS.stage;
   const motion = o.motion === 'auto' || o.motion === 'full' || o.motion === 'low' ? o.motion : DEFAULT_SETTINGS.motion;
   const bgm = o.bgm === 'taikyoku' || o.bgm === 'taikyoku2' || o.bgm === 'sakura' || o.bgm === 'random' ? o.bgm : DEFAULT_SETTINGS.bgm;
-  return { fx, volume, stage, motion, bgm };
+  const kingFx = o.kingFx === 'random' || isKingFx(o.kingFx) ? o.kingFx : DEFAULT_SETTINGS.kingFx;
+  return { fx, volume, stage, motion, bgm, kingFx };
 }
 
 export function saveSettings(st: KeyValueStore, s: Settings): void {

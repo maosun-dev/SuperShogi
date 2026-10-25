@@ -718,6 +718,9 @@ button:focus-visible {
 .match .fx-fly { z-index: 8; overflow: visible; }
 .match .fx-fly > * { position: absolute; margin: 0; }
 .match .fx-fly .card { cursor: default; transition: none; }
+/* 王を取る演出「居合一閃」の、画面を斜めに走る白い一閃 */
+.match .fx-fly > .king-slash { inset: 0; }
+.match .king-slash svg { display: block; width: 100%; height: 100%; }
 /* 札の裏（伏せる札）：伏せ札の枠と同じ紅と深紅の斜めの縞を、札の表と同じ胡粉のふちで囲み、真ん中に「忍」の印。
    大きさは札の表と同じ（--s で伸びる）なので、小さな枠へ縮んで入るとそのまま枠の裏に見える */
 .card-back {

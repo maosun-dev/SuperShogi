@@ -9,7 +9,7 @@ const mv = (fc: number, fr: number, tc: number, tr: number): Action =>
   ({ type: 'move', from: { c: fc, r: fr }, to: { c: tc, r: tr }, promote: false });
 
 const setup = (first: 'sente' | 'gote' = 'sente'): Setup =>
-  ({ decks: { sente: ['kagami'], gote: [] }, handicap: { side: 'sente', kind: 'none' }, first });
+  ({ decks: { sente: ['kagami'], gote: [] }, handicap: { side: 'sente', kind: 'none' }, first, kingFx: 'tataki' });
 
 test('createGame は first の側から指す。駒落ちがあれば落とした側が先', () => {
   expect(createGame({ sente: [], gote: [] }, { first: 'gote' }).turn).toBe('gote');

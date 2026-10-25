@@ -1,6 +1,7 @@
 // 友と対局：2台の間で送るもの。すべて JSON の文字にして送る
 import type { Action, CardId, Handicap, Side } from '../rules/types';
 import type { Setup } from './record';
+import { isKingFx } from '../fx/kingfx/kinds';
 
 export type Msg =
   | { t: 'hello'; version: string; matchId: string | null }
@@ -41,7 +42,7 @@ function isAction(v: unknown): v is Action {
 }
 
 function isSetup(v: unknown): v is Setup {
-  return isObj(v) && isObj(v.decks) && isStrs(v.decks.sente) && isStrs(v.decks.gote) && isHandicap(v.handicap) && isSide(v.first);
+  return isObj(v) && isObj(v.decks) && isStrs(v.decks.sente) && isStrs(v.decks.gote) && isHandicap(v.handicap) && isSide(v.first) && isKingFx(v.kingFx);
 }
 
 function isMsg(m: Obj): boolean {

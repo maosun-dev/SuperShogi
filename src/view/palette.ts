@@ -45,6 +45,9 @@ export const PAL = {
   stormCloud: 0x2b2932, // 雷雲（墨を夜の藍へ寄せたもの）
   stormLit: 0x8f96c8, // 雲の中で稲妻が光ったときの雲
   smokeShade: 0xc9c4d8, // 煙玉の陰（胡粉を藍へ寄せたもの）
+  // 王を取る演出（2026-10-25）：屋台崩しの桜吹雪・幕
+  sakura: 0xf4c6cf, // 桜の花びら（胡粉を紅へ寄せたもの）
+  makuBeni: 0x9e1426, // 幕のひだの明るい側（紅を沈めたもの）
 } as const;
 
 export type PalName = keyof typeof PAL;

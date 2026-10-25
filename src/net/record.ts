@@ -1,8 +1,10 @@
 // 友と対局：対局の中身は「最初の盤面を作る材料」と「手の記録」だけ。盤面はいつでも記録から作り直せる
 import type { Action, CardId, GameState, Handicap, Side } from '../rules/types';
 import { applyAction, createGame } from '../rules/game';
+import type { KingFx } from '../fx/kingfx/kinds';
 
-export interface Setup { decks: Record<Side, CardId[]>; handicap: Handicap; first: Side }
+// kingFx は王を取る・取られる演出の案（誘った側が引いて、2台で同じ案を流す）
+export interface Setup { decks: Record<Side, CardId[]>; handicap: Handicap; first: Side; kingFx: KingFx }
 
 export function buildState(setup: Setup, log: readonly Action[]): GameState {
   let s = createGame(setup.decks, { handicap: setup.handicap, first: setup.first });

@@ -11,7 +11,7 @@ const MSGS: Msg[] = [
   { t: 'hello', version: '0.5.0', matchId: 'ab12' },
   { t: 'ready', deck: ['rakurai'] },
   { t: 'ready', deck: [], handicap: { side: 'gote', kind: 'kaku' } },
-  { t: 'start', matchId: 'ab12', setup: { decks: { sente: ['kagami'], gote: [] }, handicap: { side: 'sente', kind: 'none' }, first: 'gote' } },
+  { t: 'start', matchId: 'ab12', setup: { decks: { sente: ['kagami'], gote: [] }, handicap: { side: 'sente', kind: 'none' }, first: 'gote', kingFx: 'hanabi' } },
   { t: 'act', n: 3, action: { type: 'move', from: SQ, to: { c: 4, r: 5 }, promote: false }, fp: '0a1b2c3d' },
   { t: 'act', n: 0, action: { type: 'card', uid: 40, targets: [], pick: 'FU' }, fp: '00000000' },
   { t: 'resign', n: 5 },

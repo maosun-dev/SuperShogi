@@ -49,7 +49,7 @@ describe('消えにくい保存', () => {
     const ls = fakeStore();
     const prefs = fakePrefs();
     const st = mirrorStore(ls, prefs);
-    saveSettings(st, { fx: 'short', volume: 0.2, stage: 'kabuki', motion: 'auto', bgm: 'taikyoku' });
+    saveSettings(st, { fx: 'short', volume: 0.2, stage: 'kabuki', motion: 'auto', bgm: 'taikyoku', kingFx: 'random' });
     st.setItem('x', '1');
     await Promise.resolve();
     expect(ls.m.get(KS)).toBe(prefs.m.get(KS));

@@ -9,6 +9,7 @@ import { autoDeck } from './deck';
 import { applyAction, createGame } from '../rules/game';
 import { viewFor } from '../rules/view';
 import { SAMPLES, getSound, type SoundName } from '../fx/sound';
+import { KING_FX, KING_FX_LABEL } from '../fx/kingfx/kinds';
 
 /** 初期配置（先手から見た局面） */
 export function initialView(): GameState {
@@ -69,6 +70,7 @@ export function titleView(): GameState {
 // ?fx=lose         相手の金が自分の王の前にいる。Space で歩を進め、CPU が王を取る
 // ?fx=draw         手数を上限にしておく。Space で歩を進めると手数の上限で引き分け
 // ?fx=resign       初期配置のまま。Space で投了する（王が伏せられて「負」→ 結果画面）
+//   &king=<案>      win・lose で流す王を取る演出の案（tataki・iai・hanabi・yatai）。左下の切り替えでも選べる
 // ?fx=itetsuku    相手が 7六 に凍てつく床を伏せた状態。Space で歩がそのマスへ進んで凍る
 // ?fx=aiuchi      相手が相討ちを伏せ、相手の歩が 7六 にいる。Space で自分の歩が取り、取った歩も壊れる
 // ?fx=migawari    相手が身代わりを伏せ、自分の金が相手の王の前にいる。Space で王を取りにいく
@@ -318,6 +320,8 @@ const SOUND_PICKS = {
   clang: '貫きの槍', flame: '韋駄天（炎）', drum: '大太鼓（王が取られる・引き分け）', fude: '筆（決着の一画ごと）',
   cardOut: '札が大きく出る（シャッフル）', levelup: '成り上がり（レベルアップ）', anaThud: '落とし穴の底', fuuin: '成り封じ（封印）',
   kachi: '勝ちの決め音', make: '負けの決め音', suzu: 'りん（引き分けの書き終わり）',
+  bakuhatsu: '爆発1（王取り）', bakuhatsu2: '爆発2（王取り）', iai: '居合抜き（王取り）', daiken: '大剣（王取り）',
+  naguru: '強く殴る（叩き割り）', slowWhoosh: 'スローの風切り（王取り）', slowmo: 'スローモーション（王取り）',
 } satisfies Record<SoundName, string>;
 
 /** 左下の効果音の試し聞き：一覧から選ぶとすぐ鳴る。「鳴らす」でもう一度 */
@@ -381,12 +385,27 @@ function installFxPicker(): void {
     sel.append(o);
   }
   sel.addEventListener('change', () => go(sel.value));
+  // 王を取る演出の案（?king=）。決着・勝ち／負けで流す案を替える
+  const kingSel = document.createElement('select');
+  kingSel.setAttribute('aria-label', '王を取る演出の案');
+  kingSel.setAttribute('style', 'height:30px;max-width:110px;border:0;border-radius:4px;background:#eee8dc;color:#1d1a17');
+  const nowKing = q.get('king') ?? '';
+  for (const [id, name] of [['', '王取り：設定どおり'], ...KING_FX.map((k) => [k, `王取り・${KING_FX_LABEL[k]}`])] as [string, string][]) {
+    const o = document.createElement('option');
+    o.value = id; o.textContent = name; o.selected = id === nowKing;
+    kingSel.append(o);
+  }
+  kingSel.addEventListener('change', () => {
+    if (kingSel.value) q.set('king', kingSel.value); else q.delete('king');
+    location.search = q.toString();
+  });
   const n = PICKS.length;
   bar.append(
     btn('◀', '前の札', () => go(PICKS[(Math.max(0, i) - 1 + n) % n][0])),
     sel,
     btn('▶', '次の札', () => go(PICKS[(i + 1) % n][0])),
     btn('もう一度', '同じ札をもう一度', () => location.reload()),
+    kingSel,
     soundPicker(btn),
   );
   // Space は演出を流すキーなので、選んだあとは選択欄から外す

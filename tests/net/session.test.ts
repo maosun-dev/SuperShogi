@@ -7,15 +7,17 @@ import { fingerprint } from '../../src/net/fingerprint';
 import { applyAction, legalActions } from '../../src/rules/game';
 import type { Action } from '../../src/rules/types';
 import { flush } from '../helpers';
+import { isKingFx, type KingFxChoice } from '../../src/fx/kingfx/kinds';
 
 function seq(...xs: number[]): () => number {
   let i = 0;
   return () => xs[i++ % xs.length];
 }
 
-async function pair(opts: { hostVersion?: string } = {}) {
+async function pair(opts: { hostVersion?: string; hostKingFx?: KingFxChoice } = {}) {
   const links = createPairLinks();
-  const host = createSession(links.a, { version: opts.hostVersion ?? '1', rng: seq(0.3, 0.6, 0.9), stopDelayMs: 0 });
+  const kingFx = opts.hostKingFx;
+  const host = createSession(links.a, { version: opts.hostVersion ?? '1', rng: seq(0.3, 0.6, 0.9), stopDelayMs: 0, kingFx: kingFx ? () => kingFx : undefined });
   const guest = createSession(links.b, { version: '1', rng: seq(0.1), stopDelayMs: 0 });
   const he: SessionEvent[] = [], ge: SessionEvent[] = [];
   host.on((e) => he.push(e)); guest.on((e) => ge.push(e));
@@ -77,6 +79,19 @@ test('両方の札がそろうと、同じ setup で始まる。駒落ちがあ�
   q.host.ready([], { side: 'gote', kind: 'kaku' });
   await flush();
   expect(q.guest.setup()!.first).toBe('gote');
+});
+
+test('王を取る演出の案は誘った側が引き、2台で同じ。誘った側の設定で1案に決めていればその案', async () => {
+  const p = await started();
+  expect(isKingFx(p.host.setup()!.kingFx)).toBe(true);
+  expect(p.guest.setup()!.kingFx).toBe(p.host.setup()!.kingFx);
+
+  const q = await pair({ hostKingFx: 'yatai' });
+  q.host.ready([]);
+  q.guest.ready([]);
+  await flush();
+  expect(q.host.setup()!.kingFx).toBe('yatai');
+  expect(q.guest.setup()!.kingFx).toBe('yatai');
 });
 
 test('指した手が相手に届き、記録が同じになる', async () => {

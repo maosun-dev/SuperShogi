@@ -168,8 +168,21 @@ export function timeStop(ctx: FxCtx, k: number): void {
   frozenCanvas = c;
 }
 
-/** 打ち切りのとき：暗転・スポットライト・点の光・時止めを必ず元に戻す（持ち主は問わない） */
+// ---------- 元に戻す約束（屋台崩しで崩した背景の絵など） ----------
+const resetHooks = new Set<() => void>();
+
+/** resetStagecraft のときに1回だけ呼ぶ後始末を預ける。戻り値を呼ぶと預けたものを取り消す */
+export function onStageReset(fn: () => void): () => void {
+  resetHooks.add(fn);
+  return () => { resetHooks.delete(fn); };
+}
+
+/** 打ち切りのとき：暗転・スポットライト・点の光・時止めを必ず元に戻す（持ち主は問わない）。預かった後始末も呼ぶ */
 export function resetStagecraft(): void {
+  for (const fn of [...resetHooks]) {
+    resetHooks.delete(fn);
+    try { fn(); } catch (e) { console.error('演出の後始末に失敗しました', e); }
+  }
   if (frozenCanvas) { frozenCanvas.style.filter = ''; frozenCanvas = null; }
   if (house) {
     const h = house;

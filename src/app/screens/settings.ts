@@ -1,4 +1,4 @@
-// 設定：舞台（背景）の選び、背景の動き「多め／少なめ」、演出の長さ「短め／長め」、音の大きさのつまみ、対局の曲（試聴つき）、
+// 設定：舞台（背景）の選び、背景の動き「多め／少なめ」、演出の長さ「短め／長め」、音の大きさのつまみ、対局の曲（試聴つき）、王を取る演出（仮の4案）、
 // いちばん下に名の由来（「傾」と傾奇者）とクレジット（字体・部品と約束。全文は押すと開く）。
 // 変えたらすぐ保存し、すぐ効かせる（音は setVolume、演出の長さは演出役が毎回設定を読み直す）。
 import { getSound, type MusicName } from '../../fx/sound';
@@ -10,6 +10,7 @@ import { type Screen } from '../screens';
 import { button, el, pageHead } from './ui';
 import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
 import { CREDITS, MIT_TEXT, OFL_NOTE } from '../credits';
+import { KING_FX, KING_FX_LABEL, type KingFxChoice } from '../../fx/kingfx/kinds';
 
 export function settingsScreen(): Screen {
   let timer = 0;
@@ -165,6 +166,31 @@ export function settingsScreen(): Screen {
       bgSec.append(bgHead, list);
       paintBgm();
 
+      // ---- 王を取る演出（仮の4案）：決めた1案か、毎局くじ。選んだ行に朱の「此」 ----
+      const kfSec = el('section', 'set-item');
+      const kfHead = el('h2', '', '王を取る演出');
+      kfHead.id = 'set-kingfx';
+      const kfList = el('ul', 'bgm-list');
+      kfList.setAttribute('role', 'group');
+      kfList.setAttribute('aria-labelledby', 'set-kingfx');
+      const kfPicks: { id: KingFxChoice; b: HTMLButtonElement }[] = [];
+      const paintKf = (): void => {
+        for (const { id, b } of kfPicks) b.setAttribute('aria-pressed', String(s.kingFx === id));
+      };
+      const kfRow = (id: KingFxChoice, label: string, sub?: string): HTMLLIElement => {
+        const li = el('li', 'bgm-row');
+        const b = button('bgm-pick', label);
+        if (sub) b.append(el('small', '', sub));
+        b.addEventListener('click', () => { save({ ...s, kingFx: id }); paintKf(); });
+        kfPicks.push({ id, b });
+        li.append(b);
+        return li;
+      };
+      kfList.append(kfRow('random', 'おまかせ', '対局の始まりにくじ'));
+      for (const id of KING_FX) kfList.append(kfRow(id, KING_FX_LABEL[id]));
+      kfSec.append(kfHead, kfList, el('p', 'note', '勝ちも負けも同じ演出です。友と対局では誘った側の設定で決まります'));
+      paintKf();
+
       // ---- 名の由来：題字と同じ筆の「傾」と、傾奇者の話 ----
       const nameSec = el('section', 'set-item name-origin');
       const nameHead = el('h2', '', '名の由来');
@@ -211,7 +237,7 @@ export function settingsScreen(): Screen {
 
       // 項目は和紙の一枚に墨で書く（舞台の絵の上でも読めるように）
       const sheet = el('div', 'sheet');
-      sheet.append(stSec, mvSec, fxSec, volSec, bgSec, nameSec, crSec);
+      sheet.append(stSec, mvSec, fxSec, volSec, bgSec, kfSec, nameSec, crSec);
       box.append(pageHead('設定', 'title'), sheet);
       root.append(box);
     },
