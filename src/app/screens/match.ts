@@ -11,7 +11,7 @@ import { fakeCut } from '../../net/fakeLink';
 import { isNativeApp } from '../native';
 import type { FoeLabel } from '../../view/hud';
 import { createBrowserCpu } from '../cpu';
-import { liftedSquare, reduceInput, type InputEvent, type InputState } from '../../view/input';
+import { isBoardTap, liftedSquare, reduceInput, type InputEvent, type InputState } from '../../view/input';
 import { getStage } from '../../view/stage';
 import { setHighlights, squareAt } from '../../view/board3d';
 import { releaseLift, setLifted, sync } from '../../view/pieces3d';
@@ -244,7 +244,9 @@ export function matchScreen(params: unknown): Screen {
 
       // 盤のタップ：押した所と離した所が近いときだけ
       let down: { x: number; y: number; id: number } | null = null;
-      const onDown = (e: PointerEvent): void => { down = { x: e.clientX, y: e.clientY, id: e.pointerId }; };
+      const onDown = (e: PointerEvent): void => {
+        down = isBoardTap(e.pointerType, e.button) ? { x: e.clientX, y: e.clientY, id: e.pointerId } : null;
+      };
       const onUp = (e: PointerEvent): void => {
         const d = down;
         down = null;

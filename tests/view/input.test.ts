@@ -1,6 +1,6 @@
 // タップ → 行動の変換テスト（Node で動く純粋な計算）
 import { describe, expect, it } from 'vitest';
-import { reduceInput, cardUsable, liftedSquare, type InputState, type InputEvent } from '../../src/view/input';
+import { reduceInput, cardUsable, liftedSquare, isBoardTap, type InputState, type InputEvent } from '../../src/view/input';
 import { legalActions, createGame } from '../../src/rules/game';
 import { CARDS } from '../../src/cards';
 import type { Action, CardId, GameState, Square } from '../../src/rules/types';
@@ -205,5 +205,19 @@ describe('liftedSquare', () => {
     expect(liftedSquare(IDLE)).toBeNull();
     expect(liftedSquare({ mode: 'promote', from: sq(2, 3), to: sq(2, 2) })).toBeNull();
     expect(liftedSquare({ mode: 'drop', kind: 'FU' })).toBeNull();
+  });
+});
+
+describe('isBoardTap', () => {
+  it('マウスの左ボタンは盤のタップ', () => {
+    expect(isBoardTap('mouse', 0)).toBe(true);
+  });
+  it('マウスの右ボタン・中ボタンは盤のタップにしない（右クリックは取り消しだけ）', () => {
+    expect(isBoardTap('mouse', 2)).toBe(false);
+    expect(isBoardTap('mouse', 1)).toBe(false);
+  });
+  it('指とペンはそのままタップ', () => {
+    expect(isBoardTap('touch', 0)).toBe(true);
+    expect(isBoardTap('pen', 0)).toBe(true);
   });
 });

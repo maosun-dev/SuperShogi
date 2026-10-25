@@ -2110,7 +2110,9 @@ input:focus-visible {
 
 /* ======== 広い画面（パソコン・タブレットの横向き） ========
    横幅 900px 以上の横長の画面だけ並べ方を変える。スマホ・アプリの見た目はこの中の規則では変わらない。
-   条件はどこでも同じ：(min-width: 900px) and (min-aspect-ratio: 5/4) */
+   条件はどこでも同じ：(min-width: 900px) and (min-aspect-ratio: 5/4)
+   列の幅の上限を外すのに :has() を使うので、使えないブラウザでは広い並べ方にしない（3列だけ効くと盤の列が 0px になる） */
+@supports selector(:has(*)) {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
   /* 対局は列の幅の上限（430px）を外して、画面いっぱいに3列（相手｜盤｜自分）で並べる */
   #app:has(> .match) { max-width: none; }
@@ -2175,6 +2177,18 @@ input:focus-visible {
     box-shadow: 0 4px 12px color-mix(in srgb, var(--sumi) 40%, transparent);
   }
 
+  /* のぞき見の説明は流れに入れず、右の列の下の端に重ねる（出るたびに手札が縮んで、乗せた札から外れて点滅しないように）。
+     重ねた板がマウスを奪わないよう、押せないようにしておく（のぞき見には押すボタンが無い） */
+  .match .detail.peek {
+    position: absolute;
+    left: auto;
+    right: 14px;
+    bottom: 12px;
+    width: 252px;
+    z-index: 4;
+    pointer-events: none;
+  }
+
   /* 短冊の基準を対局画面全体にして、盤の列の下の端に貼る */
   .match .mine-area { position: static; }
   .match .prompt {
@@ -2201,6 +2215,7 @@ input:focus-visible {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) and (max-height: 760px) {
   .deckb .pick .card { --s: .8; }
 }
+} /* @supports selector(:has(*)) */
 
 /* マウスの操作：手札に乗せて説明をのぞき見するときは、使うボタンと注意書きを出さない。盤の上は指のカーソル */
 .match .detail.peek .dbtns, .match .detail.peek .dnote { display: none; }
