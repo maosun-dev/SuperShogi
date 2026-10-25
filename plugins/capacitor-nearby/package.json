@@ -2,7 +2,7 @@
   "name": "capacitor-nearby",
   "version": "0.1.0",
   "private": true,
-  "description": "超将棋の友と対局：近くの iPhone 同士を MultipeerConnectivity でつなぐ小さな部品（iOS だけ）",
+  "description": "傾将棋の友と対局：近くの iPhone 同士を MultipeerConnectivity でつなぐ小さな部品（iOS だけ）",
   "main": "index.js",
   "files": [
     "ios/Sources",

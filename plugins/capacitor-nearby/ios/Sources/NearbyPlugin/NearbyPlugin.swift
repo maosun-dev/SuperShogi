@@ -1,4 +1,4 @@
-// 超将棋の友と対局：近くの iPhone 同士を MultipeerConnectivity（Bluetooth とルーターなしの Wi-Fi を iOS が使い分ける）でつなぐ。
+// 傾将棋の友と対局：近くの iPhone 同士を MultipeerConnectivity（Bluetooth とルーターなしの Wi-Fi を iOS が使い分ける）でつなぐ。
 // 決まりごとは持たず、誘う・探す・つなぐ・送る・受け取る・切れた の知らせだけを JS（src/net/link.ts）に渡す。
 // 相手は1人だけ。相手の id は MCPeerID ごとに作った UUID の文字列
 import Foundation

@@ -1,5 +1,5 @@
 // アプリのアイコン（1024 四方の SVG）。A 案の仕上げ：
-// 夜の藍の地に、紅の隈取の一筆が右上から左下へ走り、その前に榧の駒が少し左へ傾いて立つ。駒には墨の「超」。
+// 夜の藍の地に、紅の隈取の一筆が右上から左下へ走り、その前に榧の駒が少し左へ傾いて立つ。駒には墨の「傾」（もとは「超」。2026-10-25 に名前を傾将棋へ）。
 // 色は src/view/palette.ts の名前付きの色だけを使う。
 import { PALS as P } from '../../src/view/palette.ts';
 
@@ -241,7 +241,7 @@ function pieceGrain() {
 
 /**
  * アイコンの SVG（1024×1024）。
- * @param {string} fontFamily 「超」を書く筆文字の字体名（Yuji Boku）
+ * @param {string} fontFamily 「傾」を書く筆文字の字体名（Yuji Boku）
  */
 export function iconSvg(fontFamily) {
   const inner = inset(PIECE, BEVEL);
@@ -250,7 +250,7 @@ export function iconSvg(fontFamily) {
   const ff = `'${fontFamily}'`;
   // 字の置き場所（駒の中で少し下寄り。屋根の三角に頭が入りすぎないように）
   const glyph = (dx, dy, fill, extra = '') =>
-    `<text x="${dx}" y="${168 + dy}" text-anchor="middle" font-family="${ff}" font-size="446" fill="${fill}" ${extra}>超</text>`;
+    `<text x="${dx}" y="${168 + dy}" text-anchor="middle" font-family="${ff}" font-size="446" fill="${fill}" ${extra}>傾</text>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}">
 <defs>

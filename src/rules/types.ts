@@ -1,4 +1,4 @@
-// 超将棋のルールで使う型
+// 傾将棋のルールで使う型
 
 export type Side = 'sente' | 'gote';
 export type PieceKind = 'FU' | 'KY' | 'KE' | 'GI' | 'KI' | 'KA' | 'HI' | 'OU';

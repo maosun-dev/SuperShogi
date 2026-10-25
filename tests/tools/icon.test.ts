@@ -1,4 +1,4 @@
-// アイコンの SVG が決めごと（1024 四方・7色とその明暗だけ・字は「超」）を守っているか確かめる。
+// アイコンの SVG が決めごと（1024 四方・7色とその明暗だけ・字は「傾」）を守っているか確かめる。
 import { describe, expect, it } from 'vitest';
 import { iconSvg } from '../../tools/icon/icon.mjs';
 import { PALS } from '../../src/view/palette';
@@ -16,9 +16,9 @@ describe('アイコンの絵', () => {
     expect(svg).not.toMatch(/(fill|stroke|stop-color|flood-color)="(?!url|none|#)[a-z]/i);
   });
 
-  it('字は「超」', () => {
+  it('字は「傾」', () => {
     const svg = iconSvg('Yuji Boku');
-    expect(svg).toContain('超');
+    expect(svg).toContain('傾');
     expect(svg).toContain('Yuji Boku');
   });
 });

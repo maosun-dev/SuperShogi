@@ -60,7 +60,7 @@ export function linkScreen(params: unknown): Screen {
       // ---- 探す：見つかった合言葉を駒のボタンで並べる ----
       const list = el('div', 'link-peers');
       list.setAttribute('aria-label', '近くで誘っている人');
-      const hint = el('p', 'link-note hint', '見つからないときは、両方の iPhone で 設定 → 超将棋 → ローカルネットワーク をオンにしてください');
+      const hint = el('p', 'link-note hint', '見つからないときは、両方の iPhone で 設定 → 傾将棋 → ローカルネットワーク をオンにしてください');
       hint.hidden = true;
       const renderPeers = (): void => {
         list.replaceChildren();

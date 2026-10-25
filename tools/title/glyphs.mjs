@@ -1,5 +1,5 @@
 // TrueType フォント（.ttf）から、指定した字の形を SVG の path（d 属性）として書き出す小さな道具。
-// 題字は「超・将・棋」の3文字の形だけをアプリに入れる（フォントのファイルは配らない）ために使う。
+// 題字は「傾・将・棋」など使う字の形だけをアプリに入れる（フォントのファイルは配らない）ために使う。
 // 使い方：node tools/title/glyphs.mjs <フォント.ttf> <字> > 出力.json
 // 出力：{ unitsPerEm, ascent, descent, glyphs: { 字: { d, advance } } }。座標は y を下向きに直してある
 import { readFileSync } from 'node:fs';

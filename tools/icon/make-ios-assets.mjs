@@ -13,7 +13,7 @@ import { PALS } from '../../src/view/palette.ts';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const assets = join(root, 'ios', 'App', 'App', 'Assets.xcassets');
 const FAMILY = 'Yuji Boku';
-const CHAR = 0x8d85; // 超
+const CHAR = 0x50be; // 傾
 
 /** unicode-range（U+8d85, U+592a-592b など）に cp が入っているか */
 function rangeHas(range, cp) {
@@ -31,7 +31,7 @@ function rangeHas(range, cp) {
   });
 }
 
-/** 400.css から「超」を含む woff2 の場所を探す */
+/** 400.css から「傾」を含む woff2 の場所を探す */
 function findWoff2() {
   const dir = join(root, 'node_modules', '@fontsource', 'yuji-boku');
   const css = readFileSync(join(dir, '400.css'), 'utf8');
@@ -40,7 +40,7 @@ function findWoff2() {
     const src = block.match(/url\(([^)]+\.woff2)\)/);
     if (range && src && rangeHas(range[1], CHAR)) return join(dir, src[1].replace(/^\.\//, ''));
   }
-  throw new Error('「超」を含む Yuji Boku の woff2 が見つからない');
+  throw new Error('「傾」を含む Yuji Boku の woff2 が見つからない');
 }
 
 /** SVG を不透明な RGB の PNG に（背景を夜の藍で塗りつぶし、透明の層を持たない形で書く） */

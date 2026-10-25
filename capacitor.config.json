@@ -1,6 +1,6 @@
 {
   "appId": "com.maosundev.supershogi",
-  "appName": "超将棋",
+  "appName": "傾将棋",
   "webDir": "dist",
   "ios": {
     "contentInset": "never",

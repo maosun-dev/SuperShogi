@@ -1,4 +1,4 @@
-// タイトル画面：3D の盤がゆっくり回る。右上に題字（大きな筆の「超」、後ろに朱の払い、左下に小さな「将棋」、
+// タイトル画面：3D の盤がゆっくり回る。右上に題字（大きな筆の「傾」、後ろに朱の払い、左下に小さな「将棋」、
 // その下に一言の短冊）、
 // 下に千社札の形の縦長ボタン「対局」「カード図鑑」「友と対局」（アプリだけ）、左下に小さな角印「設」（設定）。
 import { getStage } from '../../view/stage';
@@ -45,10 +45,10 @@ export function titleScreen(): Screen {
 
       const logo = el('div', 'logo');
       logo.innerHTML = FUDE; // 定数だけでできた文字列
-      // 「超」を大きく、「将棋」は小さく左下に縦に積む（writing-mode は iPhone の Safari で幅を取り違えるため使わない）
+      // 「傾」を大きく、「将棋」は小さく左下に縦に積む（writing-mode は iPhone の Safari で幅を取り違えるため使わない）
       const h1 = el('h1');
       h1.setAttribute('aria-label', '傾将棋（かぶきしょうぎ）');
-      // 字は衡山毛筆の形（titleGlyphs.ts）。超は墨に胡粉の縁、将棋は胡粉に墨の縁
+      // 字は衡山毛筆の形（titleGlyphs.ts）。傾は墨に胡粉の縁、将棋は胡粉に墨の縁
       const cho = el('span', 'cho');
       cho.innerHTML = brushChar('傾', 'cho-svg', 'var(--sumi)', 'var(--gofun)', 80, 18); // 定数だけでできた文字列
       // ふりがな「かぶき」：「傾」の左上に、墨の細い帯に胡粉の字で縦に（writing-mode は使わず1字ずつ積む）
@@ -59,7 +59,7 @@ export function titleScreen(): Screen {
       const shogi = el('span', 'shogi');
       shogi.innerHTML = brushChar('将', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 24) + brushChar('棋', 'sho-svg', 'var(--gofun)', 'var(--sumi)', 110, 24); // 同上
       h1.append(cho, shogi);
-      // 何が「超」なのかを、説明ではなく啖呵の一言で。題字の下に横書きで書き添え（板は敷かない）、
+      // どんな将棋なのかを、説明ではなく啖呵の一言で。題字の下に横書きで書き添え（板は敷かない）、
       // 「札」の字は朱の印（白抜きの「札」）に置き換える
       const rakkan = el('p', 'rakkan');
       rakkan.setAttribute('aria-label', '定跡なんぞ、札で破れ。');
