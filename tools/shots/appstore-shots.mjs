@@ -127,5 +127,13 @@ if (want('howto')) {
   await shot('howto');
 }
 
+// ブラウザ版を共有したときの画像（1200×630）。パソコンの幅で見たタイトル画面
+if (want('ogp')) {
+  await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 630, deviceScaleFactor: 1, mobile: false });
+  await load('');
+  await sleep(2000);
+  await shot('ogp');
+}
+
 ws.close(); chrome.kill();
 console.log('done');

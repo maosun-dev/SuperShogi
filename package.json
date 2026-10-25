@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.core.json && tsc --noEmit",
     "icon": "node tools/icon/make-ios-assets.mjs",
     "sfx:lock": "node tools/sfx/lock.mjs lock",
-    "sfx:unlock": "node tools/sfx/lock.mjs unlock"
+    "sfx:unlock": "node tools/sfx/lock.mjs unlock",
+    "web": "npm run build && node tools/web/publish.mjs"
   },
   "keywords": [],
   "author": "",
