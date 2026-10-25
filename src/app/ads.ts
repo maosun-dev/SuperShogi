@@ -9,7 +9,7 @@ import { isNativeApp } from './native';
 
 // Google が公開しているテスト用のバナー。本物の番号（AdMob で作る）が空のあいだはこちらを使う
 const TEST_BANNER_ID = 'ca-app-pub-3940256099942544/2435281174';
-const REAL_BANNER_ID = '';
+const REAL_BANNER_ID: string = 'ca-app-pub-7017663942238206/5630427089';
 const testing = REAL_BANNER_ID === '';
 
 /** 使うものだけを並べたプラグインの形（テストでは偽物を渡す） */

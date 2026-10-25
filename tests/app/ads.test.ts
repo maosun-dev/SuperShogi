@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { bannerOn, createAds, type AdsPlugin } from '../../src/app/ads';
 
-const TEST_BANNER = 'ca-app-pub-3940256099942544/2435281174';
+const REAL_BANNER = 'ca-app-pub-7017663942238206/5630427089';
 
 // 呼ばれた順を記録する偽のプラグイン。各関数は差し替えられる
 function fakePlugin(over: Partial<AdsPlugin> = {}) {
@@ -75,7 +75,7 @@ describe('バナー広告の係', () => {
     await ads.init();
     await flush();
     expect(f.calls.indexOf('show')).toBeGreaterThan(f.calls.indexOf('initialize'));
-    expect(f.opts[0]).toMatchObject({ adId: TEST_BANNER, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', margin: 0, isTesting: true });
+    expect(f.opts[0]).toMatchObject({ adId: REAL_BANNER, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', margin: 0, isTesting: false });
   });
 
   it('2回目に出すときは resumeBanner、隠すときは hideBanner と高さ0', async () => {
