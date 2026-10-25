@@ -15,8 +15,8 @@ const REPETITION_LIMIT = 4;
 const FREEZE_KING = 1;
 const FREEZE_OTHER = 2;
 
-// 駒落ちがあるときは、駒を落とした側が先に指す
-export function createGame(decks: Record<Side, CardId[]>, opts: { handicap?: Handicap } = {}): GameState {
+// 駒落ちがあるときは、駒を落とした側が先に指す。無ければ first の側（ふだんは先手）
+export function createGame(decks: Record<Side, CardId[]>, opts: { handicap?: Handicap; first?: Side } = {}): GameState {
   for (const side of ['sente', 'gote'] as Side[]) {
     const problem = validateDeck(decks[side]);
     if (problem) throw new IllegalActionError(problem);
@@ -31,7 +31,7 @@ export function createGame(decks: Record<Side, CardId[]>, opts: { handicap?: Han
       gote: { hand: emptyHand(), cards: [] },
     },
     traps: [],
-    turn: handicap ? handicap.side : 'sente',
+    turn: handicap ? handicap.side : opts.first ?? 'sente',
     ply: 0,
     trapSetThisTurn: false,
     pushFollowUp: false,
