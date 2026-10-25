@@ -99,7 +99,7 @@ function hasPawnInColumn(s: GameState, side: Side, c: number, except: Square): b
 
 export const kakuotoshi: CardDef = {
   id: 'kakuotoshi', name: '格落とし', kind: 'magic', cost: 3, fx: 'kakuotoshi',
-  text: '相手の成った駒1つを、成る前の駒に戻す。纏札は残る。戻すと行き所のない駒や二歩になる駒は選べない',
+  text: '相手の成った駒1つを、成る前の駒に戻す。戻した駒は対局の終わりまで成れない。纏札は残る。戻すと行き所のない駒や二歩になる駒は選べない',
   prompt: '成りを戻す相手の駒を選んでください',
   targetSets(s, side) {
     return piecesOf(s, opponent(side))
@@ -111,6 +111,7 @@ export const kakuotoshi: CardDef = {
   resolve(ctx, [sq]) {
     const p = ctx.state.board[idx(sq)]!;
     p.promoted = false;
+    p.sealed = true; // 成り封じと同じく、もう成れない
     ctx.emit({ type: 'demoted', pieceId: p.id, at: sq });
   },
 };

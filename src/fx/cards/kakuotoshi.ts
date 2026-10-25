@@ -1,7 +1,7 @@
 // 格落とし（コスト3・約4秒）
 // 前振り：暗転し、的の成り駒だけにスポットライト
 // 見せ場：駒の上に朱の成り字が浮き出て、ひびが入りパリンと割れる。駒がくるっと裏返って元の字に戻る
-// 余韻：朱のかけらが落ちて消え、照明が戻る
+// 余韻：朱のかけらが落ちて消え、「封」の印が付いて照明が戻る
 import * as THREE from 'three';
 import { PAL, PALS, rgba } from '../../view/palette';
 import { squarePos } from '../../view/board3d';
@@ -151,6 +151,9 @@ export const kakuotoshi: CardFx<MagicCue> = {
     m2.position.y = PIECE_Y;
     getSound().play('komaHard');
     shakeBy(ctx, 0.12);
+    // 戻した駒はもう成れない（成り封じと同じ「封」の印が付く）
+    await ctx.wait(180);
+    getSound().play('fuuin', { gain: 0.6 });
   },
   async after(ctx) {
     await ctx.wait(600);

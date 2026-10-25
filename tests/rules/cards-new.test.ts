@@ -174,6 +174,15 @@ test('鏡の結界：コスト1の押し返しの風には発動しない', () =
 
 // ---------- 格落とし ----------
 
+test('格落とし：戻した駒は成り封じと同じく、対局の終わりまで成れない', () => {
+  const s = base();
+  put(s, { c: 4, r: 4 }, 'HI', 'gote', { promoted: true });
+  put(s, { c: 5, r: 4 }, 'KI', 'gote');
+  const uid = giveCard(s, 'sente', 'kakuotoshi');
+  const { state } = applyAction(s, card(uid, [{ c: 4, r: 4 }]));
+  expect(at(state, 4, 4)).toMatchObject({ kind: 'HI', promoted: false, sealed: true });
+});
+
 test('格落とし：相手の成った駒だけを選べ、成る前に戻す。纏札は残る', () => {
   const s = base();
   const ryu = put(s, { c: 4, r: 4 }, 'HI', 'gote', { promoted: true, equip: 'tenma' });
