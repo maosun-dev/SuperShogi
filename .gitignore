@@ -9,3 +9,6 @@ tools/arena/out/
 
 # 筆文字のフォント（配らない。字の形だけを取り出して使う）
 tools/title/fonts/
+
+# フリー素材の効果音（効果音ラボ・On-Jin）。再配布の禁止のため公開のリポジトリに入れない
+public/sfx/lic/

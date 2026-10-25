@@ -111,6 +111,7 @@ export const kakuotoshi: CardFx<MagicCue> = {
     sprite.position.copy(charAt).setY(0.4);
     const kill = transient(ctx, sprite, 60000);
     try {
+      getSound().play('kirakira', { gain: 0.4 });
       await ctx.tween(520, (t) => {
         sprite.position.y = 0.4 + (CHAR_Y - 0.4) * easeOut(t);
         sprite.scale.setScalar(0.6 + 0.6 * easeOut(t));

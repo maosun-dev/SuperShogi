@@ -20,7 +20,8 @@ type CardSoundName =
   | 'kachi' | 'make' // 決着の書き終わりの決め音（勝ち・負け）
   | 'tekkyu' | 'inanaki' | 'maku' // 鉄球が落ちる・天馬のいななき・結果画面への幕（2026-10-25 録った音）
   | 'levelup' | 'anaThud' | 'fuuin' // 成り上がり・落とし穴の底・成り封じの封印（同）
-  | 'cardOut'; // 札が盤の上に大きく出る（カードのシャッフルのはじき）
+  | 'cardOut' // 札が盤の上に大きく出る（カードのシャッフルのはじき）
+  | 'bubble' | 'kirakira'; // 水鏡で札が沈む泡・札の力が宿る（格落とし・呼び戻し）
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
 
@@ -71,17 +72,25 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   shatter: { files: ['sfx/shatter.mp3'], gain: 0.6 },
   chain: { files: ['sfx/chain.mp3'], gain: 0.7 }, // 鎖の音を高さを変えて3回重ねたもの
   trapdoor: { files: ['sfx/trapdoor.mp3'], gain: 0.9 }, // 扉を閉める音＋扉の低い音
-  flame: { files: ['sfx/flame.mp3'], gain: 1 }, // 炎の噴き出し＋炎のざわざわ
   flip: { files: ['sfx/flip.mp3'], gain: 0.5, jitter: 0.04 },
   tekkyu: { files: ['sfx/tekkyu.mp3'], gain: 0.7 },
   inanaki: { files: ['sfx/inanaki.mp3'], gain: 0.55 },
-  maku: { files: ['sfx/maku.mp3'], gain: 0.6 },
   whoosh: { files: ['sfx/whoosh1.mp3', 'sfx/whoosh2.mp3'], gain: 0.5, jitter: 0.06 }, // 斬撃・剣撃のヒュッ
-  wind: { files: ['sfx/wind.mp3'], gain: 0.8 }, // ヒュッをゆっくり低くして重ね、炎のざわざわを薄く
   levelup: { files: ['sfx/levelup.mp3'], gain: 0.7 },
   anaThud: { files: ['sfx/anaThud.mp3'], gain: 0.8 }, // 鉄球の2回目の録音
   fuuin: { files: ['sfx/fuuin.mp3'], gain: 0.8 }, // 大太鼓の重い一打＋パキーンのきらめき
   cardOut: { files: ['sfx/card1.mp3', 'sfx/card2.mp3'], gain: 0.6, jitter: 0.03 }, // カードを切る「しゃっしゃっ」（シャッフルの長い録音から2回続く所）
+  thud: { files: ['sfx/anaThud.mp3'], gain: 0.8 }, // 落とし穴の底と同じ音（ユーザーが選んだ、2026-10-25）
+  // 2026-10-25 フリー素材（効果音ラボ・On-Jin ～音人～）。public/sfx/lic は公開のリポジトリに入れない（再配布の禁止）
+  tsuke: { files: ['sfx/lic/tsuke.mp3'], gain: 0.7 }, // 拍子木の1打を3回重ねた「バタバタッ」
+  hoof: { files: ['sfx/lic/hoof.mp3'], gain: 0.5, jitter: 0.04 }, // 馬の駆け足から蹄3打のまとまり
+  bubble: { files: ['sfx/lic/bubble.mp3'], gain: 0.5 }, // 水中の泡
+  reel: { files: ['sfx/lic/koto.mp3'], gain: 0.5 }, // 琴の滑奏
+  suzu: { files: ['sfx/lic/rin.mp3'], gain: 0.8 }, // りん「チーン」（引き分けの書き終わり）
+  kirakira: { files: ['sfx/lic/kirakira.mp3'], gain: 0.6 },
+  wind: { files: ['sfx/lic/kaze.mp3'], gain: 0.8 }, // 風魔法
+  flame: { files: ['sfx/lic/kaen.mp3'], gain: 1 }, // 火炎魔法
+  maku: { files: ['sfx/lic/maku.mp3'], gain: 0.6 }, // 拍子木の刻み（だんだん速く）
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -353,6 +362,8 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   cardOut: (k, t, g) => BASE_RECIPES.flip(k, t, g),
   anaThud: (k, t, g) => CARD_RECIPES.thud(k, t, g),
   fuuin: (k, t, g) => CARD_RECIPES.paper(k, t, g),
+  bubble: () => {}, // 合成の代わりはない
+  kirakira: () => {}, // 合成の鈴は不評なので、読めなければ鳴らさない
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 

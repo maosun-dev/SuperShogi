@@ -240,6 +240,7 @@ export const kagami: CardFx<TrapFireCue> = {
     for (let i = 0; i < 5; i++) ripple(ctx, at, i * 170, 1.6 + i * 0.6);
     // 札は水に沈み、藍に染まって溶ける（泡が上がる）
     bubbles(ctx, at, 1600);
+    getSound().play('bubble');
     await ctx.tween(1100, (t) => {
       mesh.position.y = rest - (CARD_H + 0.1) * easeInOut(t);
       mat.color.setRGB(1 - 0.55 * t, 1 - 0.4 * t, 1 - 0.1 * t);

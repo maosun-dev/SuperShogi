@@ -82,6 +82,7 @@ export const yobimodoshi: CardFx<MagicCue> = {
     const g = glowEl(localRect(ctx, p.fromBox), PAL.mahou);
     overlay(ctx).append(g);
     keep(cue, g);
+    getSound().play('kirakira', { gain: 0.35 });
     await ctx.tween(700, (t) => { g.style.opacity = String(0.4 + 0.6 * Math.sin(Math.PI * t * 1.5) ** 2); });
   },
   async main(ctx, cue) {

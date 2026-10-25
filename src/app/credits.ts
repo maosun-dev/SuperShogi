@@ -7,6 +7,8 @@ export const CREDITS: Credit[] = [
   { what: '字体', name: 'Yuji Boku', by: 'The Yuji Project Authors', license: 'SIL Open Font License 1.1', url: 'https://github.com/Kinutafontfactory/Yuji' },
   { what: '字体', name: 'しっぽり明朝 B1', by: 'The Shippori Mincho Project Authors', license: 'SIL Open Font License 1.1', url: 'https://github.com/fontdasu/ShipporiMincho' },
   { what: '字体', name: 'Dela Gothic One', by: 'The Dela Gothic Project Authors', license: 'SIL Open Font License 1.1', url: 'https://github.com/syakuzen/DelaGothic' },
+  { what: '効果音', name: '効果音ラボ', by: '効果音ラボ', license: '利用規約に従って使用（音の再配布は禁止）', url: 'https://soundeffect-lab.info/' },
+  { what: '効果音', name: 'On-Jin ～音人～', by: 'On-Jin ～音人～', license: '利用規約に従って使用（音の二次配布・無断利用は禁止）', url: 'https://on-jin.com/' },
   { what: '3D の描画', name: 'three.js', by: '© 2010-2026 three.js authors', license: 'MIT License', url: 'https://threejs.org/' },
   { what: 'アプリの土台', name: 'Capacitor', by: '© 2017-present Drifty Co.', license: 'MIT License', url: 'https://capacitorjs.com/' },
   { what: '保存', name: '@capacitor/preferences', by: '© 2020-present Ionic', license: 'MIT License' },
