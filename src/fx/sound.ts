@@ -81,7 +81,7 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   levelup: { files: ['sfx/levelup.mp3'], gain: 0.7 },
   anaThud: { files: ['sfx/anaThud.mp3'], gain: 0.8 }, // 鉄球の2回目の録音
   fuuin: { files: ['sfx/fuuin.mp3'], gain: 0.8 }, // 大太鼓の重い一打＋パキーンのきらめき
-  cardOut: { files: ['sfx/card1.mp3', 'sfx/card2.mp3'], gain: 0.55, jitter: 0.03 },
+  cardOut: { files: ['sfx/card1.mp3', 'sfx/card2.mp3'], gain: 0.6, jitter: 0.03 }, // カードを切る「しゃっしゃっ」（シャッフルの長い録音から2回続く所）
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */

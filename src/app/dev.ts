@@ -335,24 +335,8 @@ function soundPicker(btn: (label: string, title: string, onClick: () => void) =>
     o.value = id; o.textContent = SAMPLES[id] ? name : `仮・${name}`;
     sel.append(o);
   }
-  // 押し返しの風の案（public/sfx/wind-ideas）。選んでもらったら1つだけ残す
-  const ideas = document.createElement('optgroup');
-  ideas.label = '風の案（押し返しの風）';
-  for (const [id, name] of [['windA', 'A 今の音（ヒュッを低く＋炎のざわざわ）'], ['windB', 'B ゴォーッ（ざわざわを低→高→低）'],
-    ['windC', 'C 木の葉のざわめき（紙のばさばさ）'], ['windD', 'D 重い突風（煙玉をゆっくり低く）'], ['windE', 'E 吹き抜ける（ヒュッを3回）']]) {
-    const o = document.createElement('option');
-    o.value = `file:sfx/wind-ideas/${id}.mp3`; o.textContent = name;
-    ideas.append(o);
-  }
-  sel.append(ideas);
   const play = (): void => {
     if (!sel.value) return;
-    if (sel.value.startsWith('file:')) {
-      const a = new Audio(`${import.meta.env.BASE_URL}${sel.value.slice(5)}`);
-      a.volume = 0.8;
-      void a.play().catch(() => {});
-      return;
-    }
     const s = getSound();
     s.unlock();
     s.play(sel.value as SoundName);
