@@ -33,6 +33,7 @@ const ORBIT_MS = 2400;
 const FLY_MS = 1100;
 const STOP_MS = 600;     // 時が止まっている長さ
 const CHECK_MS = 900;    // 王手の字を見せる長さ
+const OPEN_MS = 1300;    // 開戦の字を見せる長さ
 const MIE_MS = 700;      // 書き終わりの見得
 const REACH = 0.45;     // 負けで取る駒が止まる所（王のマスまでの割合）
 
@@ -68,6 +69,28 @@ export async function playCheck(ctx: FxCtx, _cue: CheckCue): Promise<void> {
       { transform: 'scale(1) rotate(-4deg)', opacity: 1 },
     ], { duration: 220, easing: 'cubic-bezier(.2,1.4,.3,1)' });
     await ctx.wait(CHECK_MS - 220);
+    await animateEl(ctx, box, [{ opacity: 1 }, { opacity: 0 }], { duration: 220 });
+  } finally {
+    box.remove();
+  }
+}
+
+/** 開戦：対局の始まりに、王手と同じ形で「開戦」の墨の字が跳ねて出て、尺八が鳴る。消えるまで指せない */
+export async function playOpening(ctx: FxCtx): Promise<void> {
+  const L = boardLayer(ctx);
+  const word = brushWord('開戦', 'sumi');
+  word.finish();
+  const box = document.createElement('div');
+  box.className = 'brush-check';
+  box.append(word.el);
+  L.replaceChildren(box);
+  getSound().play('shakuhachi');
+  try {
+    await animateEl(ctx, box, [
+      { transform: 'scale(1.25) rotate(-6deg)', opacity: 0 },
+      { transform: 'scale(1) rotate(-4deg)', opacity: 1 },
+    ], { duration: 220, easing: 'cubic-bezier(.2,1.4,.3,1)' });
+    await ctx.wait(OPEN_MS - 220);
     await animateEl(ctx, box, [{ opacity: 1 }, { opacity: 0 }], { duration: 220 });
   } finally {
     box.remove();

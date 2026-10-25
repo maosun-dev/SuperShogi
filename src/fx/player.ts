@@ -15,7 +15,7 @@ import { playMagic, prepareMagic } from './magic';
 import { resetStagecraft } from './stagecraft';
 import { playTrapFire, playTrapSet } from './trap';
 import { playArmor, playEquip, playEquipBreak, playEquipMove, playSecond } from './equip';
-import { playCheck, playGameOver, playResign } from './finale';
+import { playCheck, playGameOver, playOpening, playResign } from './finale';
 import { playDrop, playMove } from './move';
 
 const SETTLE_MS = 400; // 途中で止まったとき、カメラを普段の視点へ戻す時間
@@ -98,7 +98,11 @@ function kingOf(s: GameState, side: Side): Square | null {
  * resign(state) は、流している演出を打ち切ってから投了の演出（王が墨の泡になって消える → 「負」）を流す。cancel() で途中でも止まる。
  * interrupt() は、いま流している演出だけを打ち切る（そのあとの present は流れる。友と対局の待ったで使う）
  */
-export interface FxPresenter extends Presenter { cancel(): void; interrupt(): void; resign(state: GameState): Promise<void> }
+export interface FxPresenter extends Presenter {
+  cancel(): void; interrupt(): void; resign(state: GameState): Promise<void>;
+  /** 対局の始まりの「開戦」。決して reject しない */
+  opening(state: GameState): Promise<void>;
+}
 
 export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 'short' | 'long' }): FxPresenter {
   prepareMagic(stage);
@@ -141,6 +145,18 @@ export function createPresenter(stage: Stage, hud: Hud, me: Side, opts?: { fx?: 
         await playResign(ctx, kingOf(state, me));
       } catch (e) {
         if (!cancelled && !(e instanceof FxCancelled)) console.error('投了の演出に失敗しました', e);
+      }
+    },
+    async opening(state) {
+      if (!alive()) return;
+      let ctx: FxCtx | null = null;
+      try {
+        ctx = makeCtx(stage, hud, currentTiming(opts?.fx), me, state, state, alive);
+        await playOpening(ctx);
+      } catch (e) {
+        if (alive() && !(e instanceof FxCancelled)) console.error('開戦の演出に失敗しました', e);
+      } finally {
+        if (ctx && alive()) { try { clearLayers(ctx); } catch { /* 片付けの失敗は無視 */ } }
       }
     },
     async present(step) {

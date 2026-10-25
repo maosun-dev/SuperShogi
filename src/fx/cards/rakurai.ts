@@ -81,7 +81,7 @@ export const rakurai: CardFx<MagicCue> = {
     getSound().play('tsuke', { gain: 0.8 });
     const cam = later(cameraLookUp(ctx, at, 900));
     const dark = later(darken(ctx, null, 800, 0.35));
-    getSound().play('wind', { gain: 0.6 });
+    // 風の音は鳴らさない（長い風がカットインにかぶる）
     await ctx.tween(800, (t) => { st.gather = t; }, easeOut);
     await Promise.all([cam, dark]);
   },

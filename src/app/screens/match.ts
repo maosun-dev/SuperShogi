@@ -112,6 +112,7 @@ export function matchScreen(params: unknown): Screen {
       let lastMove: Square[] = [];
       let thinking = false;
       let resigning = false; // 投了の演出を流している（盤と帯の更新・投了の確かめを止める）
+      let opening = true;    // 始まりの「開戦」を見せている間は指せない
       let drawGen = 0;       // 待ったで描き直すたびに進める（打ち切った演出のあとの古い描き直しを捨てる）
 
       // 自動対局は、保存された設定を書き換えずに演出を「短め」にする
@@ -214,7 +215,7 @@ export function matchScreen(params: unknown): Screen {
 
       // 人間の手番のときだけ受け付ける（演出中・CPU の考え中は何もしない）
       function dispatch(ev: InputEvent): void {
-        if (m.phase() !== 'human' || net?.blocking()) return;
+        if (opening || m.phase() !== 'human' || net?.blocking()) return;
         const res = reduceInput(m.view(), m.legal(), st, ev);
         show(res);
         if (res.action) void submit(res.action);
@@ -222,7 +223,7 @@ export function matchScreen(params: unknown): Screen {
 
       hud.on('hand', (k) => dispatch({ type: 'hand', kind: k as HandKind }));
       hud.on('card', (u) => {
-        if (m.phase() !== 'human' || net?.blocking()) return;
+        if (opening || m.phase() !== 'human' || net?.blocking()) return;
         const uid = u as number;
         // 対象を選んでいる最中に同じ札を押したら、選ぶのをやめる
         if ((st.mode === 'card' || st.mode === 'pick') && st.uid === uid) { dispatch({ type: 'cancel' }); return; }
@@ -438,12 +439,25 @@ export function matchScreen(params: unknown): Screen {
       // CPU が先に指すとき（相手の駒落ち）は、考え中を出してから始める
       thinking = m.phase() === 'cpu';
       refresh();
-      if (net) hud.lock(m.phase() !== 'human');
-      void m.start().then(() => {
-        if (disposed || m.phase() !== 'human' || net?.blocking()) return;
-        thinking = false;
-        refresh();
-        hud.lock(false);
+      // 始まりに「開戦」を見せ、消えてから指せる。CPU 戦は CPU もそれまで指さない。
+      // 友と対局は相手の手を受け取れるよう先に始め、こちらの入力だけ止める（相手も同じ長さの開戦を見ている）
+      hud.lock(true);
+      const go = (): void => {
+        void m.start().then(() => {
+          if (disposed || opening || m.phase() !== 'human' || net?.blocking()) return;
+          thinking = false;
+          refresh();
+          hud.lock(false);
+        });
+      };
+      if (net) go();
+      // 開発用の試し口・自動対局では出さない
+      const open = import.meta.env.DEV && (fxKey || auto) ? Promise.resolve() : fx.opening(m.view());
+      void open.then(() => {
+        if (disposed) return;
+        opening = false;
+        if (!net) { go(); return; }
+        if (m.phase() === 'human' && !net.blocking()) hud.lock(false);
       });
     },
     unmount() {
