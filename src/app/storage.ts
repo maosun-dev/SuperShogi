@@ -26,8 +26,9 @@ const KEY_DECK = 'superShogi.deck';
 const KEY_TALLY = 'superShogi.tally';
 const KEY_HANDICAP = 'superShogi.handicap';
 const KEY_KEIKO = 'superShogi.keiko';
+const KEY_HOWTO = 'superShogi.howtoSeen'; // 遊び方の絵巻を見たか（読み書きは howto/seen.ts）
 // アプリで消えにくい保存領域にも写す鍵の一覧
-export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP, KEY_KEIKO] as const;
+export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP, KEY_KEIKO, KEY_HOWTO] as const;
 export const NO_HANDICAP: Handicap = { side: 'sente', kind: 'none' };
 const LEVELS_ALL: Level[] = ['weak', 'normal', 'strong'];
 
