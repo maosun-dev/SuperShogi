@@ -2201,3 +2201,8 @@ input:focus-visible {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) and (max-height: 760px) {
   .deckb .pick .card { --s: .8; }
 }
+
+/* マウスの操作：手札に乗せて説明をのぞき見するときは、使うボタンと注意書きを出さない。盤の上は指のカーソル */
+.match .detail.peek .dbtns, .match .detail.peek .dnote { display: none; }
+.match .stage-host { cursor: pointer; }
+.match.locked .stage-host { cursor: default; }

@@ -254,17 +254,22 @@ export function matchScreen(params: unknown): Screen {
         const sq = squareAt(stage, e.clientX, e.clientY);
         if (sq) dispatch({ type: 'square', sq });
       };
-      const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') { hud.hideDetail(); dispatch({ type: 'cancel' }); } };
+      // 選んだ駒・札を取り消す：Esc と、マウスの右クリック（ブラウザのメニューは出さない）
+      const cancelSel = (): void => { hud.hideDetail(); dispatch({ type: 'cancel' }); };
+      const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') cancelSel(); };
+      const onMenu = (e: MouseEvent): void => { e.preventDefault(); cancelSel(); };
       // 決着・投了の筆文字を書いている間は、画面のどこを押しても残りを飛ばす（それより前は skipFinale が何もしない）
       const onSkip = (): void => { if (resigning || m.result()) skipFinale(); };
       box.addEventListener('pointerdown', onSkip);
       host.addEventListener('pointerdown', onDown);
       host.addEventListener('pointerup', onUp);
       window.addEventListener('keydown', onKey);
+      box.addEventListener('contextmenu', onMenu);
       cleanup = [
         () => host.removeEventListener('pointerdown', onDown),
         () => host.removeEventListener('pointerup', onUp),
         () => window.removeEventListener('keydown', onKey),
+        () => box.removeEventListener('contextmenu', onMenu),
         () => box.removeEventListener('pointerdown', onSkip),
         () => setHighlights(stage, [], []),
         () => setLifted(stage, null),

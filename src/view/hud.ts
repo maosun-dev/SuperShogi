@@ -48,6 +48,11 @@ export function restView(ids: CardId[]): { open: CardId[]; hiddenTraps: number }
   return { open, hiddenTraps: ids.length - open.length };
 }
 
+/** 手札にマウスを乗せたとき説明をのぞき見してよいか：マウスだけ。押して開いた説明（使うボタン付き）は上書きしない */
+export function peekAllowed(pointerType: string, detailOpen: boolean, peeking: boolean): boolean {
+  return pointerType === 'mouse' && (!detailOpen || peeking);
+}
+
 /**
  * 駒台で「ポン」と収める持ち駒の種類：前の描き直しより増えた種類と、描き直しの直前にまだ「ポン」の途中だった種類（still）。
  * still があるのは、CPU に取られた直後にすぐ次の描き直しが来ても、動きを消さないため。前がなければ still だけ
@@ -78,6 +83,7 @@ export function createHud(root: HTMLElement): Hud {
   let last: { view: GameState; me: Side } | null = null;
   let sel: { hand: HandKind | null; card: number | null } = { hand: null, card: null };
   let detailUid: number | null = null;
+  let peeking = false; // 説明を、手札にマウスを乗せてのぞき見しているだけ（押して開いたのではない）
 
   // ---- 上の帯（相手） ----
   const foe = el('header', 'side foe');
@@ -266,6 +272,8 @@ export function createHud(root: HTMLElement): Hud {
   }
 
   function handCards(view: GameState, side: Side, usable: Set<number>): void {
+    // 乗せていた札が作り直しで消えると離れた知らせが来ないので、のぞき見はここで閉じる
+    if (peeking) { peeking = false; detail.hidden = true; }
     hand.replaceChildren();
     const cards = view.players[side].cards.filter(c => !c.used);
     if (cards.length === 0) { hand.append(el('p', 'none', '手札はありません')); return; }
@@ -280,11 +288,33 @@ export function createHud(root: HTMLElement): Hud {
       if (sel.card === c.uid) card.classList.add('sel');
       const tap = (): void => emit('card', c.uid);
       card.addEventListener('click', tap);
+      card.addEventListener('pointerenter', (e) => {
+        if (!peekAllowed(e.pointerType, !detail.hidden, peeking)) return;
+        fillDetail(c.cardId);
+        detail.classList.add('peek');
+        peeking = true;
+        detail.hidden = false;
+      });
+      card.addEventListener('pointerleave', () => {
+        if (!peeking) return;
+        peeking = false;
+        detail.hidden = true;
+      });
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tap(); }
       });
       hand.append(card);
     }
+  }
+
+  // 説明の板に札の名前・種類とコスト・文を入れる（押したときも、のぞき見のときも同じ）
+  function fillDetail(id: CardId): void {
+    const c = CARDS[id];
+    const k = KIND_MARK[c.kind];
+    detail.className = `detail ${k.color}`;
+    dName.textContent = c.name;
+    dMeta.textContent = `${k.label}・コスト${c.cost}`;
+    dText.textContent = c.text;
   }
 
   function cardOf(uid: number): CardId | undefined {
@@ -376,13 +406,9 @@ export function createHud(root: HTMLElement): Hud {
     showDetail(uid, usable) {
       const id = cardOf(uid);
       if (!id) return;
-      const c = CARDS[id];
-      const k = KIND_MARK[c.kind];
+      peeking = false;
       detailUid = uid;
-      detail.className = `detail ${k.color}`;
-      dName.textContent = c.name;
-      dMeta.textContent = `${k.label}・コスト${c.cost}`;
-      dText.textContent = c.text;
+      fillDetail(id);
       dNote.hidden = usable;
       useBtn.disabled = !usable;
       detail.hidden = false;
@@ -396,6 +422,7 @@ export function createHud(root: HTMLElement): Hud {
     hideDetail() {
       if (detail.hidden) return;
       detail.hidden = true;
+      peeking = false;
       detailUid = null;
       if (sel.card !== null) hud.select({ hand: sel.hand });
     },
