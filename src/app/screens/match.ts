@@ -11,7 +11,7 @@ import { fakeCut } from '../../net/fakeLink';
 import { isNativeApp } from '../native';
 import type { FoeLabel } from '../../view/hud';
 import { createBrowserCpu } from '../cpu';
-import { isBoardTap, liftedSquare, reduceInput, type InputEvent, type InputState } from '../../view/input';
+import { liftedSquare, reduceInput, type InputEvent, type InputState } from '../../view/input';
 import { getStage } from '../../view/stage';
 import { setHighlights, squareAt } from '../../view/board3d';
 import { releaseLift, setLifted, sync } from '../../view/pieces3d';
@@ -244,9 +244,7 @@ export function matchScreen(params: unknown): Screen {
 
       // 盤のタップ：押した所と離した所が近いときだけ
       let down: { x: number; y: number; id: number } | null = null;
-      const onDown = (e: PointerEvent): void => {
-        down = isBoardTap(e.pointerType, e.button) ? { x: e.clientX, y: e.clientY, id: e.pointerId } : null;
-      };
+      const onDown = (e: PointerEvent): void => { down = { x: e.clientX, y: e.clientY, id: e.pointerId }; };
       const onUp = (e: PointerEvent): void => {
         const d = down;
         down = null;
@@ -256,22 +254,17 @@ export function matchScreen(params: unknown): Screen {
         const sq = squareAt(stage, e.clientX, e.clientY);
         if (sq) dispatch({ type: 'square', sq });
       };
-      // 選んだ駒・札を取り消す：Esc と、マウスの右クリック（ブラウザのメニューは出さない）
-      const cancelSel = (): void => { hud.hideDetail(); dispatch({ type: 'cancel' }); };
-      const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') cancelSel(); };
-      const onMenu = (e: MouseEvent): void => { e.preventDefault(); cancelSel(); };
+      const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') { hud.hideDetail(); dispatch({ type: 'cancel' }); } };
       // 決着・投了の筆文字を書いている間は、画面のどこを押しても残りを飛ばす（それより前は skipFinale が何もしない）
       const onSkip = (): void => { if (resigning || m.result()) skipFinale(); };
       box.addEventListener('pointerdown', onSkip);
       host.addEventListener('pointerdown', onDown);
       host.addEventListener('pointerup', onUp);
       window.addEventListener('keydown', onKey);
-      box.addEventListener('contextmenu', onMenu);
       cleanup = [
         () => host.removeEventListener('pointerdown', onDown),
         () => host.removeEventListener('pointerup', onUp),
         () => window.removeEventListener('keydown', onKey),
-        () => box.removeEventListener('contextmenu', onMenu),
         () => box.removeEventListener('pointerdown', onSkip),
         () => setHighlights(stage, [], []),
         () => setLifted(stage, null),

@@ -35,11 +35,6 @@ type CardAction = Extract<Action, { type: 'card' }>;
 
 const IDLE: InputState = { mode: 'idle' };
 
-/** 盤を押したと数えるボタンか：マウスは左ボタンだけ（右クリックは取り消し専用で、マスは押さない） */
-export function isBoardTap(pointerType: string, button: number): boolean {
-  return pointerType !== 'mouse' || button === 0;
-}
-
 /** 浮かせて見せる駒のマス：盤の駒を選んで、行き先を待っているときだけ（成るかを聞く間は下ろしておく） */
 export function liftedSquare(st: InputState): Square | null {
   return st.mode === 'piece' ? st.from : null;
