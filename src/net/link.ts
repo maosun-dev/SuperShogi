@@ -59,7 +59,7 @@ export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void
     async send(data) {
       const o = e.peer;
       if (!healthy || !o) return;
-      later(() => { if (e.peer === o) o.ev.emit({ type: 'message', data }); });
+      later(() => o.ev.emit({ type: 'message', data })); // つながっている間に送ったものは届く
     },
     async stop() { e.hosting = null; e.browsing = false; drop(e); },
     on: (fn) => e.ev.on(fn),
@@ -105,10 +105,14 @@ export function linkAvailable(): boolean {
   return import.meta.env.DEV && new URLSearchParams(location.search).get('link') === 'fake';
 }
 
+let shared: Link | null = null;
+/** 窓口は1つを使い回す（部品の知らせの受け口を何重にも付けないため） */
 export function pickLink(): Link {
-  if (isNativeApp()) return createNativeLink();
-  if (linkAvailable()) return createFakeLink();
-  throw new Error('友と対局はアプリでだけ使えます');
+  if (shared) return shared;
+  if (isNativeApp()) shared = createNativeLink();
+  else if (linkAvailable()) shared = createFakeLink();
+  else throw new Error('友と対局はアプリでだけ使えます');
+  return shared;
 }
 
 declare const __APP_VERSION__: string | undefined;
