@@ -8,6 +8,7 @@ import { makeRng } from '../ai/random';
 import { autoDeck } from './deck';
 import { applyAction, createGame } from '../rules/game';
 import { viewFor } from '../rules/view';
+import { SAMPLES, getSound, type SoundName } from '../fx/sound';
 
 /** 初期配置（先手から見た局面） */
 export function initialView(): GameState {
@@ -304,6 +305,47 @@ const PICKS: [string, string][] = [
   ['check', '決着・王手'], ['win', '決着・勝ち'], ['lose', '決着・負け'], ['draw', '決着・引き分け'], ['resign', '決着・投了'],
 ];
 
+/** 効果音の試し聞きの一覧（鳴る場面の名前）。録った音でないものは名前に「仮」を付けて出す */
+const SOUND_PICKS = {
+  hyoshigi: '拍子木（札の名前・王手・幕）', tsuke: 'ツケ打ち（大技の前振り）', maku: '垂れ幕（結果画面への幕）',
+  koma: '駒を打つ', komaHard: '駒を強く打つ（取る・打つ）', tick: '駒を選ぶ', kaesu: '成る（裏返す）',
+  whoosh: '風を切る（札が飛ぶ）', chime: '鈴（札の力・成る）', flip: '伏せ札がめくれる', stamp: '判子',
+  wind: '押し返しの風', poof: '煙玉（入れ替え・身代わり）', thud: 'ドスン（成り上がり・穴の底）', reel: '呼び戻しのリール',
+  glass: '格落とし（ガラス）', raimei: '落雷のため（雷鳴）', rakurai: '落雷の本命', thunder: '落雷の余韻',
+  shatter: '木が砕ける（落雷・身代わり）', ice: '凍てつく床（氷）', frost: '凍る瞬間（凍てつく床・水鏡）',
+  trapdoor: '落とし穴（扉）', paper: '成り封じ（お札）', splash: '水鏡（ちゃぽん）', slash: '相討ち（一閃）',
+  hoof: '天馬の蹄', inanaki: '天馬のいななき', armor: '鋼の鎧', chain: '重りの枷（鎖）', tekkyu: '重りの枷（鉄球）',
+  clang: '貫きの槍', flame: '韋駄天（炎）', drum: '大太鼓（王が取られる・引き分け）', fude: '筆（決着の一画ごと）',
+  kachi: '勝ちの決め音', make: '負けの決め音', suzu: '鈴（引き分けの書き終わり）',
+} satisfies Record<SoundName, string>;
+
+/** 左下の効果音の試し聞き：一覧から選ぶとすぐ鳴る。「鳴らす」でもう一度 */
+function soundPicker(btn: (label: string, title: string, onClick: () => void) => HTMLButtonElement): HTMLElement {
+  const row = document.createElement('div');
+  row.setAttribute('style', 'display:flex;gap:4px;align-items:center');
+  const sel = document.createElement('select');
+  sel.setAttribute('aria-label', '効果音の試し聞き');
+  sel.setAttribute('style', 'height:30px;max-width:190px;border:0;border-radius:4px;background:#eee8dc;color:#1d1a17');
+  const head = document.createElement('option');
+  head.value = ''; head.textContent = '音を選んで鳴らす';
+  sel.append(head);
+  for (const [id, name] of Object.entries(SOUND_PICKS) as [SoundName, string][]) {
+    const o = document.createElement('option');
+    o.value = id; o.textContent = SAMPLES[id] ? name : `仮・${name}`;
+    sel.append(o);
+  }
+  const play = (): void => {
+    if (!sel.value) return;
+    const s = getSound();
+    s.unlock();
+    s.play(sel.value as SoundName);
+  };
+  // Space は演出を流すキーなので、選んだら選択欄から外す
+  sel.addEventListener('change', () => { play(); sel.blur(); });
+  row.append(sel, btn('鳴らす', '選んだ音をもう一度', play));
+  return row;
+}
+
 /** 左下の試し口の切り替え。決着のあとの結果画面でも選び直せるよう、一度出したら画面が替わっても残す */
 function installFxPicker(): void {
   if (document.getElementById('fx-picker')) return;
@@ -317,7 +359,7 @@ function installFxPicker(): void {
   const bar = document.createElement('div');
   bar.id = 'fx-picker';
   bar.setAttribute('style', [
-    'position:fixed', 'left:8px', 'bottom:8px', 'z-index:2000', 'display:flex', 'gap:4px', 'align-items:center',
+    'position:fixed', 'left:8px', 'bottom:8px', 'z-index:2000', 'display:flex', 'flex-wrap:wrap', 'max-width:calc(100vw - 16px)', 'gap:4px', 'align-items:center',
     'padding:4px', 'border-radius:6px', 'background:rgba(29,26,23,.82)', 'font:13px/1 sans-serif',
   ].join(';'));
   const btn = (label: string, title: string, onClick: () => void): HTMLButtonElement => {
@@ -344,6 +386,7 @@ function installFxPicker(): void {
     sel,
     btn('▶', '次の札', () => go(PICKS[(i + 1) % n][0])),
     btn('もう一度', '同じ札をもう一度', () => location.reload()),
+    soundPicker(btn),
   );
   // Space は演出を流すキーなので、選んだあとは選択欄から外す
   bar.addEventListener('click', () => sel.blur());
