@@ -107,6 +107,14 @@ try {
 
   const icon = render(iconSvg(FAMILY), 1024);
   writeFileSync(join(assets, 'AppIcon.appiconset', 'AppIcon-512@2x.png'), icon);
+  // 見比べ用：--compare=<フォルダ> で地の案ごとに 1024px と 60px を書く（Xcode には置かない）
+  const compare = process.argv.find((a) => a.startsWith('--compare='));
+  if (compare) {
+    for (const g of ['yoru', 'beni', 'kuro']) {
+      writeFileSync(join(compare.slice(10), `icon-${g}-1024.png`), render(iconSvg(FAMILY, g), 1024));
+      writeFileSync(join(compare.slice(10), `icon-${g}-60.png`), render(iconSvg(FAMILY, g), 60));
+    }
+  }
   // 確かめ用：--preview=<フォルダ> で 60px に縮めたものも書く（Xcode には置かない）
   const preview = process.argv.find((a) => a.startsWith('--preview='));
   if (preview) writeFileSync(join(preview.slice(10), 'icon-60.png'), render(iconSvg(FAMILY), 60));

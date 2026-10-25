@@ -2,6 +2,7 @@
 // 夜の藍の地に、紅の隈取の一筆が右上から左下へ走り、その前に榧の駒が少し左へ傾いて立つ。駒には墨の「傾」（もとは「超」。2026-10-25 に名前を傾将棋へ）。
 // 色は src/view/palette.ts の名前付きの色だけを使う。
 import { PALS as P } from '../../src/view/palette.ts';
+import { furisodeGround } from './furisode.mjs';
 
 const S = 1024;
 
@@ -242,8 +243,9 @@ function pieceGrain() {
 /**
  * アイコンの SVG（1024×1024）。
  * @param {string} fontFamily 「傾」を書く筆文字の字体名（Yuji Boku）
+ * @param {'yoru' | 'beni' | 'kuro'} ground 駒の後ろの地。yoru＝夜の藍に紅の隈取（もとの絵）、beni・kuro＝振袖の柄（furisode.mjs）
  */
-export function iconSvg(fontFamily) {
+export function iconSvg(fontFamily, ground = 'yoru') {
   const inner = inset(PIECE, BEVEL);
   const face = `M${pts(PIECE)}Z`;
   const innerFace = `M${pts(inner)}Z`;
@@ -279,12 +281,12 @@ export function iconSvg(fontFamily) {
   <clipPath id="faceClip"><path d="${innerFace}"/></clipPath>
   <filter id="soft" filterUnits="userSpaceOnUse" x="0" y="0" width="${S}" height="${S}"><feGaussianBlur stdDeviation="26"/></filter>
 </defs>
-<rect width="${S}" height="${S}" fill="url(#ground)"/>
+${ground === 'yoru' ? `<rect width="${S}" height="${S}" fill="url(#ground)"/>
 <g mask="url(#dry)">
   <path d="${kumaOutline(10, 12, 1.0)}" fill="${P.wanaDeep}"/>
   <path d="${kumaOutline()}" fill="${P.wana}"/>
   <g fill="${P.wana}">${kumaSplash()}</g>
-</g>
+</g>` : furisodeGround(ground)}
 <g filter="url(#soft)" opacity="0.8">
   <path d="${face}" fill="${P.yoruNight}" transform="translate(${PIECE_CX + 44} ${PIECE_CY + 56}) rotate(${PIECE_TILT})"/>
 </g>
