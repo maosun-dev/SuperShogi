@@ -1887,3 +1887,23 @@ input:focus-visible {
 .credits .credit-full summary { cursor: pointer; font-weight: 800; color: var(--wana-deep); }
 .credits .credit-full .lic-head { margin-top: 10px; font-weight: 800; }
 .credits .credit-full pre { margin-top: 6px; white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 11px; line-height: 1.6; }
+/* クレジットはふだん畳んでおく：見出しの右に開閉の印（朱の「開」／「閉」） */
+.credits .credit-box > summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; list-style: none; }
+.credits .credit-box > summary::-webkit-details-marker { display: none; }
+.credits .credit-box > summary h2 { margin-bottom: 0; }
+.credits .credit-box > summary::after {
+  content: "開";
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  background: var(--wana);
+  color: var(--gofun);
+  border-radius: 3px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  box-shadow: inset 0 0 0 2px var(--wana), inset 0 0 0 3px var(--gofun);
+  transform: rotate(-4deg);
+}
+.credits .credit-box[open] > summary::after { content: "閉"; background: var(--sumi); box-shadow: inset 0 0 0 2px var(--sumi), inset 0 0 0 3px var(--gofun); }
+.credits .credit-box[open] > summary { margin-bottom: 12px; }

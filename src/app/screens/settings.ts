@@ -190,8 +190,9 @@ export function settingsScreen(): Screen {
       body.append(markBox, text);
       nameSec.append(nameHead, body);
 
-      // ---- クレジット：字体・部品の名前と作り手、約束。全文は押すと開く ----
+      // ---- クレジット：ふだんは見出しだけ。押すと字体・部品の名前と作り手、約束が開く（全文はさらに中で畳む） ----
       const crSec = el('section', 'set-item credits');
+      const crBox = el('details', 'credit-box');
       const crList = el('dl', 'credit-list');
       for (const c of CREDITS) {
         const dt = el('dt', '', c.what);
@@ -203,7 +204,10 @@ export function settingsScreen(): Screen {
       const full = el('details', 'credit-full');
       full.append(el('summary', '', 'ライセンスの全文'), el('p', 'lic-head', 'MIT License（three.js・Capacitor・@capacitor/preferences・@capacitor-community/admob）'),
         el('pre', '', MIT_TEXT), el('p', 'lic-head', 'SIL Open Font License 1.1'), el('p', '', OFL_NOTE));
-      crSec.append(el('h2', '', 'クレジット'), crList, made, full);
+      const crHead = el('summary');
+      crHead.append(el('h2', '', 'クレジット'));
+      crBox.append(crHead, crList, made, full);
+      crSec.append(crBox);
 
       // 項目は和紙の一枚に墨で書く（舞台の絵の上でも読めるように）
       const sheet = el('div', 'sheet');
