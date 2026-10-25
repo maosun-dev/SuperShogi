@@ -63,6 +63,13 @@
 	<false/>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>近くの友だちと対局するために、近くの iPhone を探します</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_super-shogi._tcp</string>
+		<string>_super-shogi._udp</string>
+	</array>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>許可すると、あなたの興味に合った広告が表示されやすくなります。許可しなくても、ゲームはすべて遊べます。</string>
 	<key>SKAdNetworkItems</key>
