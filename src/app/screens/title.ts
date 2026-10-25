@@ -1,6 +1,6 @@
 // タイトル画面：3D の盤がゆっくり回る。右上に題字（大きな筆の「傾」、後ろに朱の払い、左下に小さな「将棋」、
 // その下に一言の短冊）、
-// 下に千社札の形の縦長ボタン「対局」「友と対局」（アプリだけ）「札図鑑」。左から順に低くなる、左下に小さな角印「設」（設定）。
+// 下に千社札の形の縦長ボタン「対局」「友と対局」（アプリだけ）「札図鑑」。左から順に低くなる、左下に小さな角印「設」（設定）と「学」（遊び方）。
 import { getStage } from '../../view/stage';
 import { sync } from '../../view/pieces3d';
 import { setHighlights } from '../../view/board3d';
@@ -9,6 +9,8 @@ import { showScreen, type Screen } from '../screens';
 import { button, el } from './ui';
 import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
 import { linkAvailable } from '../../net/link';
+import { shouldShowHowto } from '../howto/seen';
+import { safeStore } from '../storage';
 
 /** 筆の字1文字の SVG。縁（rim）を太い線で先に描き、その上に字を塗る。thick で字そのものも太らせる */
 function brushChar(ch: keyof typeof TITLE_GLYPHS, cls: string, fill: string, rim: string, rimW: number, thick: number): string {
@@ -72,7 +74,11 @@ export function titleScreen(): Screen {
 
       const nav = el('nav', 'fuda-row');
       nav.setAttribute('aria-label', 'はじめる');
-      const play = button('fuda wana', '対局', () => { void showScreen('level'); });
+      // 初めての「対局」だけ、強さ選びの前に遊び方の絵巻を挟む
+      const play = button('fuda wana', '対局', () => {
+        if (shouldShowHowto(safeStore())) void showScreen('howto', { next: 'level' });
+        else void showScreen('level');
+      });
       const zukan = button('fuda mahou', '札図鑑', () => { void showScreen('zukan'); });
       // 遊ぶ札を左にまとめ、よく使う順に高く（対局・友と対局・札図鑑）。
       // 友と対局（近くの iPhone 2台）はアプリと開発中の ?link=fake でだけ出す
@@ -82,8 +88,11 @@ export function titleScreen(): Screen {
 
       const seal = button('kakuin', '設', () => { void showScreen('settings'); });
       seal.setAttribute('aria-label', '設定');
+      // 角印「学」：遊び方の絵巻をいつでも読み返す（「設」の右隣）
+      const manabu = button('kakuin manabu', '学', () => { void showScreen('howto', { next: 'title' }); });
+      manabu.setAttribute('aria-label', '遊び方');
 
-      box.append(host, logo, nav, seal);
+      box.append(host, logo, nav, seal, manabu);
       root.append(box);
 
       const stage = getStage();

@@ -1,7 +1,7 @@
 // 画面の登録と切り替え（幕の演出つき）。各画面はここから registerScreen を読み込む。
 // 起動処理は main.ts にあり、ここは起動に依存しない（循環 import を避ける）。
 
-export type ScreenName = 'title' | 'level' | 'deck' | 'reveal' | 'match' | 'result' | 'zukan' | 'settings' | 'link';
+export type ScreenName = 'title' | 'level' | 'deck' | 'reveal' | 'match' | 'result' | 'zukan' | 'settings' | 'link' | 'howto';
 export interface Screen { mount(root: HTMLElement): void; unmount(): void }
 
 const CURTAIN_MS = 450;
