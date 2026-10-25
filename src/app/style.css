@@ -1870,3 +1870,8 @@ input:focus-visible {
 .name-origin .origin-text p + p { margin-top: 8px; }
 /* 文節のまとまり：途中で折り返さない */
 .name-origin .origin-text .ph { display: inline-block; }
+
+/* 札見せの見出しの行：見出しの和紙の横にくじの判（札の列の上なので「いざ」にかぶらない） */
+.reveal-head { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 10px; }
+.reveal-head h2 { margin: 0; }
+.reveal-head .kuji-ban { position: static; flex: none; width: 40px; height: 40px; font-size: 26px; }

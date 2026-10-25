@@ -1,7 +1,8 @@
 // 対局前の札見せ：上に CPU の持ち込み、下に自分の持ち込みを表向きで並べ、
 // 拍子木と同時に中央で「いざ」の筆文字。1.6 秒で対局へ。タップ（Enter・Space）で飛ばせる。
 // 稽古の「くじ」は、この画面を開くたびに相手の札を引き直す（ここで初めて中身がわかる）。
-// 友と対局（friend）では、相手は「友」。駒落ちが無ければ、くじで決まった先手・後手を朱の判で押してから「いざ」
+// 駒落ちが無ければ、くじで決まった先手・後手を「自分の持ち込み」の見出しの横に判で押してから「いざ」。
+// CPU 戦はここでくじを引き、対局へ first として渡す。友と対局（friend）では相手は「友」、くじは誘った側が引いたもの
 import type { CardId } from '../../rules/types';
 import type { Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
@@ -14,14 +15,14 @@ import { loadHandicap, safeStore } from '../storage';
 import { showScreen, type Screen } from '../screens';
 import { el, pageHead } from './ui';
 import { endSession, peekSession } from '../../net/current';
-import type { Handicap } from '../../rules/types';
+import type { Handicap, Side } from '../../rules/types';
 
 export interface RevealParams { level: Level; deck: CardId[]; keiko?: Keiko; friend?: boolean }
 
 const SHOW_MS = 1600; // 札見せの長さ
 const IZA_AT = 260;   // 幕が開ききるころに「いざ」と拍子木
-const KUJI_AT = 300;  // 友と対局：くじの判を押す
-const FRIEND_DELAY = 1000; // 友と対局：くじの判のぶん「いざ」を遅らせる
+const KUJI_AT = 300;  // くじの判を押す
+const KUJI_DELAY = 1000; // くじの判のぶん「いざ」を遅らせる
 
 export function revealScreen(params: unknown): Screen {
   const q = (params ?? {}) as Partial<RevealParams>;
@@ -37,7 +38,10 @@ export function revealScreen(params: unknown): Screen {
   const handi: Handicap | null = setup
     ? { kind: setup.handicap.kind, side: setup.handicap.side === seat ? 'sente' : 'gote' }
     : null;
-  const iFirst = setup ? setup.first === seat : true;
+  // CPU 戦のくじ（駒落ちがあれば落とした側が先なので引かない）。自分＝sente
+  const cpuHandi = setup ? null : loadHandicap(safeStore());
+  const cpuFirst: Side = cpuHandi && cpuHandi.kind !== 'none' ? cpuHandi.side : Math.random() < 0.5 ? 'sente' : 'gote';
+  const iFirst = setup ? setup.first === seat : cpuFirst === 'sente';
   let timers: number[] = [];
   let onKey: ((e: KeyboardEvent) => void) | null = null;
   let gone = false;
@@ -47,7 +51,7 @@ export function revealScreen(params: unknown): Screen {
     if (gone) return;
     gone = true;
     if (friend) void showScreen('match', { friend: true, level, deck });
-    else void showScreen('match', { level, deck, keiko, foeDeck });
+    else void showScreen('match', { level, deck, keiko, foeDeck, first: cpuFirst });
   };
 
   return {
@@ -61,7 +65,10 @@ export function revealScreen(params: unknown): Screen {
         const list = el('div', 'reveal-cards');
         list.innerHTML = ids.map((id) => cardHtml(id)).join(''); // 定数だけでできた文字列
         if (ids.length === 0) list.append(el('p', 'none', '札なし'));
-        sec.append(el('h2', '', who), list);
+        // 見出しの行（くじの判をこの横に押す。札の列の上なので「いざ」にかぶらない）
+        const head = el('div', 'reveal-head');
+        head.append(el('h2', '', who));
+        sec.append(head, list);
         // 駒落ちのある側に、何落ちかを添える（落とした側が先に指す）
         if (h.kind !== 'none' && (h.side === 'sente') === (cls === 'me')) {
           sec.append(el('p', 'handi-tag', `${HANDICAP_LABEL[h.kind]}・先に指す`));
@@ -80,11 +87,11 @@ export function revealScreen(params: unknown): Screen {
       const meRow = row('自分の持ち込み', deck, 'me');
       skip.append(foeRow, iza, meRow);
       // くじの判（駒落ちがあれば落とした側が先なので、くじは引いていない）
-      const kuji = friend && h.kind === 'none' ? el('div', `kuji-ban ${iFirst ? 'saki' : 'ato'}`, iFirst ? '先' : '後') : null;
+      const kuji = h.kind === 'none' ? el('div', `kuji-ban ${iFirst ? 'saki' : 'ato'}`, iFirst ? '先' : '後') : null;
       if (kuji) {
         kuji.setAttribute('role', 'img');
         kuji.setAttribute('aria-label', iFirst ? 'くじで先手になりました' : 'くじで後手になりました');
-        meRow.append(kuji);
+        meRow.querySelector('.reveal-head')?.append(kuji);
       }
       skip.addEventListener('click', go);
 
@@ -93,6 +100,11 @@ export function revealScreen(params: unknown): Screen {
         : () => { gone = true; void showScreen('deck', { level, keiko }); };
       box.append(pageHead('札見せ', back), skip);
       root.append(box);
+      // 「いざ」は、相手の札の列と自分の見出し（くじの判）のちょうど真ん中に置く（札が少ないときも判にかぶらない）
+      const sk = skip.getBoundingClientRect();
+      const top = foeRow.getBoundingClientRect().bottom;
+      const bottom = (meRow.querySelector('.reveal-head') ?? meRow).getBoundingClientRect().top;
+      if (bottom > top) iza.style.top = `${(top + bottom) / 2 - sk.top}px`;
 
       onKey = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -102,7 +114,7 @@ export function revealScreen(params: unknown): Screen {
         }
       };
       window.addEventListener('keydown', onKey);
-      const delay = kuji ? FRIEND_DELAY : 0;
+      const delay = kuji ? KUJI_DELAY : 0;
       if (kuji) {
         timers.push(window.setTimeout(() => {
           if (gone) return;

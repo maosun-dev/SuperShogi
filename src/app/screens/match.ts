@@ -1,6 +1,6 @@
 // 対局画面：上の帯・盤・下の帯・手札。タップを reduceInput で合法な行動に変え、進行役に渡す。
 // friend のときは友と対局：進行役は FriendMatch、下の帯に「待った」の判、待ったの短冊、つなぎ直しの幕を出す。戦績は付けない
-import type { CardId, GameEvent, GameState, HandKind, Result, Square } from '../../rules/types';
+import type { CardId, GameEvent, GameState, HandKind, Result, Side, Square } from '../../rules/types';
 import type { Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
 import { keikoOf, type Keiko } from '../keiko';
@@ -34,6 +34,7 @@ export interface MatchParams {
   fxKey?: boolean;     // 開発用：Space キーでカードを使う
   auto?: boolean;      // 開発用：人間側も CPU が指す自動対局（?auto=）。演出は短め・戦績に数えない
   friend?: boolean;    // 友と対局（札・先手はつながりの setup から）
+  first?: Side;        // 札見せのくじで決めた先手（CPU 戦）
 }
 
 const TAP_SLOP = 10; // これ以上指が動いたらタップとみなさない（px）
@@ -47,14 +48,15 @@ function paramsOf(p: unknown): MatchParams {
   // 相手の札が決まりに合わなければ、強さごとの札にする
   const foeDeck = keiko && q.foeDeck && validateDeck(q.foeDeck) === null ? q.foeDeck : undefined;
   if (q.friend) return { level, deck, friend: true };
+  const first: Side | undefined = q.first === 'sente' || q.first === 'gote' ? q.first : undefined;
   const bad = validateDeck(deck);
   if (bad) {
     console.error(`持ち込みが正しくないのでカードなしで始めます：${bad}`);
-    return { level, deck: [], keiko, foeDeck };
+    return { level, deck: [], keiko, foeDeck, first };
   }
   // 開発用の口は開発中だけ通す
-  if (import.meta.env.DEV) return { level, deck, keiko, foeDeck, initial: q.initial, fxKey: q.fxKey, auto: q.auto };
-  return { level, deck, keiko, foeDeck };
+  if (import.meta.env.DEV) return { level, deck, keiko, foeDeck, first, initial: q.initial, fxKey: q.fxKey, auto: q.auto };
+  return { level, deck, keiko, foeDeck, first };
 }
 
 /** 出来事から、最後に動いた駒のマスを出す（なければ null） */
@@ -67,7 +69,7 @@ function lastSquare(events: GameEvent[]): Square | null {
 }
 
 export function matchScreen(params: unknown): Screen {
-  const { level, deck, keiko, foeDeck, initial, fxKey, auto, friend } = paramsOf(params);
+  const { level, deck, keiko, foeDeck, first, initial, fxKey, auto, friend } = paramsOf(params);
   const session = friend ? peekSession() : null;
   // 友の帯：判子は「友」、名前は合言葉（「友 友」と並ばないように）
   const foe: FoeLabel | undefined = session ? { name: session.code() ?? '友だち', seal: '友', waiting: '友の番' } : undefined;
@@ -152,7 +154,7 @@ export function matchScreen(params: unknown): Screen {
       } else {
         cpu = createBrowserCpu();
         m = createMatch({
-          level, humanDeck: deck, foeDeck, cpu, presenter, initial, handicap: loadHandicap(safeStore()),
+          level, humanDeck: deck, foeDeck, cpu, presenter, initial, handicap: loadHandicap(safeStore()), first,
           onOver: (result: Result) => {
             record(outcomeOf(result));
             toResult(result);

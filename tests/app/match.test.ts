@@ -51,6 +51,20 @@ describe('対局の進行役', () => {
     expect(m.view().turn).toBe('sente');
   });
 
+  it('くじで CPU が先手なら CPU が先に指す（駒落ちがあれば駒落ちが勝つ）', async () => {
+    const { steps, presenter } = fakePresenter();
+    const m = createMatch({ level: 'weak', humanDeck: [], cpu: pickingCpu(), presenter, seed: 1, first: 'gote' });
+    expect(m.phase()).toBe('cpu');
+    await m.start();
+    expect(steps[0].actor).toBe('gote');
+    expect(m.phase()).toBe('human');
+    const h = createMatch({
+      level: 'weak', humanDeck: [], cpu: pickingCpu(), presenter, seed: 1, first: 'gote',
+      handicap: { side: 'sente', kind: 'kaku' },
+    });
+    expect(h.phase()).toBe('human');
+  });
+
   it('稽古で決めた相手の札があれば、強さごとの札の代わりにそれを持つ', () => {
     const { presenter } = fakePresenter();
     const m = createMatch({ level: 'strong', humanDeck: [], foeDeck: ['rakurai'], cpu: pickingCpu(), presenter, seed: 1 });
