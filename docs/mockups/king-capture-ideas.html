@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>王を取る演出の新案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;800&family=Yuji+Boku&display=swap" rel="stylesheet">
+<style>
+  :root { --kaya:#E2B65B; --kayaL:#F2D594; --sumi:#1d1a17; --gofun:#EEE8DC; --beni:#D7263D; --ai:#2B59C3; --kin:#C9A227; }
+  body { margin:0; background:#241a12; color:var(--gofun); font-family:"Shippori Mincho B1","Yu Mincho",serif; }
+  main { max-width:760px; margin:0 auto; padding:20px 16px 48px; }
+  h1 { font-size:21px; margin:0 0 6px; font-weight:800; }
+  .lead { margin:0 0 24px; font-size:13px; line-height:1.7; opacity:.8; }
+  section { margin:0 0 34px; }
+  h2 { font-size:18px; margin:0 0 4px; display:flex; gap:10px; align-items:baseline; font-weight:800; }
+  h2 .mark { font-family:"Yuji Boku",serif; color:var(--beni); font-size:22px; }
+  h2 small { font-size:12px; opacity:.75; font-weight:500; }
+  .rec { color:var(--kaya); }
+  .note { font-size:12px; margin:0 0 10px; opacity:.8; line-height:1.6; }
+  .row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  figure { margin:0; background:#120d09; border-radius:6px; overflow:hidden; }
+  figure svg { display:block; width:100%; height:auto; }
+  figcaption { font-size:12px; padding:6px 8px 9px; line-height:1.5; }
+  .meta { font-size:12px; margin:8px 0 0; opacity:.75; line-height:1.6; }
+  .tail { font-size:13px; line-height:1.8; border-top:1px solid #4a3826; padding-top:14px; }
+  @media (max-width:560px) { .row { grid-template-columns:1fr 1fr; } .row figure:last-child { grid-column:1 / -1; } }
+</style>
+</head>
+<body>
+<!-- 使い回す部品 -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="bd"><polygon points="34,118 166,118 194,226 6,226" fill="#E2B65B"/><polygon points="6,226 194,226 194,232 6,232" fill="#9c7432"/><g class="grid" stroke="#7a5420" stroke-width=".6" fill="none"></g></g>
+    <path id="km" d="M0,-11 L8,-7 L10,11 L-10,11 L-8,-7Z" fill="#F0CF86" stroke="#7a5420" stroke-width="1"/>
+    <path id="kmS" d="M0,-6 L4.5,-4 L5.5,6 L-5.5,6 L-4.5,-4Z" fill="#F0CF86" stroke="#7a5420" stroke-width=".7"/>
+  </defs>
+</svg>
+<main>
+  <h1>王を取る・取られる演出の新案（絵コンテ）</h1>
+  <p class="lead">派手めの5案を、3つの場面で描いたイメージです。どの案も勝ち・負けで同じ流れにし、このあとの暗転→「勝」「負」の筆文字→幕は今のままつなぎます。投了はいまの墨の泡のままです。</p>
+
+  <!-- ===== A ===== -->
+  <section>
+    <h2><span class="mark">壱</span>叩き割り <small class="rec">おすすめ</small></h2>
+    <p class="note">駒そのものが主役。取った駒が高く跳んで王を叩き割る。毎局見ても何が起きたか一目で分かる</p>
+    <div class="row">
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <use href="#bd"/>
+          <rect width="200" height="240" fill="#000" opacity=".35"/>
+          <g transform="translate(100 168)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g>
+          <!-- 跳び上がった取る駒 -->
+          <g stroke="#EEE8DC" stroke-opacity=".5" stroke-width="1.2"><line x1="92" y1="70" x2="92" y2="140"/><line x1="100" y1="74" x2="100" y2="150"/><line x1="108" y1="70" x2="108" y2="140"/></g>
+          <g transform="translate(100 50) rotate(-18) scale(2.1)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">飛</text></g>
+          <text x="100" y="22" text-anchor="middle" fill="#EEE8DC" font-size="12">スロー……ブォン</text>
+        </svg>
+        <figcaption>取る駒が天井近くまで跳び上がり、スローで振りかぶる。盤の周りがすっと暗くなる</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#d8d2c6"/>
+          <g style="filter:grayscale(1)"><use href="#bd"/></g>
+          <g class="rays" data-cx="100" data-cy="160" data-n="34" data-r1="34" data-r2="190" data-c="#1d1a17" data-w="1.4"></g>
+          <ellipse cx="100" cy="168" rx="62" ry="16" fill="none" stroke="#1d1a17" stroke-width="3"/>
+          <ellipse cx="100" cy="168" rx="86" ry="23" fill="none" stroke="#1d1a17" stroke-width="1.5" stroke-dasharray="6 5"/>
+          <polygon points="100,128 108,148 128,142 114,158 134,170 110,170 104,192 96,172 74,180 88,162 70,148 92,152" fill="#fff" stroke="#1d1a17" stroke-width="1.5"/>
+          <!-- 跳ねる周りの駒 -->
+          <g transform="translate(52 150) rotate(-14)"><use href="#kmS"/></g>
+          <g transform="translate(148 148) rotate(12)"><use href="#kmS"/></g>
+          <g transform="translate(70 196) rotate(9)"><use href="#kmS"/></g>
+          <g transform="translate(134 200) rotate(-10)"><use href="#kmS"/></g>
+          <g transform="translate(100 150) scale(1.6)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">飛</text></g>
+          <text x="100" y="40" text-anchor="middle" fill="#1d1a17" font-size="26" font-weight="800">ドン！</text>
+        </svg>
+        <figcaption>叩き込んだ瞬間に時が止まり、色が抜ける。衝撃の輪が盤を走り、周りの駒がいっせいに跳ねる</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <use href="#bd"/>
+          <g class="shards" data-cx="100" data-cy="150" data-n="26" data-r="78" data-seed="3"></g>
+          <g transform="translate(150 66) rotate(38)"><path d="M0,-11 L8,-7 L6,4 L-4,1 L-8,-7Z" fill="#F0CF86" stroke="#7a5420"/><text x="-1" y="0" text-anchor="middle" font-size="10" fill="#1d1a17">王</text></g>
+          <g transform="translate(100 168) scale(1.4)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">飛</text></g>
+          <text x="100" y="22" text-anchor="middle" fill="#EEE8DC" font-size="12">バキィン！ カラカラ……</text>
+        </svg>
+        <figcaption>時が戻ると王が木っ端みじんに砕け、破片が四方へ飛ぶ。「王」の字の欠片がくるくる回って落ちる</figcaption>
+      </figure>
+    </div>
+    <p class="meta">音の候補：パンチの風切り音（スロー）→ ロボットを強く殴る → 木が砕ける音（今ある shatter）</p>
+  </section>
+
+  <!-- ===== B ===== -->
+  <section>
+    <h2><span class="mark">弐</span>居合一閃</h2>
+    <p class="note">静から動へ。真っ暗な中で一瞬の斬撃。張りつめた空気が出るが、札「相討ち」の切り口と少し似る</p>
+    <div class="row">
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#000"/>
+          <ellipse cx="74" cy="196" rx="30" ry="9" fill="#EEE8DC" opacity=".12"/>
+          <ellipse cx="126" cy="158" rx="30" ry="9" fill="#EEE8DC" opacity=".12"/>
+          <g transform="translate(74 186) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">角</text></g>
+          <g transform="translate(126 148) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g>
+          <text x="100" y="60" text-anchor="middle" fill="#EEE8DC" font-size="12" opacity=".8">しん……（尺八の一音）</text>
+        </svg>
+        <figcaption>一瞬で真っ暗。取る駒と王だけが照らされ、にらみ合う</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#000"/>
+          <g opacity=".25" transform="translate(88 176) scale(1.3)"><use href="#km"/></g>
+          <g opacity=".45" transform="translate(110 162) scale(1.3)"><use href="#km"/></g>
+          <polygon points="-10,236 210,30 210,40 -10,244" fill="#fff"/>
+          <polygon points="-10,232 210,24 210,28 -10,234" fill="#fff" opacity=".4"/>
+          <g transform="translate(126 148) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g>
+          <g transform="translate(160 118) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">角</text></g>
+          <text x="40" y="70" fill="#EEE8DC" font-size="20" font-weight="800">シャキン</text>
+        </svg>
+        <figcaption>居合の音とともに取る駒が残像を引いて駆け抜ける。画面を斜めに白い一閃が走る</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <use href="#bd"/>
+          <defs><clipPath id="bLo"><polygon points="0,240 200,240 200,128 0,180"/></clipPath><clipPath id="bHi"><polygon points="0,0 200,0 200,128 0,180"/></clipPath></defs>
+          <g clip-path="url(#bLo)"><g transform="translate(100 156) scale(1.6)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g></g>
+          <g transform="translate(-16 -6) rotate(-10 100 150)"><g clip-path="url(#bHi)"><g transform="translate(100 156) scale(1.6)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g></g></g>
+          <line x1="40" y1="167" x2="160" y2="141" stroke="#fff" stroke-width="1.2" opacity=".8"/>
+          <g class="splat" data-cx="100" data-cy="154" data-n="22" data-seed="8" data-c="#D7263D"></g>
+          <text x="100" y="22" text-anchor="middle" fill="#EEE8DC" font-size="12">……ズルッ</text>
+        </svg>
+        <figcaption>一拍おいて王が斜めにずれ、上半分が滑り落ちる。切り口から紅のしぶきが飛ぶ</figcaption>
+      </figure>
+    </div>
+    <p class="meta">音の候補：尺八 → 居合抜き → 大剣で斬る（重い刃）</p>
+  </section>
+
+  <!-- ===== C ===== -->
+  <section>
+    <h2><span class="mark">参</span>大花火</h2>
+    <p class="note">いちばん華やか。打ち上げられた王が夜空で大輪の花火になる。祭りの締めのような明るさ</p>
+    <div class="row">
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <use href="#bd"/>
+          <path d="M100 160 Q104 100 100 30" stroke="#F2D594" stroke-width="2" fill="none" stroke-dasharray="3 4"/>
+          <g transform="translate(100 34) rotate(30)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g>
+          <g transform="translate(100 172) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">金</text></g>
+          <text x="148" y="100" fill="#EEE8DC" font-size="14" font-weight="800">ヒュルル</text>
+        </svg>
+        <figcaption>取る駒が王を真上へ打ち上げる。火の尾を引いてぐんぐん昇り、カメラが見上げる</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0b0e1f"/>
+          <g class="fw" data-cx="100" data-cy="100" data-n="48" data-r="84" data-c1="#D7263D" data-c2="#F2D594"></g>
+          <g class="fw" data-cx="100" data-cy="100" data-n="24" data-r="44" data-c1="#F2D594" data-c2="#EEE8DC"></g>
+          <g class="fw" data-cx="36" data-cy="44" data-n="18" data-r="22" data-c1="#C9A227" data-c2="#C9A227"></g>
+          <g class="fw" data-cx="168" data-cy="56" data-n="18" data-r="20" data-c1="#EEE8DC" data-c2="#D7263D"></g>
+          <text x="100" y="104" text-anchor="middle" font-family="Yuji Boku" font-size="22" fill="#fff">王</text>
+          <text x="100" y="224" text-anchor="middle" fill="#EEE8DC" font-size="20" font-weight="800">ドーン！</text>
+        </svg>
+        <figcaption>夜空で王がはじけ、紅と金の大輪の花火。真ん中に「王」の字が一瞬浮かぶ。腹に響く音</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <use href="#bd"/>
+          <g class="petals" data-n="40" data-seed="5"></g>
+          <g transform="translate(100 168) scale(1.4)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">金</text></g>
+          <text x="100" y="22" text-anchor="middle" fill="#EEE8DC" font-size="12">パラパラ……</text>
+        </svg>
+        <figcaption>火の粉と紅白の紙吹雪が盤へ降りそそぐ中、取った駒が王のマスにどっしり立つ</figcaption>
+      </figure>
+    </div>
+    <p class="meta">音の候補：ヒュー（風切り）→ 爆発1・爆発2 → きらきら</p>
+  </section>
+
+  <!-- ===== D ===== -->
+  <section>
+    <h2><span class="mark">四</span>墨の龍</h2>
+    <p class="note">いちばん大きな絵。取る駒から墨の龍が立ちのぼり、王を丸呑みにする。筆文字の墨とつながる</p>
+    <div class="row">
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <use href="#bd"/>
+          <path d="M70 186 C40 150 90 130 70 100 C55 78 80 60 96 70" stroke="#1d1a17" stroke-width="14" fill="none" stroke-linecap="round"/>
+          <path d="M70 186 C40 150 90 130 70 100 C55 78 80 60 96 70" stroke="#3a332c" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="2 9"/>
+          <g transform="translate(70 192) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">香</text></g>
+          <g transform="translate(130 150)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g>
+          <text x="140" y="60" fill="#EEE8DC" font-size="13">ゴゴゴ……</text>
+        </svg>
+        <figcaption>取る駒の足元から墨が渦を巻いて立ちのぼり、龍の形になっていく</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <use href="#bd"/>
+          <rect width="200" height="240" fill="#000" opacity=".3"/>
+          <!-- 盤を巻く龍の胴 -->
+          <path d="M10 200 C60 240 170 230 186 180 C200 130 120 110 70 120 C30 128 20 80 60 60 C90 44 120 50 128 70" stroke="#1d1a17" stroke-width="22" fill="none" stroke-linecap="round"/>
+          <path d="M10 200 C60 240 170 230 186 180 C200 130 120 110 70 120 C30 128 20 80 60 60 C90 44 120 50 128 70" stroke="#C9A227" stroke-width="1.2" fill="none" stroke-dasharray="1 6"/>
+          <!-- 頭と開いた口 -->
+          <path d="M120 60 L160 74 L170 92 L150 88 L160 106 L130 96 Z" fill="#1d1a17"/>
+          <circle cx="138" cy="72" r="3" fill="#D7263D"/>
+          <path d="M150 64 L176 46" stroke="#1d1a17" stroke-width="3"/>
+          <g transform="translate(150 152)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g>
+          <text x="20" y="30" fill="#EEE8DC" font-size="16" font-weight="800">グオォッ</text>
+        </svg>
+        <figcaption>墨の龍が盤をひと巻きし、王の真上で口を開ける。金の鱗がちらちら光る</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <use href="#bd"/>
+          <g class="splat" data-cx="150" data-cy="156" data-n="34" data-seed="11" data-c="#1d1a17" data-big="1"></g>
+          <path d="M150 150 C150 110 120 80 110 40" stroke="#1d1a17" stroke-width="18" fill="none" stroke-linecap="round" opacity=".55"/>
+          <g transform="translate(90 186) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">香</text></g>
+          <text x="100" y="22" text-anchor="middle" fill="#EEE8DC" font-size="12">バシャァッ</text>
+        </svg>
+        <figcaption>龍が急降下して王を丸呑み。墨が盤に大きく飛び散り、龍は墨のしずくになってほどける</figcaption>
+      </figure>
+    </div>
+    <p class="meta">音の候補：風魔法（うなり）→ 水中（墨のうねり）→ 爆発（呑み込む瞬間）</p>
+  </section>
+
+  <!-- ===== E ===== -->
+  <section>
+    <h2><span class="mark">伍</span>屋台崩し</h2>
+    <p class="note">歌舞伎の大仕掛け「屋台崩し」（舞台の建物が一気に崩れる見せ場）。いちばん歌舞伎らしいが、舞台の絵ごと動かすので作るのは大がかり</p>
+    <div class="row">
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <!-- 後ろの書き割り -->
+          <path d="M10 40 L100 10 L190 40 Z" fill="#3a2418"/><rect x="24" y="40" width="152" height="60" fill="#5a3522"/>
+          <g fill="#D7263D"><ellipse cx="50" cy="60" rx="7" ry="10"/><ellipse cx="100" cy="60" rx="7" ry="10"/><ellipse cx="150" cy="60" rx="7" ry="10"/></g>
+          <use href="#bd"/>
+          <g stroke="#1d1a17" stroke-width="1.6" fill="none"><path d="M100 160 L70 196 L60 226"/><path d="M100 160 L140 140 L166 120"/><path d="M100 160 L120 200 L132 226"/><path d="M100 160 L60 140 L36 124"/></g>
+          <g transform="translate(100 160) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">銀</text></g>
+          <text x="100" y="124" text-anchor="middle" fill="#EEE8DC" font-size="18" font-weight="800">ズドン</text>
+        </svg>
+        <figcaption>王を取った一撃で、王のマスから盤にひびが走る。舞台全体がぐらりと揺れる</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#0d0a08"/>
+          <g transform="rotate(-14 30 100)"><path d="M10 40 L100 10 L120 18 L40 48 Z" fill="#3a2418"/></g>
+          <g transform="translate(10 30) rotate(18 150 60)"><path d="M100 10 L190 40 L170 46 L96 22 Z" fill="#3a2418"/></g>
+          <rect x="18" y="64" width="70" height="40" fill="#5a3522" transform="rotate(-24 50 84)"/>
+          <rect x="112" y="70" width="70" height="40" fill="#5a3522" transform="rotate(20 150 90)"/>
+          <g fill="#D7263D"><ellipse cx="44" cy="120" rx="7" ry="10" transform="rotate(40 44 120)"/><ellipse cx="160" cy="132" rx="7" ry="10"/></g>
+          <g stroke="#8a6326" stroke-width="4"><line x1="70" y1="20" x2="90" y2="96"/><line x1="140" y1="10" x2="118" y2="90"/></g>
+          <use href="#bd"/>
+          <g class="dust" data-n="30" data-seed="2"></g>
+          <text x="100" y="230" text-anchor="middle" fill="#EEE8DC" font-size="16" font-weight="800">ガラガラガラ</text>
+        </svg>
+        <figcaption>後ろの舞台の書き割りが崩れ落ちる。梁が倒れ、提灯が揺れて落ち、土ぼこりが舞う</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 240">
+          <rect width="200" height="240" fill="#2a0a10"/>
+          <g fill="#D7263D" opacity=".85"><rect x="0" y="0" width="22" height="120"/><rect x="178" y="0" width="22" height="120"/></g>
+          <use href="#bd"/>
+          <g class="petals" data-n="60" data-seed="9" data-sakura="1"></g>
+          <g transform="translate(118 176) rotate(80)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">王</text></g>
+          <g transform="translate(96 164) scale(1.3)"><use href="#km"/><text y="6" text-anchor="middle" font-size="11" fill="#1d1a17">銀</text></g>
+        </svg>
+        <figcaption>崩れた向こうから紅の幕と桜吹雪がどっと降り、王の駒がバタリと倒れる</figcaption>
+      </figure>
+    </div>
+    <p class="meta">音の候補：大太鼓 → 爆発（崩れる）→ 木が砕ける音を重ねる</p>
+  </section>
+
+  <p class="tail">組み合わせもできます（例：壱の「叩き割り」で砕けた破片が参の「花火」になる、など）。気になる案と、「ここはこっちの案の感じで」があれば教えてください。</p>
+</main>
+<script>
+// 絵の細かい所（集中線・破片・花火・紙吹雪）を、毎回同じ形になる乱数で描く
+const NS = 'http://www.w3.org/2000/svg';
+function rnd(seed) { let s = seed * 9301 + 49297; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); }
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+const n = (g, k, d) => Number(g.dataset[k] ?? d);
+
+// 盤の目
+document.querySelectorAll('.grid').forEach((g) => {
+  let d = '';
+  for (let i = 0; i <= 9; i++) d += `M${34 + i * 132 / 9} 118 L${6 + i * 188 / 9} 226 `;
+  for (let j = 0; j <= 9; j++) { const y = 118 + j * 12, k = (y - 118) / 108; d += `M${34 - 28 * k} ${y} L${166 + 28 * k} ${y} `; }
+  el('path', { d }, g);
+});
+document.querySelectorAll('.rays').forEach((g) => {
+  const cx = n(g, 'cx'), cy = n(g, 'cy'), N = n(g, 'n'), r1 = n(g, 'r1'), r2 = n(g, 'r2'), r = rnd(4);
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 + r() * 0.1, w = 1 + r() * 2.5;
+    const p = (rr, da) => `${cx + Math.cos(a + da) * rr},${cy + Math.sin(a + da) * rr}`;
+    el('polygon', { points: `${p(r1 + r() * 20, 0)} ${p(r2, w * 0.012)} ${p(r2, -w * 0.012)}`, fill: g.dataset.c }, g);
+  }
+});
+document.querySelectorAll('.shards').forEach((g) => {
+  const cx = n(g, 'cx'), cy = n(g, 'cy'), N = n(g, 'n'), R = n(g, 'r'), r = rnd(n(g, 'seed'));
+  for (let i = 0; i < N; i++) {
+    const a = r() * Math.PI * 2, d = 18 + r() * R, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d * 0.8 - 10, s = 3 + r() * 6;
+    el('line', { x1: cx + Math.cos(a) * d * 0.6, y1: cy + Math.sin(a) * d * 0.5 - 6, x2: x, y2: y, stroke: '#EEE8DC', 'stroke-opacity': 0.35, 'stroke-width': 0.8 }, g);
+    el('polygon', { points: `${x},${y - s} ${x + s * 0.7},${y + s * 0.3} ${x - s * 0.4},${y + s * 0.6}`, fill: r() < 0.7 ? '#F0CF86' : '#9c7432', stroke: '#7a5420', 'stroke-width': 0.5, transform: `rotate(${r() * 360} ${x} ${y})` }, g);
+  }
+});
+document.querySelectorAll('.splat').forEach((g) => {
+  const cx = n(g, 'cx'), cy = n(g, 'cy'), N = n(g, 'n'), r = rnd(n(g, 'seed')), big = n(g, 'big', 0);
+  if (big) el('ellipse', { cx, cy: cy + 8, rx: 46, ry: 14, fill: g.dataset.c }, g);
+  for (let i = 0; i < N; i++) {
+    const a = r() * Math.PI * 2, d = 6 + r() * (big ? 70 : 46);
+    el('circle', { cx: cx + Math.cos(a) * d, cy: cy + Math.sin(a) * d * (big ? 0.5 : 0.8), r: 1 + r() * (big ? 6 : 3.5), fill: g.dataset.c }, g);
+  }
+});
+document.querySelectorAll('.fw').forEach((g) => {
+  const cx = n(g, 'cx'), cy = n(g, 'cy'), N = n(g, 'n'), R = n(g, 'r');
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2, c = i % 2 ? g.dataset.c1 : g.dataset.c2;
+    const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
+    el('line', { x1: cx + Math.cos(a) * R * 0.25, y1: cy + Math.sin(a) * R * 0.25, x2: x, y2: y, stroke: c, 'stroke-width': 1.2, 'stroke-linecap': 'round' }, g);
+    el('circle', { cx: x, cy: y + 3, r: 1.8, fill: c }, g);
+  }
+});
+document.querySelectorAll('.petals').forEach((g) => {
+  const N = n(g, 'n'), r = rnd(n(g, 'seed')), sakura = n(g, 'sakura', 0);
+  for (let i = 0; i < N; i++) {
+    const x = r() * 200, y = r() * 220, c = sakura ? (r() < 0.8 ? '#f4c6cf' : '#EEE8DC') : (r() < 0.5 ? '#D7263D' : r() < 0.5 ? '#EEE8DC' : '#F2D594');
+    el('rect', { x, y, width: 3 + r() * 3, height: 2 + r() * 2, fill: c, transform: `rotate(${r() * 180} ${x} ${y})` }, g);
+  }
+});
+document.querySelectorAll('.dust').forEach((g) => {
+  const N = n(g, 'n'), r = rnd(n(g, 'seed'));
+  for (let i = 0; i < N; i++) el('circle', { cx: 10 + r() * 180, cy: 90 + r() * 60, r: 3 + r() * 12, fill: '#8a7660', opacity: 0.15 + r() * 0.2 }, g);
+});
+</script>
+</body>
+</html>
