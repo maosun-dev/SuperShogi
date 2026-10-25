@@ -146,7 +146,6 @@ export const yobimodoshi: CardFx<MagicCue> = {
     const [glow, line, hook] = els;
     // 糸が巻き上がって消える
     if (line && hook) {
-      getSound().play('reel', { gain: 0.5 });
       const h0 = parseFloat(line.style.height) || 0;
       const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(hook.style.transform);
       const hx = m ? Number(m[1]) : 0, hy = m ? Number(m[2]) : 0;

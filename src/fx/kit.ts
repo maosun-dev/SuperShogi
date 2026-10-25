@@ -202,7 +202,7 @@ export async function cutIn(
   el.classList.remove('on', 'off');
   void el.offsetWidth; // 前の動きを外してから付け直す（毎回はじめから動かす）
   el.classList.add('on');
-  getSound().play('hyoshigi');
+  getSound().play('kotsuzumi');
   try {
     await ctx.wait(ms);
   } finally {

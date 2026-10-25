@@ -309,7 +309,7 @@ const PICKS: [string, string][] = [
 const SOUND_PICKS = {
   hyoshigi: '拍子木（札の名前・王手・幕）', tsuke: 'ツケ打ち（大技の前振り）', maku: '垂れ幕（結果画面への幕）',
   koma: '駒を打つ', komaHard: '駒を強く打つ（取る・打つ）', tick: '駒を選ぶ', kaesu: '成る（裏返す）',
-  whoosh: '風を切る（札が飛ぶ）', chime: '鈴（いまは鳴らさない）', kirakira: 'きらきら（札の力が宿る）', bubble: '水鏡で沈む泡', flip: '伏せ札がめくれる', stamp: '判子',
+  whoosh: '風を切る（札が飛ぶ）', chime: '鈴（いまは鳴らさない）', kirakira: 'きらきら（札の力が宿る）', bubble: '水鏡で沈む泡', kotsuzumi: '小鼓（札の名前のカットイン）', flameShort: '韋駄天（短い炎・歩く）', flip: '伏せ札がめくれる', stamp: '判子',
   wind: '押し返しの風', poof: '煙玉（入れ替え・身代わり）', thud: 'ドスン（成り上がり・身代わり・王が墨に染まる）', reel: '呼び戻しのリール',
   glass: '格落とし（ガラス）', raimei: '落雷のため（雷鳴）', rakurai: '落雷の本命', thunder: '落雷の余韻',
   shatter: '木が砕ける（落雷・身代わり）', ice: '凍てつく床（氷）', frost: '凍る瞬間（凍てつく床・水鏡）',

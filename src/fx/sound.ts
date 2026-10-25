@@ -21,7 +21,8 @@ type CardSoundName =
   | 'tekkyu' | 'inanaki' | 'maku' // 鉄球が落ちる・天馬のいななき・結果画面への幕（2026-10-25 録った音）
   | 'levelup' | 'anaThud' | 'fuuin' // 成り上がり・落とし穴の底・成り封じの封印（同）
   | 'cardOut' // 札が盤の上に大きく出る（カードのシャッフルのはじき）
-  | 'bubble' | 'kirakira'; // 水鏡で札が沈む泡・札の力が宿る（格落とし・呼び戻し）
+  | 'bubble' | 'kirakira' // 水鏡で札が沈む泡・札の力が宿る（格落とし・呼び戻し）
+  | 'kotsuzumi' | 'flameShort'; // カットイン（札の名前）の小鼓・韋駄天の短い炎
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
 
@@ -90,8 +91,10 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   suzu: { files: ['sfx/lic/rin.mp3'], gain: 0.8 }, // りん「チーン」（引き分けの書き終わり）
   kirakira: { files: ['sfx/lic/kirakira.mp3'], gain: 0.6 },
   wind: { files: ['sfx/lic/kaze.mp3'], gain: 0.8 }, // 風魔法
-  flame: { files: ['sfx/lic/kaen.mp3'], gain: 1 }, // 火炎魔法
-  maku: { files: ['sfx/lic/maku.mp3'], gain: 0.6 }, // 拍子木の刻み（だんだん速く）
+  flame: { files: ['sfx/lic/kaen.mp3'], gain: 0.6 }, // 火炎魔法（1.0 はくどくて大きいとユーザー）
+  flameShort: { files: ['sfx/lic/kaen-short.mp3'], gain: 0.45 }, // 火炎魔法の頭1秒（韋駄天が戻る・歩くとき）
+  maku: { files: ['sfx/lic/maku.mp3'], gain: 0.6 }, // 拍子木2「キキン」（長い刻みは長すぎるとユーザー）
+  kotsuzumi: { files: ['sfx/lic/kotsuzumi.mp3'], gain: 0.8 }, // 小鼓「ポン」
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -365,6 +368,8 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   fuuin: (k, t, g) => CARD_RECIPES.paper(k, t, g),
   bubble: () => {}, // 合成の代わりはない
   kirakira: () => {}, // 合成の鈴は不評なので、読めなければ鳴らさない
+  kotsuzumi: (k, t, g) => BASE_RECIPES.hyoshigi(k, t, g),
+  flameShort: (k, t, g) => CARD_RECIPES.flame(k, t, 0.6 * g),
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 

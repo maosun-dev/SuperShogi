@@ -103,7 +103,7 @@ export const oshikaeshi: CardFx<MagicCue> = {
     const a = squarePos(e.from);
     const dir = pushDir(cue);
     const cam = later(cameraLow(ctx, a, 520));
-    getSound().play('wind', { gain: 0.45 });
+    // 風の音は本番（カットインのあと）だけ。ここで鳴らすと長い風がカットインにかぶる
     leaves(ctx, a, dir, 16, 2600, 7);
     await cam;
   },
