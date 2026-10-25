@@ -13,7 +13,9 @@ import { glyphSprite, nearZ, petalStorm, settleTaker, takerAlong, type KingCaptu
 const HIT_MS = 320;    // 取る駒が王に当たるまで
 const LAUNCH_MS = 1150; // 打ち上がる
 const HEIGHT = 11;     // はじける高さ
-const GLYPH = 3.6;     // 「傾」の字のはじめの大きさ
+const BURST_R = 6;     // 大玉の広がる大きさ
+const GLYPH_FROM = 0.35; // 「傾」の字のはじめの大きさ（見える横幅に対する割合）
+const GLYPH_TO = 0.8;    // 迫りきったときの大きさ（同じ）
 // 大玉の星の色（紅・桜・金・胡粉に、緑・紫・橙・水色をまぜる。ユーザー「もう少しいろんな色」）
 const COLORS = [PAL.wana, PAL.sakura, PAL.soubiLight, PAL.gofun, PAL.hanabiMidori, PAL.hanabiMurasaki, PAL.hanabiDaidai, PAL.hanabiMizu, PAL.mahouPale] as const;
 // 千輪の小菊の色の組（金を多めに）
@@ -21,6 +23,16 @@ const MINI: number[][] = [
   [PAL.soubiPale, PAL.soubiLight], [PAL.hanabiMizu, PAL.gofun], [PAL.soubiLight, PAL.hanabiDaidai],
   [PAL.sakura, PAL.hanabiMurasaki], [PAL.soubiPale, PAL.soubiLight], [PAL.hanabiMidori, PAL.soubiPale],
 ];
+
+/**
+ * 画面の縦横の比から、横に halfWidth（はじける所での半分の幅）が収まるカメラの距離と、その距離で見える横幅を出す。
+ * 縦長の iPhone は横に見える幅がずっと狭いので、パソコンと同じ距離だと大輪も「傾」もはみ出す（2026-10-25 実機で発覚）
+ */
+export function fitView(vfovDeg: number, aspect: number, halfWidth: number, minDist: number): { dist: number; width: number } {
+  const tanH = Math.tan((vfovDeg * Math.PI) / 360) * Math.max(0.2, aspect); // 横の画角の半分の tan
+  const dist = Math.max(minDist, halfWidth / tanH);
+  return { dist, width: 2 * dist * tanH };
+}
 
 /** カメラが center のまわりを angle（ラジアン）だけゆっくり回り込む（見ている向きは center のまま） */
 function orbitAround(ctx: FxCtx, center: THREE.Vector3, angle: number, ms: number): Promise<void> {
@@ -127,8 +139,10 @@ export async function hanabi(ctx: FxCtx, k: KingCapture): Promise<void> {
   const king = k.king;
   const top = k.at.clone().setY(HEIGHT);
   getSound().play('slowWhoosh');
-  // はじける所（top）が画面の真ん中に来て、大輪が画面いっぱいに開く距離
-  const cam = later(cameraMove(ctx, k.at.clone().add(new THREE.Vector3(1.2 * z, 5.5, 11 * z)), top.clone(), LAUNCH_MS, (u) => 1 - (1 - u) ** 3));
+  // はじける所（top）が画面の真ん中に来て、大輪が横に収まる距離（縦長の画面ほど遠くから）
+  const view = fitView(ctx.stage.camera.fov, ctx.stage.camera.aspect, BURST_R + 0.8, 12.4);
+  const camDir = new THREE.Vector3(1.2 * z, -5.5, 11 * z).normalize();
+  const cam = later(cameraMove(ctx, top.clone().addScaledVector(camDir, view.dist), top.clone(), LAUNCH_MS, (u) => 1 - (1 - u) ** 3));
   const dark = later(darken(ctx, null, LAUNCH_MS, 0.3));
   if (king) {
     const p0 = king.position.clone(), r0 = king.rotation.clone();
@@ -148,19 +162,20 @@ export async function hanabi(ctx: FxCtx, k: KingCapture): Promise<void> {
   flash(ctx, PALS.soubiPale, 0.55, 500);
   shakeBy(ctx, 0.35);
   pointLight(ctx, top, 60, PAL.soubiLight, 30);
-  const stars = burst(ctx, top, 6, 600, [...COLORS], 2500, 0.34);
+  const stars = burst(ctx, top, BURST_R, 600, [...COLORS], 2500, 0.34);
   burst(ctx, top, 3.6, 220, [PAL.soubiPale, PAL.hanabiMizu, PAL.sakura], 1900);
   burst(ctx, top, 1.8, 90, [PAL.gofun, PAL.soubiLight], 1500, 0.26);
   litSmoke(ctx, top, 5, PAL.sakura);
-  // 題字の「傾」：金に紅の縁取りと厚み。大きく迫ってきて、ゆっくり消える
-  const glyph = glyphSprite(TITLE_GLYPHS['傾'], PALS.soubiLight, GLYPH, PALS.wanaDeep, PALS.kayaGrain);
+  // 題字の「傾」：金に紅の縁取りと厚み。大きく迫ってきて、ゆっくり消える。大きさは見える横幅に合わせる
+  const g0 = view.width * GLYPH_FROM;
+  const glyph = glyphSprite(TITLE_GLYPHS['傾'], PALS.soubiLight, g0, PALS.wanaDeep, PALS.kayaGrain);
   glyph.position.copy(top);
   const gm = glyph.material;
   const GLYPH_LIFE = 3000;
   transient(ctx, glyph, GLYPH_LIFE * ctx.timing.scale, (_dt, age) => {
     const k = age / (GLYPH_LIFE * ctx.timing.scale);
     gm.opacity = k < 0.5 ? 1 : Math.max(0, 1 - (k - 0.5) / 0.5);
-    glyph.scale.setScalar(GLYPH * (1 + 1.4 * (1 - (1 - k) ** 3)));
+    glyph.scale.setScalar(g0 + (view.width * GLYPH_TO - g0) * (1 - (1 - k) ** 3));
   });
   await ctx.wait(700);
   pointOff();

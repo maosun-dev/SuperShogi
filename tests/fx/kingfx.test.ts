@@ -55,3 +55,15 @@ describe('取る駒の動き（takerAlong）', () => {
     expect(taker.position.z).toBeCloseTo(-4.4);
   });
 });
+
+describe('大花火の見え方（fitView）', () => {
+  it('縦長の iPhone では遠くから見て、大輪が横に収まる。字の大きさの元になる横幅も同じだけ見える', async () => {
+    const { fitView } = await import('../../src/fx/kingfx/hanabi');
+    const pc = fitView(38, 2, 6.8, 12.4);
+    const phone = fitView(38, 0.46, 6.8, 12.4);
+    expect(pc.dist).toBeCloseTo(12.4);          // 横長はいまの距離のまま
+    expect(phone.dist).toBeGreaterThan(pc.dist * 2);
+    expect(phone.width).toBeCloseTo(6.8 * 2);   // 大輪の幅ちょうどが画面の横幅
+    expect(pc.width).toBeGreaterThan(6.8 * 2);
+  });
+});
