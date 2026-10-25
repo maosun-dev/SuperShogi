@@ -14,6 +14,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const assets = join(root, 'ios', 'App', 'App', 'Assets.xcassets');
 const FAMILY = 'Yuji Boku';
 const CHAR = 0x50be; // 傾
+const ICON_GROUND = 'beni'; // アイコンの地（icon.mjs の iconSvg の ground）
 
 /** unicode-range（U+8d85, U+592a-592b など）に cp が入っているか */
 function rangeHas(range, cp) {
@@ -105,7 +106,8 @@ try {
   const woff2 = findWoff2();
   writeFileSync(ttfPath, await decompress(readFileSync(woff2)));
 
-  const icon = render(iconSvg(FAMILY), 1024);
+  // 本番の地は紅の振袖（2026-10-25 ユーザーが選んだ）
+  const icon = render(iconSvg(FAMILY, ICON_GROUND), 1024);
   writeFileSync(join(assets, 'AppIcon.appiconset', 'AppIcon-512@2x.png'), icon);
   // 見比べ用：--compare=<フォルダ> で地の案ごとに 1024px と 60px を書く（Xcode には置かない）
   const compare = process.argv.find((a) => a.startsWith('--compare='));
@@ -117,7 +119,7 @@ try {
   }
   // 確かめ用：--preview=<フォルダ> で 60px に縮めたものも書く（Xcode には置かない）
   const preview = process.argv.find((a) => a.startsWith('--preview='));
-  if (preview) writeFileSync(join(preview.slice(10), 'icon-60.png'), render(iconSvg(FAMILY), 60));
+  if (preview) writeFileSync(join(preview.slice(10), 'icon-60.png'), render(iconSvg(FAMILY, ICON_GROUND), 60));
 
   // 起動画面：盤の木の色の無地（アプリの起動の画面＝画面いっぱいの盤 #splash の地と同じ色。切り替わりでチカッとさせない）
   const splashSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732"><rect width="2732" height="2732" fill="#D9A95C"/></svg>`;

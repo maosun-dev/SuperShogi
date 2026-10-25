@@ -4,8 +4,8 @@ import { iconSvg } from '../../tools/icon/icon.mjs';
 import { PALS } from '../../src/view/palette';
 
 describe('アイコンの絵', () => {
-  it('アイコンの SVG は 1024 四方で、7色以外の色を使わない', () => {
-    const svg = iconSvg('Yuji Boku');
+  it.each(['yoru', 'beni', 'kuro'] as const)('アイコンの SVG（地：%s）は 1024 四方で、7色以外の色を使わない', (ground) => {
+    const svg = iconSvg('Yuji Boku', ground);
     expect(svg).toContain('viewBox="0 0 1024 1024"');
     const allowed = new Set(Object.values(PALS).map((c) => c.toUpperCase()));
     const used = svg.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
