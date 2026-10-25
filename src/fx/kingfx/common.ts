@@ -20,7 +20,8 @@ export interface KingCapture {
   takerId: number | null;
   taker: THREE.Object3D | undefined;  // 取る駒（まだ元のマスにいる）
   from: THREE.Vector3 | null;         // 取る駒の元の位置
-  takerY: number;                     // 取る駒の置かれる高さ
+  fromY: number;                      // 取る駒の今の高さ（自分で選んだ駒は「選んだしるし」で浮いている）
+  takerY: number;                     // 取る駒を置く高さ（盤の上の決まった高さ PIECE_Y）
   takerRot: THREE.Euler | null;       // 取る駒のもとの向き
   win: boolean;                       // 見ている側の勝ち（どの案も流れは同じ。音の大きさなどにだけ使ってよい）
 }
@@ -38,12 +39,12 @@ export function hideDecor(obj: THREE.Object3D | undefined): void {
   if (obj) for (const c of obj.children.slice(2)) c.visible = false;
 }
 
-/** 取る駒を、元の位置→王のマスへ t（0〜1）だけ進める。arc は弧の高さ */
+/** 取る駒を、元の位置→王のマスへ t（0〜1）だけ進める。arc は弧の高さ。浮いていた高さから盤の高さへ下りる */
 export function takerAlong(k: KingCapture, t: number, arc = 0.36): void {
   if (!k.taker || !k.from) return;
   k.taker.position.set(
     k.from.x + (k.at.x - k.from.x) * t,
-    k.takerY + Math.sin(Math.PI * t) * arc,
+    k.fromY + (k.takerY - k.fromY) * t + Math.sin(Math.PI * t) * arc,
     k.from.z + (k.at.z - k.from.z) * t,
   );
 }

@@ -36,3 +36,22 @@ describe('設定の王を取る演出', () => {
     expect(loadSettings(store({ 'superShogi.settings': '{"kingFx":"ryu"}' })).kingFx).toBe('random'); // やめた案
   });
 });
+
+describe('取る駒の動き（takerAlong）', () => {
+  it('選んで浮いていた駒も、王のマスでは盤の高さに置かれる（勝ちで駒が浮いて見えていた）', async () => {
+    const THREE = await import('three');
+    const { takerAlong } = await import('../../src/fx/kingfx/common');
+    const { PIECE_Y } = await import('../../src/view/pieces3d');
+    const taker = new THREE.Object3D();
+    const k = {
+      kingAt: { c: 4, r: 0 }, at: new THREE.Vector3(0, 0, -4.4), win: true,
+      kingId: 1, king: undefined, takerId: 2, taker,
+      from: new THREE.Vector3(0, 0, -3.3), fromY: PIECE_Y + 0.23, takerY: PIECE_Y, takerRot: null,
+    };
+    takerAlong(k, 0);
+    expect(taker.position.y).toBeCloseTo(PIECE_Y + 0.23);
+    takerAlong(k, 1);
+    expect(taker.position.y).toBeCloseTo(PIECE_Y);
+    expect(taker.position.z).toBeCloseTo(-4.4);
+  });
+});

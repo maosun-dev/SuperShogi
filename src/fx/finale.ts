@@ -12,7 +12,7 @@ import type { Square } from '../rules/types';
 import type { Cue } from './plan';
 import { PAL, PALS } from '../view/palette';
 import { squarePos } from '../view/board3d';
-import { pieceMesh } from '../view/pieces3d';
+import { PIECE_Y, pieceMesh } from '../view/pieces3d';
 import {
   animateEl, atHome, brushLayer, cameraHome, cameraTo, dim, easeInOut, easeOut, flash, localRect, transient, type FxCtx,
 } from './kit';
@@ -275,7 +275,9 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
     kingId: king?.id ?? null, king: km,
     takerId: taker?.id ?? null, taker: am,
     from: from && am ? new THREE.Vector3(am.position.x, 0, am.position.z) : null,
-    takerY: am?.position.y ?? 0,
+    // 置く高さは決まった高さ。今の高さ（選んだしるしで浮いていることがある）を使うと、着いても浮いたままになる
+    fromY: am?.position.y ?? PIECE_Y,
+    takerY: PIECE_Y,
     takerRot: am ? am.rotation.clone() : null,
   };
   try {

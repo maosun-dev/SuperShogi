@@ -53,7 +53,7 @@ export async function iai(ctx: FxCtx, k: KingCapture): Promise<void> {
   if (t) {
     let lastGhost = -1;
     await ctx.tweenRaw(DASH_MS, (u) => {
-      t.position.set(from.x + (past.x - from.x) * u, k.takerY, from.z + (past.z - from.z) * u);
+      t.position.set(from.x + (past.x - from.x) * u, k.fromY + (k.takerY - k.fromY) * u, from.z + (past.z - from.z) * u);
       const g = Math.floor(u * 6);
       if (g !== lastGhost) { lastGhost = g; ghost(ctx, t, 0.45, 520); }
     });

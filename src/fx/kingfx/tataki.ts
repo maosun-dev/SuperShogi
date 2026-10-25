@@ -32,7 +32,7 @@ export async function tataki(ctx: FxCtx, k: KingCapture): Promise<void> {
   petalStorm(ctx, { ...ICON, mode: 'swirl', center: k.at.clone().setY(0.3), n: 70, size: 0.26, life: (RISE_MS + HANG_MS + 500) * ctx.timing.scale, area: 1.2, power: 1.3 });
   if (t && from) {
     await ctx.tween(RISE_MS, (u) => {
-      t.position.set(from.x + (top.x - from.x) * u, k.takerY + TOP * Math.sin(u * Math.PI / 2), from.z + (top.z - from.z) * u);
+      t.position.set(from.x + (top.x - from.x) * u, k.fromY + (k.takerY + TOP - k.fromY) * Math.sin(u * Math.PI / 2), from.z + (top.z - from.z) * u);
       t.rotation.set(r0.x + down * u, r0.y + 0.6 * Math.sin(Math.PI * u), r0.z);
       t.scale.setScalar(1 + 0.35 * u);
     }, (u) => 1 - (1 - u) * (1 - u));
