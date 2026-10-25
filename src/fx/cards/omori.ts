@@ -46,8 +46,7 @@ export const omori: EquipFx = {
       // ずしん：鉄球が上から落ちる
       getSound().play('whoosh', { gain: 0.5 });
       await ctx.tween(380, (t) => { ball.position.set(ballAt.x, 0.2 + 5 * (1 - t * t), ballAt.z); });
-      getSound().play('thud');
-      getSound().play('drum', { gain: 0.6 });
+      getSound().play('tekkyu');
       shakeBy(ctx, 0.45);
       flash(ctx, PALS.sumi, 0.25, 220);
       puff(ctx, ballAt, PAL.kayaGrainDeep, 40, 1.4);

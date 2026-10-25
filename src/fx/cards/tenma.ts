@@ -99,6 +99,7 @@ export const tenma: EquipFx = {
       flash(ctx, PALS.soubiPale, 0.45, 220);
       puff(ctx, at, PAL.soubiLight, 36, 1.2);
       getSound().play('hoof', { gain: 1.2 });
+      getSound().play('inanaki');
       getSound().play('chime');
       await ctx.wait(450);
     } finally {

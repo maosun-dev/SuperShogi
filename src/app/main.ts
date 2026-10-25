@@ -55,7 +55,8 @@ function start(): void {
   });
   const sound = getSound();
   sound.setVolume(settings.volume);
-  setClapper(() => sound.play('hyoshigi'));
+  // 幕の音：ふだんは拍子木、決着から結果画面へは歌舞伎の垂れ幕
+  setClapper((to) => sound.play(to === 'result' ? 'maku' : 'hyoshigi'));
   // 最初の操作で解錠し、裏から戻って止まっていたら付け直す
   armSoundUnlock(sound, window);
   watchResume(sound, window, document);

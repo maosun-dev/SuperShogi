@@ -12,15 +12,15 @@ let current: Screen | null = null;
 let root: HTMLElement | null = null;
 let curtain: HTMLElement | null = null;
 let busy: Promise<void> | null = null;
-let clapper: () => void = () => {}; // 拍子木の音（main.ts が setClapper で効果音を差し込む。それまでは無音）
+let clapper: (to: ScreenName) => void = () => {}; // 幕の音（main.ts が setClapper で効果音を差し込む。それまでは無音）
 let hook: (name: ScreenName) => void = () => {}; // 画面を入れ替えたら呼ぶ（main.ts がバナー広告の出し入れを差し込む）
 
 export function registerScreen(name: ScreenName, make: (params: unknown) => Screen): void {
   makers.set(name, make);
 }
 
-/** 拍子木の音を鳴らす関数を差し込む */
-export function setClapper(fn: () => void): void {
+/** 幕を引くときの音を鳴らす関数を差し込む（行き先の画面の名前を渡す） */
+export function setClapper(fn: (to: ScreenName) => void): void {
   clapper = fn;
 }
 
@@ -76,7 +76,7 @@ export function showScreen(name: ScreenName, params?: unknown): Promise<void> {
     const half = (reduced ? REDUCED_MS : CURTAIN_MS) / 2;
     try {
       el.classList.add('run');
-      clapper();
+      clapper(name);
       const closing = reduced
         ? [{ opacity: 0 }, { opacity: 1 }]
         : [{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }];

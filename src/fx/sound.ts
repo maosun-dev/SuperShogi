@@ -17,7 +17,8 @@ type CardSoundName =
   | 'reel' | 'armor' | 'chain' | 'hoof' | 'flame' | 'tsuke' | 'splash'
   | 'fude' | 'suzu' // 決着（筆の擦れる音・負けの書き終わりの鈴）
   | 'raimei' | 'rakurai' // 落雷のためる雷鳴・本命の一撃（2026-10-24 録った音）
-  | 'kachi' | 'make'; // 決着の書き終わりの決め音（勝ち・負け）
+  | 'kachi' | 'make' // 決着の書き終わりの決め音（勝ち・負け）
+  | 'tekkyu' | 'inanaki' | 'maku'; // 鉄球が落ちる・天馬のいななき・結果画面への幕（2026-10-25 録った音）
 
 export type MusicName = 'taikyoku' | 'sakura' | 'title';
 
@@ -39,9 +40,9 @@ export const TRACKS: Record<MusicName, Track> = {
 
 /**
  * 録った効果音（public/sfx、SUNO の音を録画から切り出したもの・頭の山を -1dB にそろえてある）。
- * files が複数なら交互に鳴らす。jitter は鳴らすたびの高さの揺れ（±の割合）
+ * files が複数なら交互に鳴らす。jitter は鳴らすたびの高さの揺れ（±の割合）。repeat は同じ音を重ねて鳴らす時刻（秒）
  */
-interface Sample { files: string[]; gain: number; jitter?: number }
+interface Sample { files: string[]; gain: number; jitter?: number; repeat?: number[] }
 export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   koma: { files: ['sfx/koma1.mp3', 'sfx/koma2.mp3'], gain: 0.6, jitter: 0.04 },
   komaHard: { files: ['sfx/koma1.mp3', 'sfx/koma2.mp3'], gain: 0.85, jitter: 0.03 },
@@ -52,6 +53,24 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   rakurai: { files: ['sfx/rakurai.mp3'], gain: 1 },
   kachi: { files: ['sfx/kachi.mp3'], gain: 0.8 },
   make: { files: ['sfx/make.mp3'], gain: 0.5 }, // 0.8 は大きいとユーザー（2026-10-24）
+  // 2026-10-25 録った音（SUNO の「効果音」の一覧を iPhone で画面ごと録ったもの）
+  hyoshigi: { files: ['sfx/hyoshigi.mp3'], gain: 0.75, jitter: 0.02, repeat: [0, 0.11] }, // 1打を2回「カン、カン」
+  tick: { files: ['sfx/tick.mp3'], gain: 0.3, jitter: 0.04 },
+  kaesu: { files: ['sfx/kaesu.mp3'], gain: 0.7, jitter: 0.03 },
+  drum: { files: ['sfx/drum.mp3'], gain: 0.8 },
+  fude: { files: ['sfx/fude1.mp3', 'sfx/fude2.mp3'], gain: 0.3, jitter: 0.06 },
+  poof: { files: ['sfx/poof1.mp3', 'sfx/poof2.mp3'], gain: 0.7 },
+  glass: { files: ['sfx/glass.mp3'], gain: 0.6 },
+  ice: { files: ['sfx/ice.mp3'], gain: 0.8 },
+  frost: { files: ['sfx/frost.mp3'], gain: 0.5 },
+  shatter: { files: ['sfx/shatter.mp3'], gain: 0.6 },
+  chain: { files: ['sfx/chain.mp3'], gain: 0.7 },
+  trapdoor: { files: ['sfx/trapdoor.mp3'], gain: 0.6 },
+  flame: { files: ['sfx/flame.mp3'], gain: 0.6 },
+  flip: { files: ['sfx/flip.mp3'], gain: 0.5, jitter: 0.04 },
+  tekkyu: { files: ['sfx/tekkyu.mp3'], gain: 0.7 },
+  inanaki: { files: ['sfx/inanaki.mp3'], gain: 0.55 },
+  maku: { files: ['sfx/maku.mp3'], gain: 0.6 },
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -316,6 +335,9 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   rakurai: (k, t, g) => BASE_RECIPES.thunder(k, t, g),
   kachi: (k, t, g) => BASE_RECIPES.drum(k, t, g),
   make: (k, t, g) => CARD_RECIPES.suzu(k, t, g),
+  tekkyu: (k, t, g) => { CARD_RECIPES.thud(k, t, g); BASE_RECIPES.drum(k, t, 0.6 * g); },
+  inanaki: () => {}, // 合成の代わりはない（読めなければ鳴らさない）
+  maku: (k, t, g) => BASE_RECIPES.hyoshigi(k, t, g),
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 
@@ -381,13 +403,16 @@ function createSound(): Sound {
     const buf = clips.get(s.files[n % s.files.length]);
     if (!buf) return false;
     turn.set(name, n + 1);
-    const src = c.createBufferSource();
-    src.buffer = buf;
-    if (s.jitter) src.playbackRate.value = 1 + (Math.random() * 2 - 1) * s.jitter;
     const gain = c.createGain();
     gain.gain.value = s.gain * g;
-    src.connect(gain).connect(out);
-    src.start(at);
+    gain.connect(out);
+    for (const d of s.repeat ?? [0]) {
+      const src = c.createBufferSource();
+      src.buffer = buf;
+      if (s.jitter) src.playbackRate.value = 1 + (Math.random() * 2 - 1) * s.jitter;
+      src.connect(gain);
+      src.start(at + d);
+    }
     return true;
   }
 
