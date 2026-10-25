@@ -31,6 +31,8 @@ describe('保存', () => {
     const st = fakeStore();
     st.setItem('superShogi.settings', '{"fx":"short","volume":0.5,"stage":"kabuki","motion":"auto"}');
     expect(loadSettings(st).bgm).toBe('taikyoku');
+    st.setItem('superShogi.settings', '{"bgm":"taikyoku2"}');
+    expect(loadSettings(st).bgm).toBe('taikyoku2');
     st.setItem('superShogi.settings', '{"bgm":"rock"}');
     expect(loadSettings(st).bgm).toBe('taikyoku');
   });

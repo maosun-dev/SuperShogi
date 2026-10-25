@@ -1,12 +1,13 @@
-// 画面ごとに流す曲。対局は設定で選んだ曲（おまかせなら毎局どちらか）、結果画面は決着の決め音を聞かせるため無音、ほかはタイトルの曲。
+// 画面ごとに流す曲。対局は設定で選んだ曲（おまかせなら毎局どれか）、結果画面は決着の決め音を聞かせるため無音、ほかはタイトルの曲。
 import type { MusicName } from '../fx/sound';
 import type { BgmChoice } from './storage';
 import type { ScreenName } from './screens';
 
 /** 対局の曲（設定の並び順） */
-export const MATCH_TRACKS = ['taikyoku', 'sakura'] as const satisfies readonly MusicName[];
+export const MATCH_TRACKS = ['taikyoku', 'taikyoku2', 'sakura'] as const satisfies readonly MusicName[];
 export const MATCH_TRACK_LABEL: Record<(typeof MATCH_TRACKS)[number], string> = {
   taikyoku: '対局BGM1',
+  taikyoku2: '対局BGM2',
   sakura: 'サクラドリフト',
 };
 

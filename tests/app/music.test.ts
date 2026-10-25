@@ -23,11 +23,14 @@ describe('pickMatchTrack（対局の曲の決め方）', () => {
     expect(pickMatchTrack('taikyoku', 0.9)).toBe('taikyoku');
     expect(pickMatchTrack('sakura', 0.1)).toBe('sakura');
   });
-  it('おまかせは乱数で2曲のどちらか', () => {
+  it('おまかせは乱数で3曲のどれか', () => {
     expect(pickMatchTrack('random', 0)).toBe('taikyoku');
-    expect(pickMatchTrack('random', 0.49)).toBe('taikyoku');
-    expect(pickMatchTrack('random', 0.5)).toBe('sakura');
+    expect(pickMatchTrack('random', 0.34)).toBe('taikyoku2');
+    expect(pickMatchTrack('random', 0.67)).toBe('sakura');
     expect(pickMatchTrack('random', 0.999)).toBe('sakura');
+  });
+  it('対局BGM2 も選べる', () => {
+    expect(pickMatchTrack('taikyoku2', 0.1)).toBe('taikyoku2');
   });
 });
 
@@ -39,6 +42,10 @@ describe('曲のループ位置', () => {
   it('サクラドリフトは102.4秒（150BPM の256拍）', () => {
     const t = TRACKS.sakura;
     expect(t.loopEnd - t.loopStart).toBeCloseTo(102.4, 2);
+  });
+  it('対局BGM2 は156拍（143BPM の39小節）', () => {
+    const t = TRACKS.taikyoku2;
+    expect(t.loopEnd - t.loopStart).toBeCloseTo(156 * 60 / 143, 3);
   });
   it('タイトルの曲は120拍（136BPM の30小節）', () => {
     const t = TRACKS.title;

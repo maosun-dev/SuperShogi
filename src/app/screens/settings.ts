@@ -158,7 +158,7 @@ export function settingsScreen(): Screen {
         li.append(ear);
         list.append(li);
       }
-      list.append(bgmRow('random', 'おまかせ', '毎局どちらか'));
+      list.append(bgmRow('random', 'おまかせ', '毎局どれか'));
       bgSec.append(bgHead, list);
       paintBgm();
 

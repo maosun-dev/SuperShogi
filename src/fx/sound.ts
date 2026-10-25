@@ -20,7 +20,7 @@ type CardSoundName =
   | 'kachi' | 'make' // 決着の書き終わりの決め音（勝ち・負け）
   | 'tekkyu' | 'inanaki' | 'maku'; // 鉄球が落ちる・天馬のいななき・結果画面への幕（2026-10-25 録った音）
 
-export type MusicName = 'taikyoku' | 'sakura' | 'title';
+export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
 
 /** 曲（public/bgm）。ループの位置は秒。gain は効果音に対する大きさ */
 interface Track { path: string; loopStart: number; loopEnd: number; gain: number }
@@ -31,9 +31,11 @@ interface Track { path: string; loopStart: number; loopEnd: number; gain: number
 // 対局の曲2「サクラドリフト」とタイトルの曲（2026-10-24、SUNO）：ファイルは「頭〜ループの終わり」＋「戻った先の続き0.5秒」。
 // 終わりの手前60ms までに戻った先の音へ重ねて移してあるので、読み込みで位置が少しずれても切れ目が出ない。
 // - サクラドリフト：150BPM。86.925秒〜189.327秒（256拍）をくり返す
+// - 対局BGM2（2026-10-25）：143BPM。最後の一打（153拍目）の余韻のあと、156拍（39小節）で頭へ戻す
 // - タイトル：136BPM。くり返しのない通しの曲なので、最後の一打の余韻のあと頭へ戻す（0.1秒〜120拍＝30小節）
 export const TRACKS: Record<MusicName, Track> = {
   taikyoku: { path: 'bgm/taikyoku.mp3', loopStart: 68.875, loopEnd: 105.74, gain: 0.5 },
+  taikyoku2: { path: 'bgm/taikyoku2.mp3', loopStart: 0, loopEnd: 156 * 60 / 143, gain: 0.5 },
   sakura: { path: 'bgm/sakura.mp3', loopStart: 86.925, loopEnd: 189.327, gain: 0.5 },
   title: { path: 'bgm/title.mp3', loopStart: 0.1, loopEnd: 0.1 + 120 * 60 / 136, gain: 0.45 },
 };

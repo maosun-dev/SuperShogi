@@ -10,7 +10,7 @@ export type StageId = 'kabuki' | 'ukiyoe' | 'byobu';
 export type Motion = 'auto' | 'full' | 'low'; // auto は端末の「動きを減らす」に合わせる
 // volume は 0〜1。stage は背景の舞台、motion は背景の動き
 /** 対局の曲：決めた1曲か、毎局どちらか（random） */
-export type BgmChoice = 'taikyoku' | 'sakura' | 'random';
+export type BgmChoice = 'taikyoku' | 'taikyoku2' | 'sakura' | 'random';
 export interface Settings { fx: 'short' | 'long'; volume: number; stage: StageId; motion: Motion; bgm: BgmChoice }
 export interface Tally { wins: number; losses: number; draws: number }
 // 稽古の相手：強さと、持ち込みの札（決めた並びか、毎局引き直す 'kuji'）
@@ -68,7 +68,7 @@ export function loadSettings(st: KeyValueStore): Settings {
     ? Math.min(1, Math.max(0, o.volume)) : DEFAULT_SETTINGS.volume;
   const stage = o.stage === 'kabuki' || o.stage === 'ukiyoe' || o.stage === 'byobu' ? o.stage : DEFAULT_SETTINGS.stage;
   const motion = o.motion === 'auto' || o.motion === 'full' || o.motion === 'low' ? o.motion : DEFAULT_SETTINGS.motion;
-  const bgm = o.bgm === 'taikyoku' || o.bgm === 'sakura' || o.bgm === 'random' ? o.bgm : DEFAULT_SETTINGS.bgm;
+  const bgm = o.bgm === 'taikyoku' || o.bgm === 'taikyoku2' || o.bgm === 'sakura' || o.bgm === 'random' ? o.bgm : DEFAULT_SETTINGS.bgm;
   return { fx, volume, stage, motion, bgm };
 }
 
