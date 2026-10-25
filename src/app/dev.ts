@@ -70,7 +70,7 @@ export function titleView(): GameState {
 // ?fx=lose         相手の金が自分の王の前にいる。Space で歩を進め、CPU が王を取る
 // ?fx=draw         手数を上限にしておく。Space で歩を進めると手数の上限で引き分け
 // ?fx=resign       初期配置のまま。Space で投了する（王が伏せられて「負」→ 結果画面）
-//   &king=<案>      win・lose で流す王を取る演出の案（tataki・iai・hanabi・yatai）。左下の切り替えでも選べる
+//   &king=<案>      win・lose で流す王を取る演出の案（tataki・iai・hanabi）。左下の切り替えでも選べる
 // ?fx=itetsuku    相手が 7六 に凍てつく床を伏せた状態。Space で歩がそのマスへ進んで凍る
 // ?fx=aiuchi      相手が相討ちを伏せ、相手の歩が 7六 にいる。Space で自分の歩が取り、取った歩も壊れる
 // ?fx=migawari    相手が身代わりを伏せ、自分の金が相手の王の前にいる。Space で王を取りにいく

@@ -1,8 +1,8 @@
-// 王を取る・取られる演出の種類（2026-10-25 仮に4案。墨の龍はユーザーが不要とした。絵コンテ docs/mockups/king-capture-ideas.html）。
+// 王を取る・取られる演出の種類（2026-10-25 3案。墨の龍・屋台崩しはユーザーが外した。絵コンテ docs/mockups/king-capture-ideas.html）。
 // 1局ぶんの案は対局の始まりに決める（CPU 戦は札見せのくじと一緒、友と対局は誘った側が引いて setup で送る）。
 // three を読まない純粋な部品（友と対局の setup の確かめからも使う）
 
-export const KING_FX = ['tataki', 'iai', 'hanabi', 'yatai'] as const;
+export const KING_FX = ['tataki', 'iai', 'hanabi'] as const;
 export type KingFx = (typeof KING_FX)[number];
 /** 設定：決めた1案か、毎局くじ（random） */
 export type KingFxChoice = KingFx | 'random';
@@ -11,7 +11,6 @@ export const KING_FX_LABEL: Record<KingFx, string> = {
   tataki: '叩き割り',
   iai: '居合一閃',
   hanabi: '大花火',
-  yatai: '屋台崩し',
 };
 
 export function isKingFx(v: unknown): v is KingFx {

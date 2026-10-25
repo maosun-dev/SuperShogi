@@ -12,6 +12,29 @@ const STARE_MS = 1000;  // にらみ合う
 const DASH_MS = 130;    // 駆け抜ける
 const HOLD_MS = 650;    // 斬ったあとの一拍
 
+// 駒の真ん中が出てよい盤の範囲（盤の大きさ BW×BD の内側）
+const EDGE_X = 4.5, EDGE_Z = 4.9;
+
+/**
+ * 駆け抜けたあとに止まる所：王の向こうへ over だけ。王が盤の端にいて向こうに場所が無いときは、
+ * 足りないぶんだけ盤の内側（横）へ流れて止まる（盤の外の宙に浮いて見えないように）
+ */
+function dashEnd(at: THREE.Vector3, dir: THREE.Vector3, over: number): THREE.Vector3 {
+  const room = (p: number, d: number, lim: number): number => (d > 1e-6 ? (lim - p) / d : d < -1e-6 ? (-lim - p) / d : Infinity);
+  const ahead = Math.max(0, Math.min(over, room(at.x, dir.x, EDGE_X), room(at.z, dir.z, EDGE_Z)));
+  const end = at.clone().addScaledVector(dir, ahead);
+  const short = over - ahead;
+  if (short > 0.05) {
+    // 横向き（盤の真ん中へ向かう側）へ足りないぶん流す
+    const side = new THREE.Vector3(-dir.z, 0, dir.x);
+    if (side.dot(new THREE.Vector3(-at.x, 0, -at.z)) < 0) side.negate();
+    end.addScaledVector(side, Math.max(short, 0.9));
+  }
+  end.x = Math.max(-EDGE_X, Math.min(EDGE_X, end.x));
+  end.z = Math.max(-EDGE_Z, Math.min(EDGE_Z, end.z));
+  return end;
+}
+
 export async function iai(ctx: FxCtx, k: KingCapture): Promise<void> {
   const t = k.taker, from = k.from ?? k.at;
   const mid = from.clone().lerp(k.at, 0.5);
@@ -25,7 +48,7 @@ export async function iai(ctx: FxCtx, k: KingCapture): Promise<void> {
   const dir = k.at.clone().sub(from).setY(0);
   if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
   dir.normalize();
-  const past = k.at.clone().addScaledVector(dir, 1.3);
+  const past = dashEnd(k.at, dir, 1.3);
   getSound().play('iai');
   if (t) {
     let lastGhost = -1;

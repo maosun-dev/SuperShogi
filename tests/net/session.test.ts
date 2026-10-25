@@ -86,12 +86,12 @@ test('王を取る演出の案は誘った側が引き、2台で同じ。誘っ�
   expect(isKingFx(p.host.setup()!.kingFx)).toBe(true);
   expect(p.guest.setup()!.kingFx).toBe(p.host.setup()!.kingFx);
 
-  const q = await pair({ hostKingFx: 'yatai' });
+  const q = await pair({ hostKingFx: 'iai' });
   q.host.ready([]);
   q.guest.ready([]);
   await flush();
-  expect(q.host.setup()!.kingFx).toBe('yatai');
-  expect(q.guest.setup()!.kingFx).toBe('yatai');
+  expect(q.host.setup()!.kingFx).toBe('iai');
+  expect(q.guest.setup()!.kingFx).toBe('iai');
 });
 
 test('指した手が相手に届き、記録が同じになる', async () => {

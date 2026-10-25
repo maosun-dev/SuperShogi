@@ -1,11 +1,11 @@
-// 王を取る・取られる演出（4案）で共通に使う道具：取る駒の動き・時止め・木っ端・花びら・衝撃の輪・周りの駒が跳ねる・
+// 王を取る・取られる演出（3案）で共通に使う道具：取る駒の動き・時止め・木っ端・花びら・衝撃の輪・周りの駒が跳ねる・
 // 残像・画面を走る一閃・字の板・駒の半分（切り口）。
 // 決まり（kit.ts と同じ）：舞台は直接さわらず ctx.tween / ctx.wait / transient / shakeBy / flash を通す。
 // 駒の材質は全駒で共有なので、色や透明度を変えるときは必ず複製する
 import * as THREE from 'three';
 import type { Square } from '../../rules/types';
 import { PAL, PALS } from '../../view/palette';
-import { pieceLabel, pieceMesh } from '../../view/pieces3d';
+import { pieceMesh } from '../../view/pieces3d';
 import { animateEl, easeOut, overlay, transient, type FxCtx } from '../kit';
 import { timeStop } from '../stagecraft';
 import { getSound } from '../sound';
@@ -206,7 +206,7 @@ export interface PetalOpts {
   power?: number;
 }
 
-/** 花びら・紙吹雪。噴き出す（切り口から）か、上から降りそそぐ（花火・屋台崩しのあと） */
+/** 花びら・紙吹雪。噴き出す（切り口から）か、上から降りそそぐ（花火のあと） */
 export function petalStorm(ctx: FxCtx, o: PetalOpts): void {
   const n = o.n ?? 80, size = o.size ?? 0.18, life = o.life ?? 3000, power = o.power ?? 1;
   const c = o.center ?? new THREE.Vector3();
@@ -337,21 +337,43 @@ export async function screenSlash(ctx: FxCtx, angle = -28, color: string = PALS.
 }
 
 /**
- * 筆の字の板（Sprite）：花火の真ん中に浮かぶ題字の「傾」（題字と同じ衡山の形。titleGlyphs）。色と大きさを変えて使う。
- * 題字と同じく線を足して太らせる
+ * 筆の字の板（Sprite）：花火の真ん中に浮かぶ題字の「傾」（題字と同じ衡山の形。titleGlyphs）。
+ * edge があれば縁取り、side があれば右下へ厚み（側面）を付けて立体に見せる。題字と同じく線を足して太らせる
  */
-export function glyphSprite(path: string, color: string, size: number, edge?: string): THREE.Sprite {
-  const c = document.createElement('canvas'); c.width = c.height = 256;
+export function glyphSprite(path: string, color: string, size: number, edge?: string, side?: string): THREE.Sprite {
+  const N = 384;
+  const c = document.createElement('canvas'); c.width = c.height = N;
   const g = c.getContext('2d')!;
-  const pad = 60;
-  g.scale(256 / (TITLE_EM + pad * 2), 256 / (TITLE_EM + pad * 2));
+  const pad = 110;
+  g.scale(N / (TITLE_EM + pad * 2), N / (TITLE_EM + pad * 2));
   g.translate(pad, pad);
   const p2 = new Path2D(path);
   g.lineJoin = 'round';
+  // 厚み：少しずつずらして側面の色で重ね塗り（奥ほど暗く）
+  if (side) {
+    const STEPS = 16;
+    for (let i = STEPS; i >= 1; i--) {
+      g.save();
+      g.translate(i * 2.4, i * 3.4);
+      g.fillStyle = side; g.strokeStyle = side; g.lineWidth = edge ? 46 : 22;
+      g.globalAlpha = 0.55 + 0.45 * (1 - i / STEPS);
+      g.fill(p2); g.stroke(p2);
+      g.restore();
+    }
+  }
   // 縁取り：太い線を先に引いてから、字の色で塗る
-  if (edge) { g.strokeStyle = edge; g.lineWidth = 70; g.stroke(p2); }
+  if (edge) { g.strokeStyle = edge; g.lineWidth = 46; g.stroke(p2); }
   g.fillStyle = color; g.strokeStyle = color; g.lineWidth = 22;
   g.fill(p2); g.stroke(p2);
+  // 左上の照り：字の中だけに、明るい線を少しずらして引く
+  if (side) {
+    g.save();
+    g.clip(p2);
+    g.translate(-7, -9);
+    g.strokeStyle = PALS.soubiPale; g.lineWidth = 12; g.globalAlpha = 0.85;
+    g.stroke(p2);
+    g.restore();
+  }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   // 縁取りの暗い色が見えるよう、縁取りがあるときは光の足し算にしない
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, blending: edge ? THREE.NormalBlending : THREE.AdditiveBlending }));
@@ -379,23 +401,4 @@ export function pieceHalf(piece: THREE.Object3D, plane: THREE.Plane): { obj: THR
   obj.children.slice(2).forEach((c) => { c.visible = false; });
   obj.visible = true;
   return { obj, mats };
-}
-
-/** 王を、材質を複製してから opacity で薄くしていく（倒れる・呑まれるときに使う） */
-export function fadeable(obj: THREE.Object3D): THREE.Material[] {
-  const mats: THREE.Material[] = [];
-  for (const c of obj.children.slice(0, 2)) {
-    const m = c as THREE.Mesh;
-    if (!m.isMesh) continue;
-    const mat = (m.material as THREE.Material).clone();
-    mat.transparent = true;
-    m.material = mat;
-    mats.push(mat);
-  }
-  return mats;
-}
-
-/** 王の字の板（あれば） */
-export function kingLabel(k: KingCapture): THREE.Mesh | undefined {
-  return k.kingId === null ? undefined : pieceLabel(k.kingId);
 }

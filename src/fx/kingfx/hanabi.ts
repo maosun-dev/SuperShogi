@@ -1,10 +1,10 @@
 // 参「大花火」：取る駒が王を真上へ打ち上げる。王は火の尾を引いて昇り、カメラが見上げる。
-// 夜空で王がはじけ、桃・青・金・紅のまざった大玉（真ん中に題字の「傾」が一瞬浮かぶ）。続いて外の星が
+// 夜空で王がはじけ、いろんな色のまざった大玉（真ん中に題字の「傾」が一瞬浮かぶ）。続いて外の星が
 // ひとつひとつ金の小さな菊にはじける千輪で、画面いっぱいが金で埋まる（片貝まつりの四尺玉が参考。ユーザーの希望）。
 // 火の粉と紅白の紙吹雪が盤へ降りそそぐ中、取った駒が王のマスにどっしり立つ
 import * as THREE from 'three';
 import { PAL, PALS } from '../../view/palette';
-import { cameraMove, cameraTo, flash, later, lightCap, shakeBy, transient, type FxCtx } from '../kit';
+import { cameraMove, cameraTo, easeInOut, flash, later, lightCap, shakeBy, transient, type FxCtx } from '../kit';
 import { darken, pointLight, pointOff, softTexture } from '../stagecraft';
 import { getSound } from '../sound';
 import { TITLE_GLYPHS } from '../../app/titleGlyphs';
@@ -13,6 +13,25 @@ import { glyphSprite, nearZ, petalStorm, settleTaker, takerAlong, type KingCaptu
 const HIT_MS = 320;    // 取る駒が王に当たるまで
 const LAUNCH_MS = 1150; // 打ち上がる
 const HEIGHT = 11;     // はじける高さ
+const GLYPH = 3.6;     // 「傾」の字のはじめの大きさ
+// 大玉の星の色（紅・桜・金・胡粉に、緑・紫・橙・水色をまぜる。ユーザー「もう少しいろんな色」）
+const COLORS = [PAL.wana, PAL.sakura, PAL.soubiLight, PAL.gofun, PAL.hanabiMidori, PAL.hanabiMurasaki, PAL.hanabiDaidai, PAL.hanabiMizu, PAL.mahouPale] as const;
+// 千輪の小菊の色の組（金を多めに）
+const MINI: number[][] = [
+  [PAL.soubiPale, PAL.soubiLight], [PAL.hanabiMizu, PAL.gofun], [PAL.soubiLight, PAL.hanabiDaidai],
+  [PAL.sakura, PAL.hanabiMurasaki], [PAL.soubiPale, PAL.soubiLight], [PAL.hanabiMidori, PAL.soubiPale],
+];
+
+/** カメラが center のまわりを angle（ラジアン）だけゆっくり回り込む（見ている向きは center のまま） */
+function orbitAround(ctx: FxCtx, center: THREE.Vector3, angle: number, ms: number): Promise<void> {
+  const cam = ctx.stage.cam;
+  const off = cam.pos.clone().sub(center);
+  const up = new THREE.Vector3(0, 1, 0);
+  return ctx.tween(ms, (t) => {
+    cam.pos.copy(center).add(off.clone().applyAxisAngle(up, angle * t));
+    cam.look.copy(center);
+  }, easeInOut);
+}
 
 /** 火の尾：obj の通った跡に火の粉を置いていく */
 function fireTail(ctx: FxCtx, obj: THREE.Object3D, ms: number): void {
@@ -122,32 +141,43 @@ export async function hanabi(ctx: FxCtx, k: KingCapture): Promise<void> {
   }
   await cam;
   await dark;
-  // 3. 夜空で大輪：桃・青・金・紅のまざった大玉（片貝まつりの四尺玉のように。ユーザーの参考の動画）
+  // 3. 夜空で大輪：いろんな色のまざった大玉（片貝まつりの四尺玉のように。ユーザーの参考の動画）。
+  //    カメラはゆっくり回り込み、星の球の奥行きを見せる
+  const orbit = later(orbitAround(ctx, top, 0.55 * z, 3400));
   getSound().play('bakuhatsu');
   flash(ctx, PALS.soubiPale, 0.55, 500);
   shakeBy(ctx, 0.35);
   pointLight(ctx, top, 60, PAL.soubiLight, 30);
-  const stars = burst(ctx, top, 6, 560, [PAL.wana, PAL.sakura, PAL.mahouPale, PAL.soubiLight, PAL.gofun], 2400, 0.34);
-  burst(ctx, top, 3, 180, [PAL.soubiPale, PAL.gofun], 1800);
+  const stars = burst(ctx, top, 6, 600, [...COLORS], 2500, 0.34);
+  burst(ctx, top, 3.6, 220, [PAL.soubiPale, PAL.hanabiMizu, PAL.sakura], 1900);
+  burst(ctx, top, 1.8, 90, [PAL.gofun, PAL.soubiLight], 1500, 0.26);
   litSmoke(ctx, top, 5, PAL.sakura);
-  // 題字の「傾」：金に紅の縁取り（白だけだと見づらいとユーザー）
-  const glyph = glyphSprite(TITLE_GLYPHS['傾'], PALS.soubiLight, 3.4, PALS.wanaDeep);
+  // 題字の「傾」：金に紅の縁取りと厚み。大きく迫ってきて、ゆっくり消える
+  const glyph = glyphSprite(TITLE_GLYPHS['傾'], PALS.soubiLight, GLYPH, PALS.wanaDeep, PALS.kayaGrain);
   glyph.position.copy(top);
   const gm = glyph.material;
-  transient(ctx, glyph, 1700, (_dt, age) => { gm.opacity = Math.max(0, 1 - Math.max(0, age - 700) / 1000); glyph.scale.setScalar(3.4 + age / 900); });
+  const GLYPH_LIFE = 3000;
+  transient(ctx, glyph, GLYPH_LIFE * ctx.timing.scale, (_dt, age) => {
+    const k = age / (GLYPH_LIFE * ctx.timing.scale);
+    gm.opacity = k < 0.5 ? 1 : Math.max(0, 1 - (k - 0.5) / 0.5);
+    glyph.scale.setScalar(GLYPH * (1 + 1.4 * (1 - (1 - k) ** 3)));
+  });
   await ctx.wait(700);
   pointOff();
-  // 千輪：外の星のひとつひとつが金の小さな菊にはじけ、画面いっぱいが金の輪で埋まる
-  const ring = stars.filter((_, i) => i % 9 === 0).sort(() => Math.random() - 0.5).slice(0, 34);
+  // 千輪：外の星のひとつひとつが小さな菊にはじけ、画面いっぱいが光の輪で埋まる（金を多めに、色もまぜる）
+  const ring = stars.filter((_, i) => i % 9 === 0).sort(() => Math.random() - 0.5).slice(0, 36);
   for (let w = 0; w < 3; w++) {
     getSound().play('bakuhatsu2', { gain: 0.35 - w * 0.08 });
-    for (const p of ring.slice(w * 12, w * 12 + 12)) burst(ctx, p.clone().setY(p.y - 0.3 - w * 0.25), 1.5, 70, [PAL.soubiPale, PAL.soubiLight, PAL.soubiLight], 1700, 0.22);
+    ring.slice(w * 12, w * 12 + 12).forEach((p, i) => {
+      burst(ctx, p.clone().setY(p.y - 0.3 - w * 0.25), 1.5, 70, MINI[(i + w) % MINI.length], 1700, 0.22);
+    });
     pointLight(ctx, top, 30, PAL.soubiLight, 30);
     await ctx.wait(170);
   }
   getSound().play('kirakira', { gain: 0.7 });
   await ctx.wait(500);
   pointOff();
+  await orbit;
   // 4. 紙吹雪と火の粉が盤へ降りそそぐ。カメラは王のマスへ戻る
   petalStorm(ctx, { mode: 'rain', center: k.at, colors: [PALS.wana, PALS.gofun, PALS.soubiPale], shape: 'paper', n: 160, size: 0.2, life: 4200, area: 4.5, height: 6 });
   await ctx.wait(500);

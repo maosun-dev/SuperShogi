@@ -25,7 +25,7 @@ type CardSoundName =
   | 'kotsuzumi' | 'flameShort' // カットイン（札の名前）の小鼓・韋駄天の短い炎
   | 'shakuhachi' // 対局の始まりの「開戦」
   | 'ote' // 王手
-  // 王を取る・取られる演出（2026-10-25 仮の4案。素材の音）
+  // 王を取る・取られる演出（2026-10-25 仮の3案。素材の音）
   | 'bakuhatsu' | 'bakuhatsu2' | 'iai' | 'daiken' | 'naguru' | 'slowWhoosh' | 'slowmo';
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
@@ -101,8 +101,8 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   ote: { files: ['sfx/lic/ote.mp3'], gain: 0.7 }, // 拍子木1を低く太く（王手）
   glass: { files: ['sfx/lic/wareru.mp3'], gain: 0.6 }, // 金属の打撃＋きらきら（格落としで成り字が割れる）
   kotsuzumi: { files: ['sfx/lic/kotsuzumi.mp3'], gain: 0.5 }, // 小鼓「ポン」（大きいとユーザー。高くした案は戻した）
-  // 王を取る演出（仮の4案・2026-10-25。大きさは推測）
-  bakuhatsu: { files: ['sfx/lic/bakuhatsu1.mp3'], gain: 0.7 }, // 爆発1（花火・屋台崩し・龍が呑む）
+  // 王を取る演出（仮の3案・2026-10-25。大きさは推測）
+  bakuhatsu: { files: ['sfx/lic/bakuhatsu1.mp3'], gain: 0.7 }, // 爆発1（大花火）
   bakuhatsu2: { files: ['sfx/lic/bakuhatsu2.mp3'], gain: 0.6 }, // 爆発2
   iai: { files: ['sfx/lic/iai.mp3'], gain: 0.8 }, // 居合抜き
   daiken: { files: ['sfx/lic/daiken.mp3'], gain: 0.7 }, // 大剣で斬る
