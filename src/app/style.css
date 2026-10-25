@@ -1816,13 +1816,12 @@ input:focus-visible {
 /* 開発中だけ：切断のふり */
 .dev-cut { position: absolute; left: 8px; top: 46%; z-index: 30; padding: 4px 8px; font-size: 11px; opacity: .7; }
 
-/* 題字のふりがな「かぶき」：「傾」の右上に、墨の細い帯（かすれた筆の縦の一刷け）に胡粉の字。
-   ふりがなの幅だけ「傾」を左へ寄せる */
-.title-screen .logo .cho { position: relative; margin-right: 22px; }
+/* 題字のふりがな「かぶき」：「傾」の左上に、墨の細い帯（かすれた筆の縦の一刷け）に胡粉の字 */
+.title-screen .logo .cho { position: relative; }
 .title-screen .logo .furi {
   position: absolute;
-  right: -26px;
-  top: 10px;
+  left: -4px;
+  top: 4px;
   display: flex;
   flex-direction: column;
   align-items: center;

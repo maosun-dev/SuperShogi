@@ -51,7 +51,7 @@ export function titleScreen(): Screen {
       // 字は衡山毛筆の形（titleGlyphs.ts）。超は墨に胡粉の縁、将棋は胡粉に墨の縁
       const cho = el('span', 'cho');
       cho.innerHTML = brushChar('傾', 'cho-svg', 'var(--sumi)', 'var(--gofun)', 80, 18); // 定数だけでできた文字列
-      // ふりがな「かぶき」：「傾」の右上に、墨の細い帯に胡粉の字で縦に（writing-mode は使わず1字ずつ積む）
+      // ふりがな「かぶき」：「傾」の左上に、墨の細い帯に胡粉の字で縦に（writing-mode は使わず1字ずつ積む）
       const furi = el('span', 'furi');
       furi.setAttribute('aria-hidden', 'true');
       for (const ch of 'かぶき') furi.append(el('span', '', ch));
