@@ -76,7 +76,7 @@ export function titleScreen(): Screen {
       const zukan = button('fuda mahou', '札図鑑', () => { void showScreen('zukan'); });
       nav.append(play, zukan);
       // 友と対局（近くの iPhone 2台）。アプリと開発中の ?link=fake でだけ出す
-      if (linkAvailable()) nav.append(button('fuda soubi', '友と対局', () => { void showScreen('link'); }));
+      if (linkAvailable()) nav.append(button('fuda midori', '友と対局', () => { void showScreen('link'); }));
 
       const seal = button('kakuin', '設', () => { void showScreen('settings'); });
       seal.setAttribute('aria-label', '設定');

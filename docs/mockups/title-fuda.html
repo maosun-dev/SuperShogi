@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>札の並びの見比べ</title>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&family=Shippori+Mincho+B1:wght@500;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #2E1D14; color: #EEE8DC; font-family: "Shippori Mincho B1", serif; padding: 24px 16px 40px; }
+  header { max-width: 1100px; margin: 0 auto 18px; }
+  h1 { font-family: "Yuji Boku", serif; font-weight: 400; font-size: 30px; letter-spacing: .08em; }
+  header p { margin-top: 6px; font-size: 14px; line-height: 1.7; opacity: .85; }
+  main { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  section { background: #f3eee2; color: #1d1a17; padding: 14px; border-radius: 3px; }
+  h2 { font-family: "Yuji Boku", serif; font-weight: 400; font-size: 22px; margin-bottom: 4px; }
+  .order { font-size: 12px; opacity: .75; margin-bottom: 10px; }
+  .shot { width: 100%; aspect-ratio: 393 / 300; overflow: hidden; border-radius: 10px; box-shadow: 0 0 0 3px #1d1a17; }
+  .shot img { width: 100%; display: block; transform: translateY(-64.5%); }
+  p.note { margin-top: 10px; font-size: 13px; line-height: 1.75; }
+  .rec { box-shadow: 0 0 0 4px #D7263D; }
+</style></head>
+<body>
+<header>
+  <h1>札の並びの見比べ</h1>
+  <p>本物のタイトル画面で札の高さ・並び・傾きだけを変えて撮ったもの（下のほうだけ切り出し）。友と対局の帯は深緑。</p>
+</header>
+<main>
+  <section class="rec"><h2>B　だんだん低く</h2><p class="order">対局・友と対局・札図鑑</p><div class="shot"><img src="title-fuda/B.jpg" alt=""></div>
+    <p class="note">遊ぶ札を左にまとめ、よく使う順に高い。「まず対局」が一目で分かる。</p></section>
+  <section><h2>A　3枚均等</h2><p class="order">対局・札図鑑・友と対局</p><div class="shot"><img src="title-fuda/A.jpg" alt=""></div>
+    <p class="note">いちばんすっきり。どれも同じ重さに見える。</p></section>
+  <section><h2>C　山形</h2><p class="order">友と対局・対局・札図鑑</p><div class="shot"><img src="title-fuda/C.jpg" alt=""></div>
+    <p class="note">真ん中の対局が主役。左右が同じ高さで落ち着く。</p></section>
+  <section><h2>D　貼り札</h2><p class="order">対局・友と対局・札図鑑</p><div class="shot"><img src="title-fuda/D.jpg" alt=""></div>
+    <p class="note">高さは均等で、千社札を手で貼ったように少しずつ傾けた。いちばん傾奇者っぽい遊び心。</p></section>
+</main>
+</body></html>
