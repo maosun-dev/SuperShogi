@@ -1,6 +1,6 @@
 // タイトル画面：3D の盤がゆっくり回る。右上に題字（大きな筆の「傾」、後ろに朱の払い、左下に小さな「将棋」、
 // その下に一言の短冊）、
-// 下に千社札の形の縦長ボタン「対局」「カード図鑑」「友と対局」（アプリだけ）、左下に小さな角印「設」（設定）。
+// 下に千社札の形の縦長ボタン「対局」「友と対局」（アプリだけ）「札図鑑」。左から順に低くなる、左下に小さな角印「設」（設定）。
 import { getStage } from '../../view/stage';
 import { sync } from '../../view/pieces3d';
 import { setHighlights } from '../../view/board3d';
@@ -74,9 +74,11 @@ export function titleScreen(): Screen {
       nav.setAttribute('aria-label', 'はじめる');
       const play = button('fuda wana', '対局', () => { void showScreen('level'); });
       const zukan = button('fuda mahou', '札図鑑', () => { void showScreen('zukan'); });
-      nav.append(play, zukan);
-      // 友と対局（近くの iPhone 2台）。アプリと開発中の ?link=fake でだけ出す
+      // 遊ぶ札を左にまとめ、よく使う順に高く（対局・友と対局・札図鑑）。
+      // 友と対局（近くの iPhone 2台）はアプリと開発中の ?link=fake でだけ出す
+      nav.append(play);
       if (linkAvailable()) nav.append(button('fuda midori', '友と対局', () => { void showScreen('link'); }));
+      nav.append(zukan);
 
       const seal = button('kakuin', '設', () => { void showScreen('settings'); });
       seal.setAttribute('aria-label', '設定');

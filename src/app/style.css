@@ -958,7 +958,8 @@ input:focus-visible {
   background: var(--c);
   border-radius: 2px 2px 0 0;
 }
-.fuda.mahou { --c: var(--mahou); height: 150px; }
+.fuda.wana { height: 176px; }
+.fuda.mahou { --c: var(--mahou); height: 140px; }
 .fuda:active { transform: translateY(2px); }
 /* 角印「設」：左下の小さな紅の判 */
 .kakuin {
@@ -1701,7 +1702,7 @@ input:focus-visible {
 }
 
 /* ======== 友と対局 ======== */
-.fuda.midori { --c: #2F5A3C; height: 164px; } /* 友と対局：深緑の帯 */
+.fuda.midori { --c: #2F5A3C; height: 158px; } /* 友と対局：深緑の帯 */
 
 /* つなぐ画面：合言葉は五角形の駒に墨で縦書き（本物の駒の字の並び）。一覧も同じ駒の形のボタン */
 /* 絵の上の文字は和紙の切れ端に墨で書く（板や金の線は使わない）。知らせは朱 */
@@ -1875,3 +1876,14 @@ input:focus-visible {
 .reveal-head { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 10px; }
 .reveal-head h2 { margin: 0; }
 .reveal-head .kuji-ban { position: static; flex: none; width: 40px; height: 40px; font-size: 26px; }
+
+/* 設定のクレジット：何に使ったか（小さく）／名前（太く）／作り手と約束（細く）。全文は畳んでおく */
+.credits .credit-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: 13px; line-height: 1.5; }
+.credits dt { color: color-mix(in srgb, var(--sumi) 62%, transparent); white-space: nowrap; }
+.credits dd b { display: block; font-weight: 800; }
+.credits dd .by, .credits dd .lic { display: block; font-size: 12px; color: color-mix(in srgb, var(--sumi) 72%, transparent); }
+.credits .credit-made { margin-top: 14px; font-size: 13px; }
+.credits .credit-full { margin-top: 12px; font-size: 12px; }
+.credits .credit-full summary { cursor: pointer; font-weight: 800; color: var(--wana-deep); }
+.credits .credit-full .lic-head { margin-top: 10px; font-weight: 800; }
+.credits .credit-full pre { margin-top: 6px; white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 11px; line-height: 1.6; }

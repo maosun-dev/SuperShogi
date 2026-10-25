@@ -1,5 +1,5 @@
 // 設定：舞台（背景）の選び、背景の動き「多め／少なめ」、演出の長さ「短め／長め」、音の大きさのつまみ、対局の曲（試聴つき）、
-// いちばん下に名の由来（「傾」と傾奇者）。
+// いちばん下に名の由来（「傾」と傾奇者）とクレジット（字体・部品と約束。全文は押すと開く）。
 // 変えたらすぐ保存し、すぐ効かせる（音は setVolume、演出の長さは演出役が毎回設定を読み直す）。
 import { getSound, type MusicName } from '../../fx/sound';
 import { MATCH_TRACKS, MATCH_TRACK_LABEL } from '../music';
@@ -9,6 +9,7 @@ import { layerUrl } from '../../view/backdrop';
 import { type Screen } from '../screens';
 import { button, el, pageHead } from './ui';
 import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
+import { CREDITS, MIT_TEXT, OFL_NOTE } from '../credits';
 
 export function settingsScreen(): Screen {
   let timer = 0;
@@ -189,9 +190,24 @@ export function settingsScreen(): Screen {
       body.append(markBox, text);
       nameSec.append(nameHead, body);
 
+      // ---- クレジット：字体・部品の名前と作り手、約束。全文は押すと開く ----
+      const crSec = el('section', 'set-item credits');
+      const crList = el('dl', 'credit-list');
+      for (const c of CREDITS) {
+        const dt = el('dt', '', c.what);
+        const dd = el('dd');
+        dd.append(el('b', '', c.name), el('span', 'by', c.by), el('span', 'lic', c.license));
+        crList.append(dt, dd);
+      }
+      const made = el('p', 'credit-made', '開発：maosun-dev（maosun-dev.com）');
+      const full = el('details', 'credit-full');
+      full.append(el('summary', '', 'ライセンスの全文'), el('p', 'lic-head', 'MIT License（three.js・Capacitor・@capacitor/preferences・@capacitor-community/admob）'),
+        el('pre', '', MIT_TEXT), el('p', 'lic-head', 'SIL Open Font License 1.1'), el('p', '', OFL_NOTE));
+      crSec.append(el('h2', '', 'クレジット'), crList, made, full);
+
       // 項目は和紙の一枚に墨で書く（舞台の絵の上でも読めるように）
       const sheet = el('div', 'sheet');
-      sheet.append(stSec, mvSec, fxSec, volSec, bgSec, nameSec);
+      sheet.append(stSec, mvSec, fxSec, volSec, bgSec, nameSec, crSec);
       box.append(pageHead('設定', 'title'), sheet);
       root.append(box);
     },
