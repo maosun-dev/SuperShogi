@@ -43,7 +43,6 @@ export const hikijin: EquipFx = {
         const k = 1 - 0.45 * t;
         b.scale.set(k, k, k);
       }, easeInOut);
-      getSound().play('chime', { gain: 0.5 });
     } finally {
       kill();
     }

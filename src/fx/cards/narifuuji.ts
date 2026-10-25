@@ -92,7 +92,7 @@ export const narifuuji: CardFx<TrapFireCue> = {
         ofuda.position.x += Math.sin(t * Math.PI * 2) * 0.25 * (1 - t);
         ofuda.scale.setScalar(1.6 - 0.6 * t);
       }, (t) => t * t);
-      getSound().play('paper');
+      getSound().play('fuuin');
       flash(ctx, PALS.wana, 0.35, 220);
       shakeBy(ctx, 0.2);
       // ガクン：元の向きに戻され、落ちる（お札は駒に貼り付いたまま一緒に下りる）

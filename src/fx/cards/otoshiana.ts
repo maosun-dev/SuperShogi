@@ -112,7 +112,7 @@ export const otoshiana: CardFx<TrapFireCue> = {
     }
     // 少し遅れて、底でドスン。土ぼこりが吹き上がる
     await ctx.wait(260);
-    getSound().play('thud');
+    getSound().play('anaThud');
     shakeBy(ctx, 0.3);
     puff(ctx, at.clone().setY(0), PAL.kayaGrainDeep, 40, 0.7);
     puff(ctx, at, PAL.kayaLight, 30, 0.5);

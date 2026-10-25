@@ -73,7 +73,6 @@ export const hagane: EquipFx = {
         await ctx.tween(200, (t) => { m.position.y = y0 - Math.sin(Math.PI * t) * 0.05; });
       }
       // 鉄の面に光がひと筋
-      getSound().play('chime', { gain: 0.5 });
       await ctx.wait(450);
     } finally {
       kills.forEach((k) => k());

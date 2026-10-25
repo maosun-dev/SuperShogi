@@ -114,7 +114,7 @@ export const idaten: EquipFx = {
       await cameraTo(ctx, at, 300);
     }
     // 元に戻って、炎が足元へ収まる
-    getSound().play('flame', { gain: 0.6 });
+    getSound().play('flame', { gain: 0.9 });
     flash(ctx, PALS.soubiPale, 0.35, 200);
     shakeBy(ctx, 0.2);
     pointOff();
@@ -133,7 +133,7 @@ export const idaten: EquipFx = {
     const a = squarePos(cue.from), b = squarePos(cue.to), y0 = m.position.y;
     const marks = [0.2, 0.4, 0.6, 0.8];
     let next = 0;
-    getSound().play('flame', { gain: 0.6 });
+    getSound().play('flame', { gain: 0.9 });
     getSound().play('whoosh', { gain: 0.7 });
     await ctx.tweenRaw(160, (t) => {
       m.position.set(a.x + (b.x - a.x) * t, y0, a.z + (b.z - a.z) * t);

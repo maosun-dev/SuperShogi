@@ -60,7 +60,6 @@ export const tsuranuki: EquipFx = {
       shakeBy(ctx, 0.1);
       // 穂先がきらり
       glint(ctx, new THREE.Vector3(at.x, 0.32, z1 + f * 0.75));
-      getSound().play('chime', { gain: 0.6 });
       await ctx.wait(480);
       // 小さくなって、駒が担ぐ（盤の印の槍になる）
       await ctx.tween(260, (t) => { sp.scale.setScalar(1 - 0.3 * t); sp.position.y = 0.32 + 0.05 * t; }, easeInOut);

@@ -43,9 +43,9 @@ describe('曲のループ位置', () => {
     const t = TRACKS.sakura;
     expect(t.loopEnd - t.loopStart).toBeCloseTo(102.4, 2);
   });
-  it('対局BGM2 は156拍（143BPM の39小節）', () => {
+  it('対局BGM2 は約152拍（143BPM の38小節。打ちの揺れで格子より約40ms 短い）', () => {
     const t = TRACKS.taikyoku2;
-    expect(t.loopEnd - t.loopStart).toBeCloseTo(156 * 60 / 143, 3);
+    expect(Math.abs(t.loopEnd - t.loopStart - 152 * 60 / 143)).toBeLessThan(0.06);
   });
   it('タイトルの曲は120拍（136BPM の30小節）', () => {
     const t = TRACKS.title;

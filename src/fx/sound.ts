@@ -18,7 +18,8 @@ type CardSoundName =
   | 'fude' | 'suzu' // 決着（筆の擦れる音・負けの書き終わりの鈴）
   | 'raimei' | 'rakurai' // 落雷のためる雷鳴・本命の一撃（2026-10-24 録った音）
   | 'kachi' | 'make' // 決着の書き終わりの決め音（勝ち・負け）
-  | 'tekkyu' | 'inanaki' | 'maku'; // 鉄球が落ちる・天馬のいななき・結果画面への幕（2026-10-25 録った音）
+  | 'tekkyu' | 'inanaki' | 'maku' // 鉄球が落ちる・天馬のいななき・結果画面への幕（2026-10-25 録った音）
+  | 'levelup' | 'anaThud' | 'fuuin'; // 成り上がり・落とし穴の底・成り封じの封印（同）
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
 
@@ -31,11 +32,12 @@ interface Track { path: string; loopStart: number; loopEnd: number; gain: number
 // 対局の曲2「サクラドリフト」とタイトルの曲（2026-10-24、SUNO）：ファイルは「頭〜ループの終わり」＋「戻った先の続き0.5秒」。
 // 終わりの手前60ms までに戻った先の音へ重ねて移してあるので、読み込みで位置が少しずれても切れ目が出ない。
 // - サクラドリフト：150BPM。86.925秒〜189.327秒（256拍）をくり返す
-// - 対局BGM2（2026-10-25）：143BPM。最後の一打（153拍目）の余韻のあと、156拍（39小節）で頭へ戻す
+// - 対局BGM2（2026-10-25）：143BPM。頭の1拍は前ふり。最後の一打（153拍目）の瞬間に1小節目の頭（1拍目）へ戻す（38小節）。
+//   打ちが拍の格子から±40ms 揺れるので、格子でなく実際の打ちの手前で切る（0.520秒〜64.254秒）
 // - タイトル：136BPM。くり返しのない通しの曲なので、最後の一打の余韻のあと頭へ戻す（0.1秒〜120拍＝30小節）
 export const TRACKS: Record<MusicName, Track> = {
   taikyoku: { path: 'bgm/taikyoku.mp3', loopStart: 68.875, loopEnd: 105.74, gain: 0.5 },
-  taikyoku2: { path: 'bgm/taikyoku2.mp3', loopStart: 0, loopEnd: 156 * 60 / 143, gain: 0.5 },
+  taikyoku2: { path: 'bgm/taikyoku2.mp3', loopStart: 0.52, loopEnd: 64.254, gain: 0.5 },
   sakura: { path: 'bgm/sakura.mp3', loopStart: 86.925, loopEnd: 189.327, gain: 0.5 },
   title: { path: 'bgm/title.mp3', loopStart: 0.1, loopEnd: 0.1 + 120 * 60 / 136, gain: 0.45 },
 };
@@ -60,19 +62,24 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   tick: { files: ['sfx/tick.mp3'], gain: 0.3, jitter: 0.04 },
   kaesu: { files: ['sfx/kaesu.mp3'], gain: 0.7, jitter: 0.03 },
   drum: { files: ['sfx/drum.mp3'], gain: 0.8 },
-  fude: { files: ['sfx/fude1.mp3', 'sfx/fude2.mp3'], gain: 0.3, jitter: 0.06 },
+  fude: { files: ['sfx/fude1.mp3', 'sfx/fude2.mp3', 'sfx/fude3.mp3'], gain: 0.35, jitter: 0.08 }, // 紙のこすれ（カードの音から）
   poof: { files: ['sfx/poof1.mp3', 'sfx/poof2.mp3'], gain: 0.7 },
   glass: { files: ['sfx/glass.mp3'], gain: 0.6 },
-  ice: { files: ['sfx/ice.mp3'], gain: 0.8 },
+  ice: { files: ['sfx/ice.mp3'], gain: 1 }, // 氷のぱちぱち→パキーン→木が砕ける打ち を重ねたもの
   frost: { files: ['sfx/frost.mp3'], gain: 0.5 },
   shatter: { files: ['sfx/shatter.mp3'], gain: 0.6 },
-  chain: { files: ['sfx/chain.mp3'], gain: 0.7 },
-  trapdoor: { files: ['sfx/trapdoor.mp3'], gain: 0.6 },
-  flame: { files: ['sfx/flame.mp3'], gain: 0.6 },
+  chain: { files: ['sfx/chain.mp3'], gain: 0.7 }, // 鎖の音を高さを変えて3回重ねたもの
+  trapdoor: { files: ['sfx/trapdoor.mp3'], gain: 0.9 }, // 扉を閉める音＋扉の低い音
+  flame: { files: ['sfx/flame.mp3'], gain: 1 }, // 炎の噴き出し＋炎のざわざわ
   flip: { files: ['sfx/flip.mp3'], gain: 0.5, jitter: 0.04 },
   tekkyu: { files: ['sfx/tekkyu.mp3'], gain: 0.7 },
   inanaki: { files: ['sfx/inanaki.mp3'], gain: 0.55 },
   maku: { files: ['sfx/maku.mp3'], gain: 0.6 },
+  whoosh: { files: ['sfx/whoosh1.mp3', 'sfx/whoosh2.mp3'], gain: 0.5, jitter: 0.06 }, // 斬撃・剣撃のヒュッ
+  wind: { files: ['sfx/wind.mp3'], gain: 0.8 }, // ヒュッをゆっくり低くして重ね、炎のざわざわを薄く
+  levelup: { files: ['sfx/levelup.mp3'], gain: 0.7 },
+  anaThud: { files: ['sfx/anaThud.mp3'], gain: 0.8 }, // 鉄球の2回目の録音
+  fuuin: { files: ['sfx/fuuin.mp3'], gain: 0.8 }, // 大太鼓の重い一打＋パキーンのきらめき
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -340,6 +347,9 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   tekkyu: (k, t, g) => { CARD_RECIPES.thud(k, t, g); BASE_RECIPES.drum(k, t, 0.6 * g); },
   inanaki: () => {}, // 合成の代わりはない（読めなければ鳴らさない）
   maku: (k, t, g) => BASE_RECIPES.hyoshigi(k, t, g),
+  levelup: (k, t, g) => BASE_RECIPES.chime(k, t, g),
+  anaThud: (k, t, g) => CARD_RECIPES.thud(k, t, g),
+  fuuin: (k, t, g) => CARD_RECIPES.paper(k, t, g),
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 

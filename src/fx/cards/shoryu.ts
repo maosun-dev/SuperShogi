@@ -119,7 +119,6 @@ export const shoryu: CardFx<MagicCue> = {
     const p = target(ctx, cue);
     if (!p) return;
     const cam = later(cameraTo(ctx, p.at, 620));
-    getSound().play('chime', { gain: 0.5 });
     goldPool(ctx, p.at, 2400);
     goldRise(ctx, p.at, 2400);
     // 下から照らす光がだんだん強くなる
@@ -163,7 +162,7 @@ export const shoryu: CardFx<MagicCue> = {
     await ctx.tween(200, (t) => { m.position.y = top + (land - top) * t * t; });
     pointOff();
     getSound().play('thud');
-    getSound().play('chime');
+    getSound().play('levelup');
     goldBurst(ctx, at);
     puff(ctx, at, PAL.kayaLight, 30, 1.4);
     shakeBy(ctx, 0.3);
