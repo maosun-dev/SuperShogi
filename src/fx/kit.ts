@@ -286,6 +286,7 @@ function showKeyframes(enter: Keyframe, exit: Keyframe): Keyframe[] {
 /** 見せる動きを流して待つ（途中で消されても例外にしない。打ち切られたら FxCancelled） */
 async function playShown(ctx: FxCtx, el: HTMLElement, kf: Keyframe[]): Promise<void> {
   layers(ctx).fly.append(el);
+  getSound().play('cardOut');
   try {
     await el.animate(kf, { duration: CARD_IN_MS + CARD_SHOW_MS + CARD_OUT_MS, easing: 'linear', fill: 'forwards' }).finished;
   } catch { /* 途中で消されたときは何もしない */ } finally {

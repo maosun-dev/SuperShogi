@@ -64,7 +64,7 @@ describe('決着の仮の音', () => {
 describe('録った音（2026-10-24）', () => {
   it('雷鳴・落雷・勝ち負けの決め音も例外を出さない', () => {
     const s = getSound();
-    expect(() => { for (const n of ['raimei', 'rakurai', 'kachi', 'make', 'tekkyu', 'inanaki', 'maku', 'levelup', 'anaThud', 'fuuin'] as const) s.play(n); }).not.toThrow();
+    expect(() => { for (const n of ['raimei', 'rakurai', 'kachi', 'make', 'tekkyu', 'inanaki', 'maku', 'levelup', 'anaThud', 'fuuin', 'cardOut'] as const) s.play(n); }).not.toThrow();
   });
   it('新しい2曲の出し入れも例外を出さない', () => {
     const s = getSound();

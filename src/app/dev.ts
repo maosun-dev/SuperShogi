@@ -316,7 +316,7 @@ const SOUND_PICKS = {
   trapdoor: '落とし穴（扉）', paper: '成り封じ（お札）', splash: '水鏡（ちゃぽん）', slash: '相討ち（一閃）',
   hoof: '天馬の蹄', inanaki: '天馬のいななき', armor: '鋼の鎧', chain: '重りの枷（鎖）', tekkyu: '重りの枷（鉄球）',
   clang: '貫きの槍', flame: '韋駄天（炎）', drum: '大太鼓（王が取られる・引き分け）', fude: '筆（決着の一画ごと）',
-  levelup: '成り上がり（レベルアップ）', anaThud: '落とし穴の底', fuuin: '成り封じ（封印）',
+  cardOut: '札が大きく出る（シャッフル）', levelup: '成り上がり（レベルアップ）', anaThud: '落とし穴の底', fuuin: '成り封じ（封印）',
   kachi: '勝ちの決め音', make: '負けの決め音', suzu: '鈴（引き分けの書き終わり）',
 } satisfies Record<SoundName, string>;
 
@@ -335,8 +335,24 @@ function soundPicker(btn: (label: string, title: string, onClick: () => void) =>
     o.value = id; o.textContent = SAMPLES[id] ? name : `仮・${name}`;
     sel.append(o);
   }
+  // 押し返しの風の案（public/sfx/wind-ideas）。選んでもらったら1つだけ残す
+  const ideas = document.createElement('optgroup');
+  ideas.label = '風の案（押し返しの風）';
+  for (const [id, name] of [['windA', 'A 今の音（ヒュッを低く＋炎のざわざわ）'], ['windB', 'B ゴォーッ（ざわざわを低→高→低）'],
+    ['windC', 'C 木の葉のざわめき（紙のばさばさ）'], ['windD', 'D 重い突風（煙玉をゆっくり低く）'], ['windE', 'E 吹き抜ける（ヒュッを3回）']]) {
+    const o = document.createElement('option');
+    o.value = `file:sfx/wind-ideas/${id}.mp3`; o.textContent = name;
+    ideas.append(o);
+  }
+  sel.append(ideas);
   const play = (): void => {
     if (!sel.value) return;
+    if (sel.value.startsWith('file:')) {
+      const a = new Audio(`${import.meta.env.BASE_URL}${sel.value.slice(5)}`);
+      a.volume = 0.8;
+      void a.play().catch(() => {});
+      return;
+    }
     const s = getSound();
     s.unlock();
     s.play(sel.value as SoundName);

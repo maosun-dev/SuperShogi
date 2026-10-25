@@ -19,7 +19,8 @@ type CardSoundName =
   | 'raimei' | 'rakurai' // 落雷のためる雷鳴・本命の一撃（2026-10-24 録った音）
   | 'kachi' | 'make' // 決着の書き終わりの決め音（勝ち・負け）
   | 'tekkyu' | 'inanaki' | 'maku' // 鉄球が落ちる・天馬のいななき・結果画面への幕（2026-10-25 録った音）
-  | 'levelup' | 'anaThud' | 'fuuin'; // 成り上がり・落とし穴の底・成り封じの封印（同）
+  | 'levelup' | 'anaThud' | 'fuuin' // 成り上がり・落とし穴の底・成り封じの封印（同）
+  | 'cardOut'; // 札が盤の上に大きく出る（カードのシャッフルのはじき）
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
 
@@ -80,6 +81,7 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   levelup: { files: ['sfx/levelup.mp3'], gain: 0.7 },
   anaThud: { files: ['sfx/anaThud.mp3'], gain: 0.8 }, // 鉄球の2回目の録音
   fuuin: { files: ['sfx/fuuin.mp3'], gain: 0.8 }, // 大太鼓の重い一打＋パキーンのきらめき
+  cardOut: { files: ['sfx/card1.mp3', 'sfx/card2.mp3'], gain: 0.55, jitter: 0.03 },
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -347,7 +349,8 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   tekkyu: (k, t, g) => { CARD_RECIPES.thud(k, t, g); BASE_RECIPES.drum(k, t, 0.6 * g); },
   inanaki: () => {}, // 合成の代わりはない（読めなければ鳴らさない）
   maku: (k, t, g) => BASE_RECIPES.hyoshigi(k, t, g),
-  levelup: (k, t, g) => BASE_RECIPES.chime(k, t, g),
+  levelup: () => {}, // 合成の鈴は「システム音みたい」と不評なので、読めなければ鳴らさない
+  cardOut: (k, t, g) => BASE_RECIPES.flip(k, t, g),
   anaThud: (k, t, g) => CARD_RECIPES.thud(k, t, g),
   fuuin: (k, t, g) => CARD_RECIPES.paper(k, t, g),
 };
