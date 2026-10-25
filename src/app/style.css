@@ -2185,3 +2185,19 @@ input:focus-visible {
     transform-origin: 50% 100%;
   }
 }
+
+/* 広い画面：札選び・札図鑑は列を広げ、札を大きくして横に送らずに見せる */
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  #app:has(> .deckb), #app:has(> .zukan) { max-width: 820px; }
+  .zukan .row .card { --s: 1; }
+  .deckb .row {
+    flex-wrap: wrap;
+    gap: 10px;
+    overflow-x: visible;
+  }
+  .deckb .pick .card { --s: 1.1; }
+}
+/* 高さの低い広い画面では、札選びの3列が下の帯に隠れないよう札を小さめに */
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (max-height: 760px) {
+  .deckb .pick .card { --s: .8; }
+}
