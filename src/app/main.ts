@@ -78,7 +78,7 @@ function start(): void {
   registerScreen('reveal', (p) => revealScreen(p));
   registerScreen('settings', () => settingsScreen());
   registerScreen('link', (p) => linkScreen(p));
-  registerScreen('howto', (p) => howtoScreen(p));
+  registerScreen('howto', () => howtoScreen());
   // 開発中に ?fx=<カード> が付いていれば演出の試し口として、?auto=<強さ> なら自動対局として、対局画面から始める
   const dev = fxMatchParams() ?? autoMatchParams();
   // 起動の画面（maosun-dev のしるし）。開発の試し口・自動対局では出さない

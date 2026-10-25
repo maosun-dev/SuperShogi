@@ -1,15 +1,12 @@
-// 遊び方の絵巻：和紙の頁6枚を横に並べ、指で送るか下の「◀」「▶」でめくる。
-// 初めて「対局」を押したときは強さ選びの前に挟み（next: 'level'）、タイトルの角印「学」からも開ける（next: 'title'）
+// 遊び方の絵巻：和紙の頁6枚を横に並べ、指で送るか下の「◀」「▶」でめくる。タイトルの角印「学」から開く
+// （初めての対局の前に自動で挟むのは、読む気が失せるとのことでやめた）
 import { KIND_MARK } from '../../view/cardArt';
 import { showScreen, type Screen } from '../screens';
 import { HOWTO_PAGES, type HowtoFigure, type HowtoPage } from '../howto/pages';
 import { diagramFor, type DiagramKind } from '../howto/pieceDiagram';
-import { markHowtoSeen } from '../howto/seen';
 import { loadSettings, safeStore } from '../storage';
 import { effectiveMotion, prefersReducedMotion } from '../stageTheme';
 import { button, el, pageHead } from './ui';
-
-export interface HowtoParams { next: 'level' | 'title' }
 
 const PAGE_NO = ['一', '二', '三', '四', '五', '六'];
 const READING: Record<DiagramKind, string> = {
@@ -93,26 +90,22 @@ function leafEl(p: HowtoPage, i: number): HTMLElement {
   return leaf;
 }
 
-export function howtoScreen(params: unknown): Screen {
-  const next: HowtoParams['next'] = (params as Partial<HowtoParams> | undefined)?.next === 'level' ? 'level' : 'title';
+export function howtoScreen(): Screen {
   let box: HTMLElement | null = null;
   let leaving = false;
-  // 画面を離れるのは1回だけ（連打で2回切り替えない）
-  const go = (to: 'level' | 'title') => {
+  // タイトルへ戻るのは1回だけ（連打で2回切り替えない）
+  const close = () => {
     if (leaving) return;
     leaving = true;
-    void showScreen(to);
+    void showScreen('title');
   };
 
   return {
     mount(root) {
-      markHowtoSeen(safeStore());
       const low = effectiveMotion(loadSettings(safeStore()).motion, prefersReducedMotion()) === 'low';
       box = el('div', 'howto');
       box.dataset.screen = 'howto';
-      const head = pageHead('遊び方', () => go('title'));
-      // 初回（対局の前）だけ「飛ばす」。読み返しのときは「戻る」で足りる
-      if (next === 'level') head.append(button('skip', '飛ばす', () => go('level')));
+      const head = pageHead('遊び方', close);
 
       const scroll = el('div', 'leaves');
       HOWTO_PAGES.forEach((p, i) => scroll.append(leafEl(p, i)));
@@ -126,7 +119,7 @@ export function howtoScreen(params: unknown): Screen {
       const markEls = HOWTO_PAGES.map(() => marks.appendChild(el('i')));
       const fwd = button('turn fwd', '▶');
       fwd.setAttribute('aria-label', '次の頁');
-      const done = button('done', next === 'level' ? '始める' : '閉じる', () => go(next));
+      const done = button('done', '閉じる', close);
       nav.append(prev, marks, fwd, done);
 
       let at = 0;
