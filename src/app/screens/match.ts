@@ -37,7 +37,6 @@ export interface MatchParams {
 }
 
 const TAP_SLOP = 10; // これ以上指が動いたらタップとみなさない（px）
-const FRIEND: FoeLabel = { name: '友', seal: '友', waiting: '友の番' };
 const REFUSED_MS = 1600; // 「断られました」を見せる長さ
 
 function paramsOf(p: unknown): MatchParams {
@@ -70,7 +69,8 @@ function lastSquare(events: GameEvent[]): Square | null {
 export function matchScreen(params: unknown): Screen {
   const { level, deck, keiko, foeDeck, initial, fxKey, auto, friend } = paramsOf(params);
   const session = friend ? peekSession() : null;
-  const foe = session ? FRIEND : undefined;
+  // 友の帯：判子は「友」、名前は合言葉（「友 友」と並ばないように）
+  const foe: FoeLabel | undefined = session ? { name: session.code() ?? '友だち', seal: '友', waiting: '友の番' } : undefined;
   let match: Match | null = null;
   let cpu: ReturnType<typeof createBrowserCpu> | null = null;
   let autoCpu: ReturnType<typeof createBrowserCpu> | null = null; // 自動対局で先手を指す2つ目の CPU

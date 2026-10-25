@@ -1836,3 +1836,35 @@ input:focus-visible {
   clip-path: polygon(18% 0, 86% 3%, 100% 22%, 92% 60%, 100% 96%, 60% 100%, 10% 97%, 0 70%, 6% 30%);
   transform: rotate(4deg);
 }
+
+/* 札見せの見出し：絵の上の文字は和紙の切れ端に墨で書く（つなぐ画面と同じ） */
+.reveal-row h2 {
+  display: table;
+  margin: 0 auto 10px;
+  padding: 6px 14px 5px;
+  background: #f3eee2;
+  color: var(--sumi);
+  opacity: 1;
+  clip-path: polygon(0 6%, 9% 0, 31% 4%, 55% 0, 78% 3%, 100% 0, 99% 50%, 100% 100%, 72% 96%, 46% 100%, 21% 95%, 0 100%, 1% 48%);
+}
+
+/* 設定の名の由来：左に題字と同じ筆の「傾」（右に小さく「かぶく」）、右に話 */
+.name-origin .origin-body { display: flex; align-items: flex-start; gap: 14px; }
+.name-origin .origin-mark { position: relative; flex: none; width: 76px; padding-right: 14px; }
+.name-origin .origin-ji { display: block; color: var(--sumi); }
+.name-origin .origin-ji svg { display: block; width: 62px; height: auto; transform: rotate(-4deg); }
+.name-origin .origin-furi {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--wana-deep);
+  width: 1em;
+  word-break: break-all;
+}
+.name-origin .origin-text p { font-size: 14px; line-height: 1.85; }
+.name-origin .origin-text p + p { margin-top: 8px; }

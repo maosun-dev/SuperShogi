@@ -1,4 +1,5 @@
-// 設定：舞台（背景）の選び、背景の動き「多め／少なめ」、演出の長さ「短め／長め」、音の大きさのつまみ、対局の曲（試聴つき）。
+// 設定：舞台（背景）の選び、背景の動き「多め／少なめ」、演出の長さ「短め／長め」、音の大きさのつまみ、対局の曲（試聴つき）、
+// いちばん下に名の由来（「傾」と傾奇者）。
 // 変えたらすぐ保存し、すぐ効かせる（音は setVolume、演出の長さは演出役が毎回設定を読み直す）。
 import { getSound, type MusicName } from '../../fx/sound';
 import { MATCH_TRACKS, MATCH_TRACK_LABEL } from '../music';
@@ -7,6 +8,7 @@ import { STAGES, STAGE_LABEL, changeStage, effectiveMotion, prefersReducedMotion
 import { layerUrl } from '../../view/backdrop';
 import { type Screen } from '../screens';
 import { button, el, pageHead } from './ui';
+import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
 
 export function settingsScreen(): Screen {
   let timer = 0;
@@ -162,9 +164,28 @@ export function settingsScreen(): Screen {
       bgSec.append(bgHead, list);
       paintBgm();
 
+      // ---- 名の由来：題字と同じ筆の「傾」と、傾奇者の話 ----
+      const nameSec = el('section', 'set-item name-origin');
+      const nameHead = el('h2', '', '名の由来');
+      const mark = el('span', 'origin-ji');
+      mark.setAttribute('aria-hidden', 'true');
+      mark.innerHTML = `<svg viewBox="-20 -20 ${TITLE_EM + 40} ${TITLE_EM + 40}"><path d="${TITLE_GLYPHS['傾']}" fill="currentColor" stroke="currentColor" stroke-width="18" stroke-linejoin="round"/></svg>`; // 定数だけでできた文字列
+      const furi = el('span', 'origin-furi', 'かぶく');
+      furi.setAttribute('aria-hidden', 'true');
+      const markBox = el('div', 'origin-mark');
+      markBox.append(furi, mark);
+      const text = el('div', 'origin-text');
+      text.append(
+        el('p', '', '「傾く（かぶく）」は、まわりが目を丸くするほど派手な身なりや、型破りなふるまいをすること。戦国の終わりから江戸のはじめ、そんな人たちは「傾奇者（かぶきもの）」と呼ばれ、歌舞伎の名もここから生まれました。'),
+        el('p', '', '定跡に従わず、札で盤をひっくり返す。この将棋の名は、その心意気から取りました。'),
+      );
+      const body = el('div', 'origin-body');
+      body.append(markBox, text);
+      nameSec.append(nameHead, body);
+
       // 項目は和紙の一枚に墨で書く（舞台の絵の上でも読めるように）
       const sheet = el('div', 'sheet');
-      sheet.append(stSec, mvSec, fxSec, volSec, bgSec);
+      sheet.append(stSec, mvSec, fxSec, volSec, bgSec, nameSec);
       box.append(pageHead('設定', 'title'), sheet);
       root.append(box);
     },
