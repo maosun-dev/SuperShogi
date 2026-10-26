@@ -8,7 +8,7 @@
 import type { CardId, HandicapKind, Side } from '../../rules/types';
 import { HANDICAP_LABEL } from '../../rules/board';
 import type { CardKind } from '../../cards/types';
-import { isLevel, type Level } from '../../ai/levels';
+import { isLevel, JOMAKU, OOZUME, type Level } from '../../ai/levels';
 import { CARDS, COST_LIMIT, validateDeck } from '../../cards';
 import { KIND_MARK, cardHtml } from '../../view/cardArt';
 import { makeRng } from '../../ai/random';
@@ -175,15 +175,20 @@ export function deckScreen(params: unknown): Screen {
       // ---- 相手の強さ（相手の札を組むときだけ。駒落ちの段の代わり） ----
       const lvRow = el('div', 'handi foe-level');
       const lvCap = el('span', 'handi-cap', '強さ');
-      const lvSeg = el('div', 'seg handi-side');
-      lvSeg.setAttribute('role', 'group');
-      lvSeg.setAttribute('aria-label', '相手の強さ');
-      const lvBtns = (['weak', 'normal', 'strong'] as Level[]).map((lv) => {
-        const b = button('', LEVEL_NAME[lv], () => { foeLevel = lv; renderLevel(); });
-        lvSeg.append(b);
-        return [b, lv] as const;
+      // 2段：上に序幕の3つ、下に大詰の3つ（大詰の段は墨の地）
+      const lvSegs = el('div', 'foe-levels');
+      lvSegs.setAttribute('role', 'group');
+      lvSegs.setAttribute('aria-label', '相手の強さ');
+      const lvBtns = ([['jo', JOMAKU], ['oo', OOZUME]] as const).flatMap(([act, levels]) => {
+        const seg = el('div', `seg handi-side ${act}`);
+        lvSegs.append(seg);
+        return levels.map((lv) => {
+          const b = button('', LEVEL_NAME[lv], () => { foeLevel = lv; renderLevel(); });
+          seg.append(b);
+          return [b, lv] as const;
+        });
       });
-      lvRow.append(lvCap, lvSeg);
+      lvRow.append(lvCap, lvSegs);
       function renderLevel(): void {
         for (const [b, lv] of lvBtns) b.setAttribute('aria-pressed', String(lv === foeLevel));
       }

@@ -1276,6 +1276,12 @@ input:focus-visible {
 /* 共通の .seg（ボタンの幅 96px 以上）より強く書き、残りの幅に2つを等分して収める */
 .seg.handi-side { display: flex; flex: 1; min-width: 0; }
 .seg.handi-side button { flex: 1; min-width: 0; padding: 7px 4px; font-size: 14px; }
+/* 稽古の相手の強さ：序幕と大詰の2段。序幕は胡粉の地に墨の字、大詰は墨の地に胡粉の字（強さ選びの札と同じ調子） */
+.foe-levels { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.seg.handi-side.jo button { background: var(--gofun); color: var(--sumi); }
+.seg.handi-side.jo button[aria-pressed="true"] { background: var(--sumi); color: var(--gofun); }
+.seg.handi-side.oo button { background: color-mix(in srgb, var(--sumi) 88%, transparent); color: var(--gofun); }
+.seg.handi-side.oo button[aria-pressed="true"] { background: var(--wana-deep); color: var(--gofun); box-shadow: inset 0 0 0 1.5px var(--soubi); }
 .handi-side button:disabled { opacity: .35; }
 /* 駒落ちなしのときは行ごと消して高さを返す */
 .handi-note { margin-top: 3px; font-size: 12px; opacity: .8; }
