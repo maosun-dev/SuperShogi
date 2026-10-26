@@ -144,8 +144,12 @@ export function applyAction(s0: GameState, a: Action): { state: GameState; event
   return applyActionUnchecked(s0, a);
 }
 
-// 合法かどうかの確認をしない適用（CPU の読み用）。legalActions から選んだ行動だけを渡すこと
-export function applyActionUnchecked(s0: GameState, a: Action): { state: GameState; events: GameEvent[] } {
+// 合法かどうかの確認をしない適用（CPU の読み用）。legalActions から選んだ行動だけを渡すこと。
+// quiet のときは王手の知らせ（check）を作らない（読みでは知らせを使わないため。局面は同じ）
+export function applyActionUnchecked(
+  s0: GameState, a: Action, opts: { quiet?: boolean } = {},
+): { state: GameState; events: GameEvent[] } {
+  const quiet = opts.quiet ?? false;
   if (s0.result) throw new IllegalActionError('対局はもう終わっています');
   const s = cloneState(s0);
   const events: GameEvent[] = [];
@@ -183,13 +187,13 @@ export function applyActionUnchecked(s0: GameState, a: Action): { state: GameSta
       if (s.result) return { state: s, events };
       if (!hasAnyAction(s)) {
         events.push({ type: 'passed', side });
-        endTurn(s, events);
+        endTurn(s, events, quiet);
       }
       return { state: s, events };
     }
   }
 
-  endTurn(s, events);
+  endTurn(s, events, quiet);
   return { state: s, events };
 }
 
@@ -393,7 +397,7 @@ function finish(s: GameState, events: GameEvent[], result: NonNullable<GameState
 }
 
 // 手番の後処理：手番交代・王手の知らせ・千日手・手数の上限
-function endTurn(s: GameState, events: GameEvent[]): void {
+function endTurn(s: GameState, events: GameEvent[], quiet = false): void {
   const mover = s.turn;
   // 手番を終えた側の凍った駒は残りを1減らす。重りの枷も残りを1減らし、0で外れる
   s.board.forEach((p, i) => {
@@ -414,7 +418,7 @@ function endTurn(s: GameState, events: GameEvent[]): void {
   s.pushFollowUp = false;
   s.turn = opponent(mover);
   s.ply++;
-  if (isInCheck(s, s.turn)) events.push({ type: 'check', side: s.turn });
+  if (!quiet && isInCheck(s, s.turn)) events.push({ type: 'check', side: s.turn });
   const key = positionKey(s);
   s.seen[key] = (s.seen[key] ?? 0) + 1;
   if (s.seen[key] >= REPETITION_LIMIT) {
@@ -424,7 +428,7 @@ function endTurn(s: GameState, events: GameEvent[]): void {
   } else if (!hasAnyAction(s)) {
     // 指せる行動が1つもない（凍った王だけ、など）ときは、手番を自動で相手へ回す
     events.push({ type: 'passed', side: s.turn });
-    endTurn(s, events);
+    endTurn(s, events, quiet);
   }
 }
 

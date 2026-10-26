@@ -29,3 +29,15 @@ test('終わった対局には確認を省いた版でも例外', () => {
   s.result = { winner: 'sente', reason: 'king-captured' };
   expect(() => applyActionUnchecked(s, a)).toThrow(IllegalActionError);
 });
+
+test('quiet の適用は、知らせを作らないだけで局面は同じ', async () => {
+  const { benchPositions } = await import('../ai/helpers/positions');
+  let n = 0;
+  for (const s of benchPositions()) {
+    for (const a of legalActions(s)) {
+      expect(applyActionUnchecked(s, a, { quiet: true }).state).toEqual(applyActionUnchecked(s, a).state);
+      n++;
+    }
+  }
+  expect(n).toBeGreaterThan(1000);
+});

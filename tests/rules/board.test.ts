@@ -83,3 +83,32 @@ test('cloneState：元と同じ形で、書き換えても元は変わらない'
   expect(s.players.sente.cards[0].used).toBe(false);
   expect(s.seen.x).toBeUndefined();
 });
+
+// もとの positionKey の写し（速くする前の作り。比べる相手）
+function positionKeyRef(s: import('../../src/rules/types').GameState): string {
+  const sides = ['sente', 'gote'] as const;
+  const cells = s.board.map(p => {
+    if (!p) return '.';
+    return `${p.side[0]}${p.kind}${p.promoted ? '+' : ''}${p.equip ? '@' + p.equip.cardId + (p.equip.left ?? '') : ''}`
+      + `${p.frozen ? '~' + p.frozen : ''}${p.sealed ? '!' : ''}`;
+  });
+  const hands = sides.map(side => (['HI', 'KA', 'KI', 'GI', 'KE', 'KY', 'FU'] as const).map(k => s.players[side].hand[k]).join(','));
+  const used = sides.map(side =>
+    s.players[side].cards.filter(c => c.used).length
+    - s.traps.filter(t => t.owner === side && t.cardId !== null).length);
+  const traps = sides.map(side => s.traps.filter(t => t.owner === side).length);
+  return [cells.join(''), hands.join('|'), s.turn, used.join('|'), traps.join(','), s.trapSetThisTurn ? 'T' : '-', s.pushFollowUp ? 'P' : '-'].join('/');
+}
+
+test('positionKey は速くする前と1文字も違わない', async () => {
+  const { benchPositions } = await import('../ai/helpers/positions');
+  const { applyActionUnchecked, legalActions } = await import('../../src/rules/game');
+  for (const s of benchPositions()) {
+    expect(positionKey(s)).toBe(positionKeyRef(s));
+    // 伏せた罠の中身が見える側の局面（適用したあと）も比べる
+    for (const a of legalActions(s).slice(0, 20)) {
+      const t = applyActionUnchecked(s, a).state;
+      expect(positionKey(t)).toBe(positionKeyRef(t));
+    }
+  }
+});

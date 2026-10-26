@@ -33,6 +33,9 @@ const DROP_NEAR_FOE = 2;          // 根より下では、相手の王からこ�
 const DROP_NEAR_ME = 1;           // …または自分の王の隣
 export const CARD_CANDIDATES_PER_CARD = 3; // 1枚のカードから候補に残す行動の数の上限
 
+// 読みの中の適用：王手の知らせは使わないので作らない
+const QUIET = { quiet: true };
+
 // 時間切れで読みを打ち切るための合図
 class TimeUp extends Error {}
 
@@ -99,7 +102,7 @@ export function cardCandidates(s: GameState, actions: Action[], cardWidth: numbe
   const cards: (CardCand & { tie: number; uid: number })[] = [];
   for (const a of actions) {
     if (a.type !== 'card') continue;
-    const child = applyActionUnchecked(s, a).state;
+    const child = applyActionUnchecked(s, a, QUIET).state;
     cards.push({ a, child, score: evaluate(child, s.turn), tie: targetValue(s, a), uid: a.uid });
   }
   cards.sort((x, y) => y.score - x.score || y.tie - x.tie);
@@ -263,7 +266,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
       }
       evasions.sort((x, y) => x.order - y.order);
       for (const c of evasions) {
-        const child = applyActionUnchecked(s, c.a).state;
+        const child = applyActionUnchecked(s, c.a, QUIET).state;
         const v = childScore(s, child, alpha, beta, (n, al, be) => quiesce(n, qd - 1, al, be, ply + 1));
         if (v > best) best = v;
         if (v > alpha) alpha = v;
@@ -284,7 +287,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     }
     caps.sort((x, y) => x.order - y.order);
     for (const c of caps) {
-      const child = applyActionUnchecked(s, c.a).state;
+      const child = applyActionUnchecked(s, c.a, QUIET).state;
       const v = childScore(s, child, alpha, beta, (n, al, be) => quiesce(n, qd - 1, al, be, ply + 1));
       if (v > best) best = v;
       if (v > alpha) alpha = v;
@@ -320,7 +323,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     path.add(key);
     try {
       for (const c of cands) {
-        const child = c.child ?? applyActionUnchecked(s, c.a).state;
+        const child = c.child ?? applyActionUnchecked(s, c.a, QUIET).state;
         const d = childDepth(s, child, depth, ply);
         const v = childScore(s, child, alpha, beta, (n, al, be) => negamax(n, d, al, be, ply + 1));
         if (v > best) { best = v; bestKey = c.key; }
@@ -349,7 +352,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     // 深さ1で1つも読み終えないうちに時間切れになったときの答え（並べ替えで先頭の手）
     partial = depth === 1 ? { action: cands[0].a, score: -Infinity } : null;
     for (const c of cands) {
-      const child = c.child ?? applyActionUnchecked(root, c.a).state;
+      const child = c.child ?? applyActionUnchecked(root, c.a, QUIET).state;
       const d = childDepth(root, child, depth, 0);
       const v = childScore(root, child, alpha, Infinity, (n, al, be) => negamax(n, d, al, be, 1));
       if (v > bestScore) {

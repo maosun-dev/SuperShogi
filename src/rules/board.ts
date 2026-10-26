@@ -107,20 +107,28 @@ export function cloneState(s: GameState): GameState {
 }
 
 // 同じ局面かどうかを見分けるキー
+// 形：盤81マス / 先手の持ち駒,…|後手の持ち駒,… / 手番 / 使った札の数 先手|後手 / 伏せた罠の数 先手,後手 / T- / P-
+// CPU の読みで何度も呼ぶので、配列を作らず1つの文字列をつないで作る
 export function positionKey(s: GameState): string {
-  const cells = s.board.map(p => {
-    if (!p) return '.';
-    return `${p.side[0]}${p.kind}${p.promoted ? '+' : ''}${p.equip ? '@' + p.equip.cardId + (p.equip.left ?? '') : ''}`
-      + `${p.frozen ? '~' + p.frozen : ''}${p.sealed ? '!' : ''}`;
-  });
-  const hands = (['sente', 'gote'] as Side[]).map(side =>
-    HAND_KINDS.map(k => s.players[side].hand[k]).join(','));
+  let key = '';
+  for (let i = 0; i < 81; i++) {
+    const p = s.board[i];
+    if (!p) { key += '.'; continue; }
+    key += (p.side === 'sente' ? 's' : 'g') + p.kind;
+    if (p.promoted) key += '+';
+    if (p.equip) key += '@' + p.equip.cardId + (p.equip.left ?? '');
+    if (p.frozen) key += '~' + p.frozen;
+    if (p.sealed) key += '!';
+  }
+  const sh = s.players.sente.hand, gh = s.players.gote.hand;
+  key += `/${sh.HI},${sh.KA},${sh.KI},${sh.GI},${sh.KE},${sh.KY},${sh.FU}|${gh.HI},${gh.KA},${gh.KI},${gh.GI},${gh.KE},${gh.KY},${gh.FU}/${s.turn}/`;
   // 使ったカードは枚数だけ数える。どのカードかを入れると、伏せた罠の中身が千日手の記録から分かってしまう。
   // 中身の見える罠の分を引いておくと、viewFor した局面（伏せた罠のカードを未使用に見せる）とキーがそろう
-  const used = (['sente', 'gote'] as Side[]).map(side =>
-    s.players[side].cards.filter(c => c.used).length
-    - s.traps.filter(t => t.owner === side && t.cardId !== null).length);
-  const traps = (['sente', 'gote'] as Side[]).map(side =>
-    s.traps.filter(t => t.owner === side).length);
-  return [cells.join(''), hands.join('|'), s.turn, used.join('|'), traps.join(','), s.trapSetThisTurn ? 'T' : '-', s.pushFollowUp ? 'P' : '-'].join('/');
+  let usedS = 0, usedG = 0, trapS = 0, trapG = 0;
+  for (const c of s.players.sente.cards) if (c.used) usedS++;
+  for (const c of s.players.gote.cards) if (c.used) usedG++;
+  for (const t of s.traps) {
+    if (t.owner === 'sente') { trapS++; if (t.cardId !== null) usedS--; } else { trapG++; if (t.cardId !== null) usedG--; }
+  }
+  return key + `${usedS}|${usedG}/${trapS},${trapG}/${s.trapSetThisTurn ? 'T' : '-'}/${s.pushFollowUp ? 'P' : '-'}`;
 }
