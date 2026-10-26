@@ -9,6 +9,7 @@ import { button, el, pageHead } from './ui';
 export interface LinkParams { notice?: string } // 前の画面からの知らせ（相手がやめた・切れた）
 
 const HINT_MS = 10000; // これだけ探して見つからなければ、ローカルネットワークの案内を出す
+const JOIN_MS = 25000; // つないでいる間は合言葉を押しても頼み直さない（iPhone は 20 秒で諦めて失敗を知らせる。届かなかったとき用の見切り）
 
 /** 合言葉を縦に書いた駒（五角形）。big は誘う側の大きな駒 */
 function komaOf(code: string, big: boolean): HTMLElement {
@@ -21,6 +22,7 @@ export function linkScreen(params: unknown): Screen {
   const notice = (params as LinkParams | undefined)?.notice ?? null;
   let off: (() => void) | null = null;
   let hintTimer = 0;
+  let joinTimer = 0;
   return {
     mount(root) {
       const s = getSession();
@@ -62,13 +64,22 @@ export function linkScreen(params: unknown): Screen {
       list.setAttribute('aria-label', '近くで誘っている人');
       const hint = el('p', 'link-note hint', '見つからないときは、両方の iPhone で 設定 → 傾将棋 → ローカルネットワーク をオンにしてください');
       hint.hidden = true;
+      // 頼みが重なるとかえってつながりにくいので、つないでいる間は押しても何もしない
+      let joining = false;
+      const joinDone = (): void => { joining = false; clearTimeout(joinTimer); };
       const renderPeers = (): void => {
         list.replaceChildren();
         const peers = s.peers();
         if (peers.length === 0) { list.append(el('p', 'link-note', '近くで誘っている人を探しています')); return; }
         hint.hidden = true;
         for (const p of peers) {
-          const b = button('link-peer', '', () => { s.join(p.peer); msg.textContent = `${p.name} につないでいます`; });
+          const b = button('link-peer', '', () => {
+            if (joining) return;
+            joining = true;
+            joinTimer = window.setTimeout(joinDone, JOIN_MS);
+            s.join(p.peer);
+            msg.textContent = `${p.name} につないでいます`;
+          });
           b.append(komaOf(p.name, false));
           b.setAttribute('aria-label', `${p.name} につなぐ`);
           list.append(b);
@@ -84,6 +95,10 @@ export function linkScreen(params: unknown): Screen {
         switch (e.type) {
           case 'peers': renderPeers(); return;
           case 'connected': void showScreen('deck', { friend: true }); return;
+          case 'joinFailed':
+            joinDone();
+            msg.textContent = 'つながりませんでした。もう一度、合言葉を押してください';
+            return;
           case 'versionMismatch':
             msg.textContent = '相手とアプリの版が違います。同じ版にそろえてください';
             body.replaceChildren();
@@ -102,6 +117,7 @@ export function linkScreen(params: unknown): Screen {
       off?.();
       off = null;
       clearTimeout(hintTimer);
+      clearTimeout(joinTimer);
     },
   };
 }

@@ -10,23 +10,25 @@ export type LinkEvent =
   | { type: 'lost'; peer: string }
   | { type: 'connected'; peer: string; name: string }
   | { type: 'disconnected'; peer: string }
+  | { type: 'failed'; peer: string }       // 探す側：つなぐのに失敗した（つながる前に終わった）
   | { type: 'message'; data: string };
 
 export interface Link {
   host(name: string): Promise<void>;   // 合言葉 name で誘う。来た相手は受け入れる（1人だけ）
   browse(): Promise<void>;             // 誘っている人を探す
-  join(peer: string): Promise<void>;   // 見つけた相手につなぐ
+  join(peer: string): Promise<void>;   // 見つけた相手につなぐ（失敗したら failed）
   send(data: string): Promise<void>;   // 順番どおり確実に送る（つながっていなければ捨てる）
   stop(): Promise<void>;               // 誘う・探す・つながりを全部やめる
   on(fn: (e: LinkEvent) => void): () => void;
 }
 
-// ---- テスト用：2つの窓口を直接つなぐ。cut で切り、heal でまたつなげるようにする ----
-export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void } {
+// ---- テスト用：2つの窓口を直接つなぐ。cut で切り、heal でまたつなげるようにする。failJoin で次のつなぐを1回失敗させる ----
+export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void; failJoin(): void } {
   interface End { id: string; ev: ReturnType<typeof emitter>; hosting: string | null; browsing: boolean; peer: End | null }
   const mk = (id: string): End => ({ id, ev: emitter(), hosting: null, browsing: false, peer: null });
   const A = mk('A'), B = mk('B');
   let healthy = true;
+  let failNext = false;
   const later = (fn: () => void): void => { queueMicrotask(fn); };
   const other = (e: End): End => (e === A ? B : A);
   // 誘っている側と探している側がそろったら、探している側に見つかったと知らせる
@@ -50,7 +52,11 @@ export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void
     async browse() { e.browsing = true; announce(); },
     async join(peer) {
       const h = other(e);
-      if (!healthy || h.id !== peer || h.hosting === null || h.peer) return;
+      if (failNext || !healthy || h.id !== peer || h.hosting === null || h.peer) {
+        failNext = false;
+        later(() => e.ev.emit({ type: 'failed', peer }));
+        return;
+      }
       const name = h.hosting;
       h.hosting = null; e.browsing = false;
       e.peer = h; h.peer = e;
@@ -68,6 +74,7 @@ export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void
     a: link(A), b: link(B),
     cut() { healthy = false; drop(A); },
     heal() { healthy = true; announce(); },
+    failJoin() { failNext = true; },
   };
 }
 
@@ -88,6 +95,7 @@ export function createNativeLink(): Link {
   void plugin.addListener('lost', (e) => ev.emit({ type: 'lost', peer: e.peer }));
   void plugin.addListener('connected', (e) => ev.emit({ type: 'connected', peer: e.peer, name: e.name }));
   void plugin.addListener('disconnected', (e) => ev.emit({ type: 'disconnected', peer: e.peer }));
+  void plugin.addListener('failed', (e) => ev.emit({ type: 'failed', peer: e.peer }));
   void plugin.addListener('message', (e) => ev.emit({ type: 'message', data: e.data }));
   return {
     host: (name) => plugin.host({ name }),

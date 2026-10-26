@@ -57,7 +57,8 @@ public class NearbyPlugin: CAPPlugin, CAPBridgedPlugin, MCSessionDelegate, MCNea
     private func newSession(_ displayName: String) -> MCSession {
         teardown()
         let me = MCPeerID(displayName: displayName)
-        let s = MCSession(peer: me, securityIdentity: nil, encryptionPreference: .required)
+        // 暗号はかけない。鍵の取り決めでつなぐのが遅れたり失敗したりするため（送るのは指し手と札だけで、個人の情報はない）
+        let s = MCSession(peer: me, securityIdentity: nil, encryptionPreference: .none)
         s.delegate = self
         session = s
         return s
@@ -171,9 +172,12 @@ public class NearbyPlugin: CAPPlugin, CAPBridgedPlugin, MCSessionDelegate, MCNea
                 let name = self.nameByPeer[peerID] ?? "guest"
                 self.notifyListeners("connected", data: ["peer": self.peerId(peerID), "name": name])
             case .notConnected:
-                // つながったことのある相手が切れたときだけ知らせる（断られた招待などは知らせない）
-                guard self.connected.remove(peerID) != nil else { return }
-                self.notifyListeners("disconnected", data: ["peer": self.peerId(peerID)])
+                // つながったことのある相手が切れたら「切れた」。つながる前に終わったら、探す側にだけ「失敗した」と知らせる
+                if self.connected.remove(peerID) != nil {
+                    self.notifyListeners("disconnected", data: ["peer": self.peerId(peerID)])
+                } else if self.browser != nil {
+                    self.notifyListeners("failed", data: ["peer": self.peerId(peerID)])
+                }
             case .connecting:
                 break
             @unknown default:

@@ -13,6 +13,7 @@ export type SessionPhase = 'idle' | 'hosting' | 'browsing' | 'deck' | 'match' | 
 export type SessionEvent =
   | { type: 'peers' }                          // 見つかった合言葉の一覧が変わった
   | { type: 'connected' }                      // つながって版も合った（札選びへ）
+  | { type: 'joinFailed' }                     // 探す側：つなぐのに失敗した（もう一度選んでもらう）
   | { type: 'versionMismatch' }
   | { type: 'start'; setup: Setup }
   | { type: 'act'; action: Action; fp: string | null }   // 相手の手（本当の盤面の向き）
@@ -72,6 +73,7 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
   let code: string | null = null;
   const peers = new Map<string, string>();
   let connected = false;
+  let retries = 0; // つなぎ直しで、つなぐのに失敗して頼み直した回数
   let myReady: { deck: CardId[]; handicap?: Handicap } | null = null;
   let foeReady: { deck: CardId[]; handicap?: Handicap } | null = null;
   let matchId: string | null = null;
@@ -194,7 +196,7 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
         if (role !== 'guest') return;
         peers.set(e.peer, e.name);
         emit({ type: 'peers' });
-        if (phase === 'reconnecting' && e.name === code) void link.join(e.peer);
+        if (phase === 'reconnecting' && e.name === code) { retries = 0; void link.join(e.peer); }
         return;
       case 'lost':
         if (peers.delete(e.peer)) emit({ type: 'peers' });
@@ -203,6 +205,11 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
         connected = true;
         if (role === 'guest' && phase === 'browsing') code = e.name;
         send({ t: 'hello', version, matchId });
+        return;
+      case 'failed':
+        if (role !== 'guest' || connected) return;
+        if (phase === 'browsing') emit({ type: 'joinFailed' });
+        else if (phase === 'reconnecting' && peers.get(e.peer) === code && retries++ < 3) void link.join(e.peer);
         return;
       case 'disconnected':
         if (!connected) return;

@@ -117,6 +117,37 @@ test('切れたら両方つなぎ直し、切れている間に送った手も�
   expect(p.host.log()).toHaveLength(2);
 });
 
+test('つなぐのに失敗したら知らせて、探すのは続ける', async () => {
+  const links = createPairLinks();
+  const host = createSession(links.a, { version: '1', rng: seq(0.3), stopDelayMs: 0 });
+  const guest = createSession(links.b, { version: '1', rng: seq(0.1), stopDelayMs: 0 });
+  const ge: SessionEvent[] = [];
+  guest.on((e) => ge.push(e));
+  host.host();
+  guest.browse();
+  await flush();
+  links.failJoin();
+  guest.join(guest.peers()[0]!.peer);
+  await flush(); await flush();
+  expect(ge).toContainEqual({ type: 'joinFailed' });
+  expect(guest.phase()).toBe('browsing');
+  // もう一度押せばつながる
+  guest.join(guest.peers()[0]!.peer);
+  await flush(); await flush();
+  expect(guest.phase()).toBe('deck');
+});
+
+test('つなぎ直しでつなぐのに失敗しても、もう一度頼んでつながる', async () => {
+  const p = await started();
+  p.cut();
+  await flush();
+  p.failJoin();
+  p.heal();
+  for (let i = 0; i < 6; i++) await flush();
+  expect(p.ge).toContainEqual({ type: 'back' });
+  expect(p.guest.phase()).toBe('match');
+});
+
 test('片方がやめると、相手の対局も消える', async () => {
   const p = await started();
   p.host.quit();
