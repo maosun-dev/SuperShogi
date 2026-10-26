@@ -1,10 +1,12 @@
 // 速くした利きの部品が、もとの pieceTargets（下に写しを置く）と同じ答えを返すかの突き合わせ。
 // 局面集（纏札・凍結・成り封じ・王のいない盤・伏せた罠を隠した局面を含む）の全部の駒・全部のマスで比べる
 import { describe, expect, test } from 'vitest';
-import { attackedBy, attacks, pieceTargetIdx, pieceTargets } from '../../src/rules/moves';
+import { attackCount, attackedBy, attacks, pieceTargetIdx, pieceTargets } from '../../src/rules/moves';
 import { forward, idx, onBoard, sqOf } from '../../src/rules/board';
 import type { GameState, Piece, Side, Square } from '../../src/rules/types';
 import { benchPositions } from '../ai/helpers/positions';
+import { kingSafety, ATTACK, KING_GUARD } from '../../src/ai/evaluate';
+import { opponent } from '../../src/rules/board';
 import { emptyState, put } from '../helpers';
 
 // 開けた盤に纏札の駒を置いた局面（局面集では味方の駒で動ける先が埋まりがちなので足す）
@@ -21,6 +23,7 @@ function openBoard(): GameState {
   put(s, { c: 8, r: 8 }, 'KA', 'gote', { promoted: true, equip: 'omori' }); // 馬に枷
   put(s, { c: 4, r: 4 }, 'KE', 'gote', { equip: 'tenma', frozen: 1 });     // 凍った桂
   put(s, { c: 8, r: 0 }, 'KY', 'sente', { equip: 'tsuranuki', promoted: true });
+  put(s, { c: 3, r: 5 }, 'KE', 'gote');                               // 王から3段離れた桂が王のまわりに利く
   return s;
 }
 const positions = [...benchPositions(), openBoard()];
@@ -145,5 +148,62 @@ describe('pieceTargetIdx', () => {
         expect(pieceTargets(s, sqOf(i))).toEqual(pieceTargetsRef(s, sqOf(i)));
       }
     }
+  });
+});
+
+describe('attackCount', () => {
+  test('全部のマス・両方の側で、動ける駒の数と cap の小さい方', () => {
+    for (const s of positions) {
+      for (let t = 0; t < 81; t++) {
+        for (const by of SIDES) {
+          let n = 0;
+          for (let i = 0; i < 81; i++) {
+            const p = s.board[i];
+            if (p && p.side === by && pieceTargetsRef(s, sqOf(i)).some(q => idx(q) === t)) n++;
+          }
+          expect(attackCount(s, t, by, 2)).toBe(Math.min(2, n));
+          expect(attackCount(s, t, by, 9)).toBe(Math.min(9, n));
+        }
+      }
+    }
+  });
+});
+
+// もとの kingSafety の写し（全部の利きの地図を作って数える）
+function kingSafetyRef(s: GameState, side: Side): number {
+  const map = (by: Side) => {
+    const m = new Uint8Array(81);
+    for (let i = 0; i < 81; i++) {
+      const p = s.board[i];
+      if (!p || p.side !== by) continue;
+      for (const t of pieceTargetsRef(s, sqOf(i))) m[idx(t)]++;
+    }
+    return m;
+  };
+  const maps: Record<Side, Uint8Array> = { sente: map('sente'), gote: map('gote') };
+  const one = (me: Side): number => {
+    const k = s.board.findIndex(p => p !== null && p.side === me && p.kind === 'OU');
+    if (k < 0) return 0;
+    const kc = k % 9, kr = Math.floor(k / 9);
+    const enemy = maps[opponent(me)];
+    let guard = 0, danger = 0;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const c = kc + dc, r = kr + dr;
+        if (c < 0 || c > 8 || r < 0 || r > 8) continue;
+        const i = r * 9 + c;
+        const q = s.board[i];
+        if (i !== k && q && q.side === me) guard++;
+        danger += Math.min(2, enemy[i]);
+      }
+    }
+    return guard * KING_GUARD - danger * ATTACK;
+  };
+  return one(side) - one(opponent(side));
+}
+
+describe('kingSafety', () => {
+  test('全部の局面・両方の側で、もとの作りと同じ', () => {
+    for (const s of positions) for (const side of SIDES) expect(kingSafety(s, side)).toBe(kingSafetyRef(s, side));
   });
 });

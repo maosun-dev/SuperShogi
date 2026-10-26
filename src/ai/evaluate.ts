@@ -2,7 +2,7 @@
 import { CARDS } from '../cards';
 import { OMORI_TURNS } from '../cards/equip';
 import { HAND_KINDS, idx, opponent } from '../rules/board';
-import { pieceTargetIdx } from '../rules/moves';
+import { attacks, pieceTargetIdx } from '../rules/moves';
 import type { CardId, GameState, Side, Square } from '../rules/types';
 
 import { PIECE_VALUE, PROMOTED_VALUE } from '../rules/values';
@@ -68,30 +68,34 @@ export function material(s: GameState, side: Side): number {
   return sideScore(s, side) - sideScore(s, opponent(side));
 }
 
-// 側ごとの利きの数（マスごと）
-function attackMap(s: GameState, by: Side): Uint8Array {
-  const m = new Uint8Array(81);
-  for (let i = 0; i < 81; i++) {
-    const p = s.board[i];
-    if (!p || p.side !== by) continue;
-    for (const t of pieceTargetIdx(s, i)) m[t]++;
-  }
-  return m;
-}
-
 function kingIndex(s: GameState, side: Side): number {
   return s.board.findIndex(p => p !== null && p.side === side && p.kind === 'OU');
 }
 
-// 王の囲いと、相手の王への迫り（side から見た 自分−相手）
+// 王のまわり（隣8マスと王のマス）に届きうる相手の駒。滑る駒は全部、ほかは王から3マス以内だけ
+// （1マスの動き・桂の跳びは2マスまでしか届かないので、まわりの端から2マス＝王から3マス）
+function zoneAttackers(s: GameState, k: number, by: Side): number[] {
+  const kc = k % 9, kr = (k - kc) / 9;
+  const out: number[] = [];
+  for (let i = 0; i < 81; i++) {
+    const p = s.board[i];
+    if (!p || p.side !== by || p.frozen) continue;
+    const slides = p.kind === 'HI' || p.kind === 'KA' || (p.kind === 'KY' && !p.promoted);
+    const c = i % 9, r = (i - c) / 9;
+    if (slides || Math.max(Math.abs(c - kc), Math.abs(r - kr)) <= 3) out.push(i);
+  }
+  return out;
+}
+
+// 王の囲いと、相手の王への迫り（side から見た 自分−相手）。
+// 迫りは王のまわりの各マスへの相手の利き（1マス2つまで）。利きの地図を盤全体で作らず、まわりだけ数える
 export function kingSafety(s: GameState, side: Side): number {
   const foe = opponent(side);
-  const maps: Record<Side, Uint8Array> = { sente: attackMap(s, 'sente'), gote: attackMap(s, 'gote') };
   const one = (me: Side): number => {
     const k = kingIndex(s, me);
     if (k < 0) return 0;
     const kc = k % 9, kr = Math.floor(k / 9);
-    const enemy = maps[opponent(me)];
+    const enemies = zoneAttackers(s, k, opponent(me));
     let guard = 0, danger = 0;
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
@@ -100,7 +104,9 @@ export function kingSafety(s: GameState, side: Side): number {
         const i = r * 9 + c;
         const q = s.board[i];
         if (i !== k && q && q.side === me) guard++;
-        danger += Math.min(2, enemy[i]);
+        let n = 0;
+        for (let j = 0; j < enemies.length && n < 2; j++) if (attacks(s, enemies[j], i)) n++;
+        danger += n;
       }
     }
     return guard * KING_GUARD - danger * ATTACK;

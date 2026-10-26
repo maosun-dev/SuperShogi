@@ -159,6 +159,16 @@ export function attacks(s: GameState, from: number, to: number): boolean {
   return false;
 }
 
+// by の駒のうち to へ動けるものの数。cap に達したらそこで数えるのをやめて cap を返す
+export function attackCount(s: GameState, to: number, by: Side, cap: number): number {
+  let n = 0;
+  for (let i = 0; i < 81 && n < cap; i++) {
+    const p = s.board[i];
+    if (p && p.side === by && attacks(s, i, to)) n++;
+  }
+  return n;
+}
+
 // side の駒のどれかが sq に動けるか
 export function attackedBy(s: GameState, sq: Square, side: Side): boolean {
   const to = idx(sq);
