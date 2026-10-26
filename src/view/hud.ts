@@ -1,7 +1,7 @@
 // 対局画面の HTML 部分：上下の帯（持ち駒・伏せ札・手番）・手札・説明の板・案内の帯・成る/成らない・駒の種類選び。
 // 局面を描き直すだけで、行動は組み立てない（押されたことを on で知らせるだけ）。
 import type { CardId, GameState, HandKind, Side } from '../rules/types';
-import type { Level } from '../ai/levels';
+import { LEVEL_NAME, type Level } from '../ai/levels';
 import { CARDS } from '../cards';
 import { KIND_MARK, cardHtml } from './cardArt';
 
@@ -26,7 +26,6 @@ export interface Hud {
   board: HTMLElement;          // 3D の盤を置く場所
 }
 
-const LEVEL_LABEL: Record<Level, string> = { weak: '弱い', normal: 'ふつう', strong: '強い' };
 const HAND_ORDER: HandKind[] = ['HI', 'KA', 'KI', 'GI', 'KE', 'KY', 'FU'];
 export const HAND_LABEL: Record<HandKind, string> = { HI: '飛', KA: '角', KI: '金', GI: '銀', KE: '桂', KY: '香', FU: '歩' };
 const TRAP_SLOTS = 3;
@@ -308,7 +307,7 @@ export function createHud(root: HTMLElement): Hud {
       const prev = last && last.me === side ? last.view : null;
       last = { view, me: side };
       const foeSide: Side = side === 'sente' ? 'gote' : 'sente';
-      foeName.textContent = opts.foe?.name ?? `CPU・${opts.keiko ? '稽古・' : ''}${LEVEL_LABEL[opts.level]}`;
+      foeName.textContent = opts.foe?.name ?? `CPU・${opts.keiko ? '稽古・' : ''}${LEVEL_NAME[opts.level]}`;
       foeSeal.textContent = opts.foe?.seal ?? '敵';
       thinking.textContent = opts.thinking ? opts.foe?.waiting ?? '考え中' : '';
       const myTurn = view.turn === side && !opts.thinking && !view.result;

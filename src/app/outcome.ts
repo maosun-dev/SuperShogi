@@ -7,7 +7,8 @@ import { CARDS, COST_LIMIT } from '../cards';
 
 export type Outcome = 'win' | 'loss' | 'draw';
 
-export const LEVEL_NAME: Record<Level, string> = { weak: '弱い', normal: 'ふつう', strong: '強い' };
+// 強さの名前は CPU の強さと同じ所（ai/levels.ts）に置き、ここからも使えるようにする
+export { LEVEL_NAME } from '../ai/levels';
 
 /** 人間（先手）から見た勝ち負け */
 export function outcomeOf(r: Result): Outcome {

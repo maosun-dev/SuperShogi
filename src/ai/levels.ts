@@ -1,15 +1,26 @@
-// CPU の強さ3段階：読む深さ・わざと迷う度合い・わざと悪い手の割合・持ち込みカード
+// CPU の強さ：序幕（弱い・ふつう・強い）と大詰（鬼・師範・傾奇者）。読む深さ・考える時間・わざと迷う度合い・
+// わざと悪い手の割合・持ち込みカード（決まった札か、札見せのたびに引くくじ）
 import type { CardId, GameState, Side } from '../rules/types';
 import { legalActions } from '../rules/game';
 import { CARDS } from '../cards';
 import { search, type SearchOptions, type SearchResult } from './search';
 import { makeRng } from './random';
 
-export type Level = 'weak' | 'normal' | 'strong';
+export type Level = 'weak' | 'normal' | 'strong' | 'oni' | 'shihan' | 'kabuki';
+/** 強さの並び（序幕の3つ→大詰の3つ） */
+export const LEVEL_IDS: readonly Level[] = ['weak', 'normal', 'strong', 'oni', 'shihan', 'kabuki'];
+export const JOMAKU: readonly Level[] = ['weak', 'normal', 'strong'];
+export const OOZUME: readonly Level[] = ['oni', 'shihan', 'kabuki'];
+/** 強さの名前（強さ選び・帯・札見せ・結果画面） */
+export const LEVEL_NAME: Record<Level, string> = { weak: '弱い', normal: 'ふつう', strong: '強い', oni: '鬼', shihan: '師範', kabuki: '傾奇者' };
+export function isLevel(v: unknown): v is Level {
+  return typeof v === 'string' && (LEVEL_IDS as readonly string[]).includes(v);
+}
 export const TRAP_BEFORE_SHARE = 0.6; // 忍札を伏せられるうちは、時間のこの割合で考える
 export const TRAP_AFTER_SHARE = 0.4;  // 伏せたあとの、続けて指す手
 export interface LevelConfig extends Omit<SearchOptions, 'seed' | 'now'> {
-  deck: CardId[];
+  deck: CardId[];     // 決まった持ち込み（くじの強さでは空）
+  kuji?: CardId[] | 'all'; // あれば、札見せのたびにこの範囲（'all' は全18枚）からくじで組む
   blunder: number;   // この割合で、読まずに駒を動かす手からでたらめに選ぶ（王を取れるときは除く）
 }
 
@@ -28,6 +39,24 @@ export const LEVELS: Record<Level, LevelConfig> = {
   strong: {
     maxDepth: 6, timeLimitMs: 3000, maxNodes: 53_000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
     deck: ['itetsuku', 'aiuchi', 'tsuranuki', 'hagane'],
+  },
+  // 大詰：読む量の上限は付けず、速くなった読みを考える時間いっぱいに使う
+  // 鬼：攻めの札だけでくじ（守りの札・忍札は入れない＝攻めは強く、受けは甘い）
+  oni: {
+    maxDepth: 8, timeLimitMs: 3000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
+    deck: [],
+    kuji: ['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tsuranuki', 'tenma', 'omori'],
+  },
+  // 師範：札の一発逆転を止める受けの札で固める（毎回同じ・コスト10）
+  shihan: {
+    maxDepth: 8, timeLimitMs: 4000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
+    deck: ['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin', 'oshikaeshi'],
+  },
+  // 傾奇者：全18枚からくじ。最後の相手
+  kabuki: {
+    maxDepth: 8, timeLimitMs: 5000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
+    deck: [],
+    kuji: 'all',
   },
 };
 

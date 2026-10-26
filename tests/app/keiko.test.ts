@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_KEIKO, drawFoeDeck, foeLabel } from '../../src/app/keiko';
-import { loadKeiko, saveKeiko, loadTally, type KeyValueStore } from '../../src/app/storage';
+import { DEFAULT_KEIKO, drawFoeDeck, foeLabel, keikoOf } from '../../src/app/keiko';
+import { loadKeiko, saveKeiko, loadTally, recordResult, type KeyValueStore } from '../../src/app/storage';
 import { validateDeck } from '../../src/cards';
 import { LEVELS } from '../../src/ai/levels';
 import { makeRng } from '../../src/ai/random';
@@ -22,6 +22,39 @@ describe('稽古：相手の決め方', () => {
     const decks = Array.from({ length: 20 }, () => drawFoeDeck('normal', { level: 'normal', deck: 'kuji' }, rng));
     for (const d of decks) expect(validateDeck(d)).toBeNull();
     expect(new Set(decks.map((d) => d.join())).size).toBeGreaterThan(1);
+  });
+  it('鬼・傾奇者は稽古でなくても毎回くじ（決まりを守り、鬼は攻めの札だけ）。師範は決まった6枚', () => {
+    const rng = makeRng(11);
+    const oni = Array.from({ length: 200 }, () => drawFoeDeck('oni', undefined, rng));
+    for (const d of oni) {
+      expect(validateDeck(d)).toBeNull();
+      for (const id of d) expect(LEVELS.oni.kuji).toContain(id);
+    }
+    expect(new Set(oni.map((d) => d.join())).size).toBeGreaterThan(1);
+    const kabuki = Array.from({ length: 200 }, () => drawFoeDeck('kabuki', undefined, rng));
+    for (const d of kabuki) expect(validateDeck(d)).toBeNull();
+    expect(new Set(kabuki.flat()).size).toBeGreaterThan(10);
+    expect(drawFoeDeck('shihan', undefined, rng)).toEqual(LEVELS.shihan.deck);
+  });
+  it('名前：大詰の3人', () => {
+    expect(foeLabel('oni')).toBe('鬼');
+    expect(foeLabel('shihan')).toBe('師範');
+    expect(foeLabel('kabuki', { level: 'kabuki', deck: 'kuji' })).toBe('稽古・傾奇者');
+  });
+  it('稽古の値の確かめ：大詰の強さも通る', () => {
+    expect(keikoOf({ level: 'shihan', deck: 'kuji' })).toEqual({ level: 'shihan', deck: 'kuji' });
+    expect(keikoOf({ level: 'hard', deck: 'kuji' })).toBeUndefined();
+  });
+  it('稽古の保存：大詰の強さも往復する', () => {
+    const st = fakeStore();
+    saveKeiko(st, { level: 'kabuki', deck: ['rakurai'] });
+    expect(loadKeiko(st)).toEqual({ level: 'kabuki', deck: ['rakurai'] });
+  });
+  it('戦績：大詰の強さも数える', () => {
+    const st = fakeStore();
+    recordResult(st, 'oni', 'win');
+    expect(loadTally(st, 'oni')).toEqual({ wins: 1, losses: 0, draws: 0 });
+    expect(loadTally(st, 'strong')).toEqual({ wins: 0, losses: 0, draws: 0 });
   });
   it('名前：稽古なら強さを添える', () => {
     expect(foeLabel('strong')).toBe('強い');

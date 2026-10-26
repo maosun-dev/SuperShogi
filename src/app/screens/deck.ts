@@ -8,7 +8,7 @@
 import type { CardId, HandicapKind, Side } from '../../rules/types';
 import { HANDICAP_LABEL } from '../../rules/board';
 import type { CardKind } from '../../cards/types';
-import type { Level } from '../../ai/levels';
+import { isLevel, type Level } from '../../ai/levels';
 import { CARDS, COST_LIMIT, validateDeck } from '../../cards';
 import { KIND_MARK, cardHtml } from '../../view/cardArt';
 import { makeRng } from '../../ai/random';
@@ -27,7 +27,7 @@ export interface DeckParams { level: Level; role?: 'me' | 'foe'; keiko?: Keiko; 
 
 function levelOf(p: unknown): Level {
   const lv = (p as Partial<DeckParams> | undefined)?.level;
-  return lv === 'normal' || lv === 'strong' ? lv : 'weak';
+  return isLevel(lv) ? lv : 'weak';
 }
 
 export function deckScreen(params: unknown): Screen {

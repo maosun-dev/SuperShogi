@@ -1,7 +1,7 @@
 // 設定・前回の持ち込み・戦績の保存（localStorage が使えなくても動く）
 import type { CardId, Handicap, HandicapKind } from '../rules/types';
 import { HANDICAP_LABEL } from '../rules/board';
-import type { Level } from '../ai/levels';
+import { isLevel, LEVEL_IDS, type Level } from '../ai/levels';
 import { sanitizeDeck } from '../cards';
 import { isNativeApp, mirrorStore, nativePrefs } from './native';
 import { isKingFx, type KingFxChoice } from '../fx/kingfx/kinds';
@@ -29,7 +29,6 @@ const KEY_KEIKO = 'superShogi.keiko';
 // アプリで消えにくい保存領域にも写す鍵の一覧
 export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP, KEY_KEIKO] as const;
 export const NO_HANDICAP: Handicap = { side: 'sente', kind: 'none' };
-const LEVELS_ALL: Level[] = ['weak', 'normal', 'strong'];
 
 // アプリのときだけ、保存の鍵を Preferences にも書く版を返す（Web ではこれまでどおり）
 export function safeStore(): KeyValueStore {
@@ -107,7 +106,7 @@ export function saveHandicap(st: KeyValueStore, h: Handicap): void {
 export function loadKeiko(st: KeyValueStore): Keiko {
   const j = readJson(st, KEY_KEIKO);
   const o = (j && typeof j === 'object' ? j : {}) as Record<string, unknown>;
-  if (o.level !== 'weak' && o.level !== 'normal' && o.level !== 'strong') return { ...DEFAULT_KEIKO };
+  if (!isLevel(o.level)) return { ...DEFAULT_KEIKO };
   if (o.deck === 'kuji') return { level: o.level, deck: 'kuji' };
   if (!Array.isArray(o.deck) || !o.deck.every(x => typeof x === 'string')) return { ...DEFAULT_KEIKO };
   return { level: o.level, deck: sanitizeDeck(o.deck as string[]) };
@@ -125,7 +124,7 @@ function loadAllTallies(st: KeyValueStore): Record<Level, Tally> {
   const j = readJson(st, KEY_TALLY);
   const o = (j && typeof j === 'object' ? j : {}) as Record<string, Record<string, unknown> | undefined>;
   const out = {} as Record<Level, Tally>;
-  for (const lv of LEVELS_ALL) {
+  for (const lv of LEVEL_IDS) {
     const t = o[lv];
     out[lv] = { wins: count(t?.wins), losses: count(t?.losses), draws: count(t?.draws) };
   }

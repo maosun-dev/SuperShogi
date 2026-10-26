@@ -15,6 +15,9 @@ const LEVEL_NOTE: Record<Level, string> = {
   weak: '駒の動きを覚えたら',
   normal: '詰みが分かってきたら',
   strong: '将棋アプリの級位者に',
+  oni: '札は毎局くじ・札で暴れる',
+  shihan: '定跡で堅く',
+  kabuki: '最後の相手',
 };
 
 export function levelScreen(): Screen {

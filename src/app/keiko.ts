@@ -1,16 +1,20 @@
 // 稽古：相手の強さと持ち込み札を自分で決める対局。札は決めた並びか「くじ」（札見せのたびに引き直す）。
 // 稽古は練習なので戦績に数えない
 import type { CardId } from '../rules/types';
-import { LEVELS, type Level } from '../ai/levels';
+import { isLevel, LEVELS, type Level } from '../ai/levels';
 import { autoDeck } from './deck';
 import { LEVEL_NAME } from './outcome';
 import type { Keiko } from './storage';
 
 export { DEFAULT_KEIKO, type Keiko } from './storage';
 
-// 相手の持ち込みを決める。稽古でなければ強さごとの札、くじなら rng で組む
+// 相手の持ち込みを決める。稽古でなければ強さごとの札（鬼・傾奇者はその範囲からくじ）、稽古のくじなら rng で組む
 export function drawFoeDeck(level: Level, keiko: Keiko | undefined, rng: () => number): CardId[] {
-  if (!keiko) return [...LEVELS[level].deck];
+  if (!keiko) {
+    const { kuji, deck } = LEVELS[level];
+    if (kuji) return kuji === 'all' ? autoDeck(rng) : autoDeck(rng, kuji);
+    return [...deck];
+  }
   return keiko.deck === 'kuji' ? autoDeck(rng) : [...keiko.deck];
 }
 
@@ -22,7 +26,7 @@ export function foeLabel(level: Level, keiko?: Keiko): string {
 // 画面から画面へ渡された値を確かめる（変な値は稽古でないとみなす）
 export function keikoOf(v: unknown): Keiko | undefined {
   const o = v as Partial<Keiko> | undefined;
-  if (!o || (o.level !== 'weak' && o.level !== 'normal' && o.level !== 'strong')) return undefined;
+  if (!o || !isLevel(o.level)) return undefined;
   if (o.deck === 'kuji') return { level: o.level, deck: 'kuji' };
   return Array.isArray(o.deck) ? { level: o.level, deck: [...o.deck] } : undefined;
 }

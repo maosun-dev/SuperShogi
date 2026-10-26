@@ -14,9 +14,9 @@ export function addReason(deck: CardId[], id: CardId): string | null {
 }
 
 // 全種類を1枚ずつ並べて rng で混ぜ、前から「入れてもコスト10以内」のものを足す
-export function autoDeck(rng: () => number): CardId[] {
+export function autoDeck(rng: () => number, from: CardId[] = Object.keys(CARDS) as CardId[]): CardId[] {
   const pool: CardId[] = [];
-  for (const id of Object.keys(CARDS) as CardId[]) for (let i = 0; i < MAX_COPIES; i++) pool.push(id);
+  for (const id of from) for (let i = 0; i < MAX_COPIES; i++) pool.push(id);
   // フィッシャー–イェーツの混ぜ方（rng が同じなら結果も同じ）
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));

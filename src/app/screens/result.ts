@@ -3,7 +3,7 @@
 // 戦績はここではなく、対局画面の onOver・投了で記録する（二重に数えないため）。
 // 友と対局（friend）：入った時点で対局の中身を消す。「もう一度」は同じ相手と札選びから、「タイトルへ」でつながりを捨てる
 import type { CardId, Result } from '../../rules/types';
-import type { Level } from '../../ai/levels';
+import { isLevel, type Level } from '../../ai/levels';
 import { getStage } from '../../view/stage';
 import { setHighlights } from '../../view/board3d';
 import { outcomeOf, resultWords } from '../outcome';
@@ -19,7 +19,7 @@ export interface ResultParams { result: Result; level: Level; deck: CardId[]; ke
 
 export function resultScreen(params: unknown): Screen {
   const p = params as Partial<ResultParams> | undefined;
-  const level: Level = p?.level === 'normal' || p?.level === 'strong' ? p.level : 'weak';
+  const level: Level = isLevel(p?.level) ? p.level : 'weak';
   const deck = p?.deck ?? [];
   const keiko = keikoOf(p?.keiko);
   const result: Result = p?.result ?? { winner: null, reason: 'move-limit' };

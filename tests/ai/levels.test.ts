@@ -1,8 +1,8 @@
-import { test, expect } from 'vitest';
+import { describe, test, expect } from 'vitest';
 
 // lib に DOM がないので、console の型は最小のものを自前で宣言する
 declare const console: { log(...args: unknown[]): void };
-import { LEVELS, chooseCpuAction, type Level } from '../../src/ai/levels';
+import { JOMAKU, LEVEL_IDS, LEVELS, OOZUME, chooseCpuAction, isLevel, type Level } from '../../src/ai/levels';
 import { makeRng } from '../../src/ai/random';
 import { validateDeck } from '../../src/cards';
 import { applyAction, createGame, legalActions } from '../../src/rules/game';
@@ -143,3 +143,26 @@ test('読む量の上限は、考える時間と同じ割合で縮む（考え�
   expect(full.nodes).toBeLessThanOrEqual(LEVELS.strong.maxNodes! * 2 + 200);
   expect(half.nodes).toBeLessThanOrEqual(LEVELS.strong.maxNodes! * 0.5 * 2 + 200);
 }, 60_000);
+
+describe('大詰の3人', () => {
+  test('強さは6つ。序幕の3つ→大詰の3つの順', () => {
+    expect(LEVEL_IDS).toEqual(['weak', 'normal', 'strong', 'oni', 'shihan', 'kabuki']);
+    expect(JOMAKU).toEqual(['weak', 'normal', 'strong']);
+    expect(OOZUME).toEqual(['oni', 'shihan', 'kabuki']);
+  });
+  test('isLevel は6つの id だけを通す', () => {
+    for (const l of LEVEL_IDS) expect(isLevel(l)).toBe(true);
+    for (const v of ['hard', undefined, 3, null, 'Oni']) expect(isLevel(v)).toBe(false);
+  });
+  test('考える時間は 鬼3秒・師範4秒・傾奇者5秒。読む量の上限は付けない', () => {
+    expect([LEVELS.oni.timeLimitMs, LEVELS.shihan.timeLimitMs, LEVELS.kabuki.timeLimitMs]).toEqual([3000, 4000, 5000]);
+    for (const l of OOZUME) expect(LEVELS[l].maxNodes).toBeUndefined();
+  });
+  test('札：師範は決まった6枚（コスト10）、鬼は攻めの10種類からくじ、傾奇者は全部からくじ', () => {
+    expect(LEVELS.shihan.deck).toEqual(['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin', 'oshikaeshi']);
+    expect(validateDeck(LEVELS.shihan.deck)).toBeNull();
+    expect(LEVELS.shihan.kuji).toBeUndefined();
+    expect(LEVELS.oni.kuji).toEqual(['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tsuranuki', 'tenma', 'omori']);
+    expect(LEVELS.kabuki.kuji).toBe('all');
+  });
+});

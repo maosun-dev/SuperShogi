@@ -4,7 +4,7 @@
 // 駒落ちが無ければ、くじで決まった先手・後手を「自分の持ち込み」の見出しの横に判で押してから「いざ」。
 // CPU 戦はここでくじを引き、対局へ first（と王を取る演出の案 kingFx）として渡す。友と対局（friend）では相手は「友」、くじは誘った側が引いたもの
 import type { CardId } from '../../rules/types';
-import type { Level } from '../../ai/levels';
+import { isLevel, type Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
 import { cardHtml } from '../../view/cardArt';
 import { getSound } from '../../fx/sound';
@@ -27,7 +27,7 @@ const KUJI_DELAY = 1000; // くじの判のぶん「いざ」を遅らせる
 
 export function revealScreen(params: unknown): Screen {
   const q = (params ?? {}) as Partial<RevealParams>;
-  const level: Level = q.level === 'normal' || q.level === 'strong' ? q.level : 'weak';
+  const level: Level = isLevel(q.level) ? q.level : 'weak';
   const keiko = keikoOf(q.keiko);
   // 友と対局：札・駒落ち・先手は Session の setup から（自分の席から見た形にする）
   const setup = q.friend ? peekSession()?.setup() ?? null : null;

@@ -1,7 +1,7 @@
 // 開発用の局面づくり（app 側に置く。view/fx は createGame/applyAction を使わない決まりのため）
 import type { Action, CardId, GameState, Square } from '../rules/types';
 import { CARDS } from '../cards';
-import { LEVELS, type Level } from '../ai/levels';
+import { isLevel, LEVELS, type Level } from '../ai/levels';
 import type { Match } from './match';
 import type { CpuClient } from '../ai/client';
 import { makeRng } from '../ai/random';
@@ -125,7 +125,7 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
   if (!fx) return null;
   const q = new URLSearchParams(location.search);
   const cpu = q.get('cpu');
-  const level: Level = cpu === 'normal' || cpu === 'strong' ? cpu : 'weak';
+  const level: Level = isLevel(cpu) ? cpu : 'weak';
   const deck: CardId[] = fx.card ? [fx.card] : fx.scene === 'kagami' ? ['rakurai'] : [];
   const s = createGame({ sente: deck, gote: cpu ? LEVELS[level].deck : [] });
   const trap = (cardId: CardId, at: Square | null): void => {
@@ -446,7 +446,7 @@ export function installFxKey(match: Match, submit: (a: Action) => void): () => v
 export function autoLevel(): Level | null {
   if (!import.meta.env.DEV) return null;
   const v = new URLSearchParams(location.search).get('auto');
-  return v === 'weak' || v === 'normal' || v === 'strong' ? v : null;
+  return isLevel(v) ? v : null;
 }
 
 /** 自動対局で対局画面を開くための引数。ふだんは null */

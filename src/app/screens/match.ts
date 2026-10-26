@@ -1,9 +1,10 @@
 // 対局画面：上の帯・盤・下の帯・手札。タップを reduceInput で合法な行動に変え、進行役に渡す。
 // friend のときは友と対局：進行役は FriendMatch、下の帯に「待った」の判、待ったの短冊、つなぎ直しの幕を出す。戦績は付けない
 import type { CardId, GameEvent, GameState, HandKind, Result, Side, Square } from '../../rules/types';
-import type { Level } from '../../ai/levels';
+import { isLevel, LEVELS, type Level } from '../../ai/levels';
 import { validateDeck } from '../../cards';
-import { keikoOf, type Keiko } from '../keiko';
+import { drawFoeDeck, keikoOf, type Keiko } from '../keiko';
+import { makeRng } from '../../ai/random';
 import { createMatch, type Match, type Presenter } from '../match';
 import { createFriendMatch, type FriendMatch } from '../friendMatch';
 import { endSession, peekSession } from '../../net/current';
@@ -30,7 +31,7 @@ export interface MatchParams {
   level: Level;
   deck: CardId[];
   keiko?: Keiko;       // 稽古の対局（戦績に数えない）
-  foeDeck?: CardId[];  // 稽古で札見せのときに決めた相手の持ち込み
+  foeDeck?: CardId[];  // 札見せのときに決めた相手の持ち込み（稽古・くじの強さ）
   initial?: GameState; // 開発用：本当の局面を差し込む（演出の試し口 ?fx=）。通常は使わない
   fxKey?: boolean;     // 開発用：Space キーでカードを使う
   auto?: boolean;      // 開発用：人間側も CPU が指す自動対局（?auto=）。演出は短め・戦績に数えない
@@ -44,11 +45,13 @@ const REFUSED_MS = 1600; // 「断られました」を見せる長さ
 
 function paramsOf(p: unknown): MatchParams {
   const q = (p ?? {}) as Partial<MatchParams>;
-  const level: Level = q.level ?? 'weak';
+  const level: Level = isLevel(q.level) ? q.level : 'weak';
   const deck = q.deck ?? [];
   const keiko = keikoOf(q.keiko);
-  // 相手の札が決まりに合わなければ、強さごとの札にする
-  const foeDeck = keiko && q.foeDeck && validateDeck(q.foeDeck) === null ? q.foeDeck : undefined;
+  // 相手の札：稽古・くじの強さ（鬼・傾奇者）は札見せで決めた札。決まりに合わない・無いときは、強さごとの札（くじの強さなら引き直す）
+  const drawn = keiko || LEVELS[level].kuji ? q.foeDeck : undefined;
+  const foeDeck = drawn && validateDeck(drawn) === null ? drawn
+    : !keiko && LEVELS[level].kuji ? drawFoeDeck(level, undefined, makeRng(Date.now())) : undefined;
   if (q.friend) return { level, deck, friend: true };
   const first: Side | undefined = q.first === 'sente' || q.first === 'gote' ? q.first : undefined;
   const kingFx = isKingFx(q.kingFx) ? q.kingFx : undefined;
