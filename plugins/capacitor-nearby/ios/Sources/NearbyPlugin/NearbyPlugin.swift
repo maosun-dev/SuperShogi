@@ -57,8 +57,9 @@ public class NearbyPlugin: CAPPlugin, CAPBridgedPlugin, MCSessionDelegate, MCNea
     private func newSession(_ displayName: String) -> MCSession {
         teardown()
         let me = MCPeerID(displayName: displayName)
-        // 暗号は必須のまま。.none にしたら同じ Wi-Fi でもつながらなくなった（1.0.1、2026-10-27）
-        let s = MCSession(peer: me, securityIdentity: nil, encryptionPreference: .required)
+        // 暗号はかけない。1.0（.required）は外ですぐ切れて対局にならず、.none では安定した（2026-10-27）。
+        // 送るのは指し手と札だけで、個人の情報はない。暗号の設定が違う版同士はつながらないので、むやみに変えない
+        let s = MCSession(peer: me, securityIdentity: nil, encryptionPreference: .none)
         s.delegate = self
         session = s
         return s
