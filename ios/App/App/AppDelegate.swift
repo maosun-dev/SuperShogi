@@ -1,4 +1,5 @@
 import UIKit
+import AVFoundation
 import Capacitor
 
 @UIApplicationMain
@@ -7,8 +8,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // 音の通り道（オーディオセッション）をアプリで持つ。裏から戻ると WebView の音が出なくなり、
+        // AudioContext を作り直しても戻らなかった（1.0.1、2026-10-27）ので、表に出るたびに付け直す。
+        // ambient＝消音スイッチに従い、ほかのアプリの音とも混ぜる（今までと同じふるまい）
+        activateAudio()
+        for name in [UIApplication.willEnterForegroundNotification, UIApplication.didBecomeActiveNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.activateAudio()
+            }
+        }
         return true
+    }
+
+    private func activateAudio() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.ambient, mode: .default)
+        try? session.setActive(true)
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
