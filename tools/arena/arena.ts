@@ -4,8 +4,9 @@
 //   mode=levels：強さどうし（weak-normal / normal-strong / weak-strong）。先後は交互
 //   mode=cards ：同じ強さ（normal）どうしで、持ち込みをでたらめに組む
 //   mode=pair:<強さ>:<強さ>：その2つの強さだけ
-import { LEVELS, chooseCpuAction, type Level } from '../../src/ai/levels';
+import { chooseCpuAction, type Level } from '../../src/ai/levels';
 import { makeRng } from '../../src/ai/random';
+import { deckFor } from './decks';
 import { applyAction, createGame } from '../../src/rules/game';
 import { viewFor } from '../../src/rules/view';
 import { CARDS, validateDeck } from '../../src/cards';
@@ -85,7 +86,7 @@ function setup(mode: string, n: number, rand: () => number): Record<Side, { leve
   const [a, b] = pairs[n % pairs.length];
   const flip = Math.floor(n / pairs.length) % 2 === 1;
   const [x, y] = flip ? [b, a] : [a, b];
-  return { sente: { level: x, deck: LEVELS[x].deck }, gote: { level: y, deck: LEVELS[y].deck } };
+  return { sente: { level: x, deck: deckFor(x, rand) }, gote: { level: y, deck: deckFor(y, rand) } };
 }
 
 function main(): void {
