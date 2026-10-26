@@ -1,6 +1,6 @@
 // 駒ごとの動ける先・成りの判定・打てる場所
 import type { GameState, HandKind, Piece, PieceKind, Side, Square } from './types';
-import { forward, idx, onBoard, opponent, sqOf } from './board';
+import { forward, idx, opponent, sqOf } from './board';
 
 // 向きは [横, 前]。前が正なら、その駒の持ち主から見て前へ進む
 type Vec = readonly [number, number];
@@ -34,44 +34,57 @@ function vectors(p: Piece): { steps: Vec[]; slides: Vec[] } {
 // その駒が動ける先（味方のいるマスは除く。相手の駒のマスは含む）。
 // 凍った駒は動けない。重りの枷を付けた駒は隣8マスだけ。貫きの槍は滑る途中の駒を1つ飛び越えられる。退き陣の旗は真後ろへ1マス
 export function pieceTargets(s: GameState, from: Square): Square[] {
-  const p = s.board[idx(from)];
+  return pieceTargetIdx(s, idx(from)).map(sqOf);
+}
+
+const BACK: Vec[] = [[0, -1]];
+
+// pieceTargets と同じマスを同じ並び順で、マスの番号（r*9+c）で返す。CPU の読みで何度も呼ぶので、マスの物を作らない
+export function pieceTargetIdx(s: GameState, from: number): number[] {
+  const p = s.board[from];
   if (!p || p.frozen) return [];
   const f = forward(p.side);
+  const fc = from % 9, fr = (from - fc) / 9;
   const { steps, slides } = vectors(p);
   // 天馬の蹄は桂馬の動きを足す。退き陣の旗は成っていない駒に真後ろ1マスを足す
-  const extra: Vec[] = p.equip?.cardId === 'tenma' ? KNIGHT
-    : p.equip?.cardId === 'hikijin' && !p.promoted ? [[0, -1]] : [];
-  const out: Square[] = [];
-  const seen = new Set<number>();
-  const add = (sq: Square) => {
-    const i = idx(sq);
-    if (!seen.has(i)) { seen.add(i); out.push(sq); }
+  const equip = p.equip?.cardId;
+  const extra: readonly Vec[] = equip === 'tenma' ? KNIGHT : equip === 'hikijin' && !p.promoted ? BACK : [];
+  const out: number[] = [];
+  // 重なりが起こりうるのは足す動きがあるときだけ（桂に天馬など）
+  const dedupe = extra.length > 0;
+  const add = (i: number) => {
+    if (!dedupe || !out.includes(i)) out.push(i);
   };
-  for (const [dc, df] of [...steps, ...extra]) {
-    const to = { c: from.c + dc, r: from.r + df * f };
-    if (!onBoard(to)) continue;
-    const q = s.board[idx(to)];
-    if (q && q.side === p.side) continue;
-    add(to);
-  }
-  const pierce = p.equip?.cardId === 'tsuranuki';
+  const step = (dc: number, df: number) => {
+    const c = fc + dc, r = fr + df * f;
+    if (c < 0 || c > 8 || r < 0 || r > 8) return;
+    const i = r * 9 + c;
+    const q = s.board[i];
+    if (q && q.side === p.side) return;
+    add(i);
+  };
+  for (const [dc, df] of steps) step(dc, df);
+  for (const [dc, df] of extra) step(dc, df);
+  const pierce = equip === 'tsuranuki';
   for (const [dc, df] of slides) {
-    let to = { c: from.c + dc, r: from.r + df * f };
+    const dr = df * f;
+    let c = fc + dc, r = fr + dr;
     let jumped = false;
-    while (onBoard(to)) {
-      const q = s.board[idx(to)];
+    while (c >= 0 && c <= 8 && r >= 0 && r <= 8) {
+      const i = r * 9 + c;
+      const q = s.board[i];
       if (q) {
-        if (q.side !== p.side) add(to);
+        if (q.side !== p.side) add(i);
         if (!pierce || jumped) break;
         jumped = true;
       } else {
-        add(to);
+        add(i);
       }
-      to = { c: to.c + dc, r: to.r + df * f };
+      c += dc; r += dr;
     }
   }
-  if (p.equip?.cardId === 'omori') {
-    return out.filter(t => Math.abs(t.c - from.c) <= 1 && Math.abs(t.r - from.r) <= 1);
+  if (equip === 'omori') {
+    return out.filter(t => Math.abs((t % 9) - fc) <= 1 && Math.abs(Math.floor(t / 9) - fr) <= 1);
   }
   return out;
 }

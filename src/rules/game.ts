@@ -4,7 +4,7 @@ import { IllegalActionError } from './types';
 import { HAND_KINDS, applyHandicap, cloneState, emptyHand, idx, initialBoard, opponent, positionKey, sameSq, sqOf } from './board';
 import { pieceValue } from './values';
 import type { TrapTrigger } from '../cards/types';
-import { canPromote, dropTargets, isInCheck, mustPromote, pieceTargets } from './moves';
+import { canPromote, dropTargets, isInCheck, mustPromote, pieceTargetIdx, pieceTargets } from './moves';
 import { CARDS, validateDeck } from '../cards';
 import type { CardContext } from '../cards/types';
 
@@ -88,8 +88,9 @@ export function moveActions(s: GameState): Action[] {
     if (!p || p.side !== side) continue;
     const from = sqOf(i);
     const double = hasEquip(p, 'doubleMove');
-    for (const to of pieceTargets(s, from)) {
-      const target = s.board[idx(to)];
+    for (const t of pieceTargetIdx(s, i)) {
+      const to = sqOf(t);
+      const target = s.board[t];
       for (const promote of promoteOptions(p, from, to)) {
         out.push({ type: 'move', from, to, promote });
         // 韋駄天：取らない2回目。1手目で王を取るなら2回目はない
@@ -433,7 +434,7 @@ function hasAnyAction(s: GameState): boolean {
     const p = s.board[i];
     if (!p || p.side !== s.turn) continue;
     const from = sqOf(i);
-    if (pieceTargets(s, from).some(to => promoteOptions(p, from, to).length > 0)) return true;
+    if (pieceTargetIdx(s, i).some(t => promoteOptions(p, from, sqOf(t)).length > 0)) return true;
   }
   return legalActions(s).length > 0;
 }

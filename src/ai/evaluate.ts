@@ -1,8 +1,8 @@
 // CPU 用の局面の点数（side から見た 自分−相手）
 import { CARDS } from '../cards';
 import { OMORI_TURNS } from '../cards/equip';
-import { HAND_KINDS, idx, opponent, sqOf } from '../rules/board';
-import { pieceTargets } from '../rules/moves';
+import { HAND_KINDS, idx, opponent } from '../rules/board';
+import { pieceTargetIdx } from '../rules/moves';
 import type { CardId, GameState, Side, Square } from '../rules/types';
 
 import { PIECE_VALUE, PROMOTED_VALUE } from '../rules/values';
@@ -29,7 +29,7 @@ function nonKingReach(s: GameState, by: Side): Set<number> {
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
     if (!p || p.side !== by || p.kind === 'OU') continue;
-    for (const t of pieceTargets(s, sqOf(i))) out.add(idx(t));
+    for (const t of pieceTargetIdx(s, i)) out.add(t);
   }
   return out;
 }
@@ -74,7 +74,7 @@ function attackMap(s: GameState, by: Side): Uint8Array {
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
     if (!p || p.side !== by) continue;
-    for (const t of pieceTargets(s, sqOf(i))) m[idx(t)]++;
+    for (const t of pieceTargetIdx(s, i)) m[t]++;
   }
   return m;
 }

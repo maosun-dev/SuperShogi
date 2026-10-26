@@ -2,7 +2,7 @@
 // 見えている局面だけを見る。相手の伏せた札の中身と場所は使わない
 import { CARDS } from '../cards';
 import { idx, sqOf } from '../rules/board';
-import { isInCheck, pieceTargets } from '../rules/moves';
+import { isInCheck, pieceTargetIdx } from '../rules/moves';
 import { PROMOTED_VALUE, pieceValue } from '../rules/values';
 import type { Action, CardId, GameState, Side, Square } from '../rules/types';
 
@@ -39,7 +39,7 @@ function foeReach(s: GameState, side: Side): Set<number> {
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
     if (!p || p.side === side || p.kind === 'OU') continue;
-    for (const t of pieceTargets(s, sqOf(i))) out.add(idx(t));
+    for (const t of pieceTargetIdx(s, i)) out.add(t);
   }
   return out;
 }
