@@ -61,11 +61,25 @@ test('誘う→探す→つなぐ で両方とも札選びへ', async () => {
   expect(p.guest.seat()).toBe('gote');
 });
 
-test('版が違えばつながない', async () => {
+test('版が違えば、つなぐ前に知らせてつながない', async () => {
   const p = await pair({ hostVersion: '2' });
   expect(p.ge).toContainEqual({ type: 'versionMismatch' });
   expect(p.guest.phase()).toBe('closed');
-  expect(p.host.phase()).toBe('closed');
+  expect(p.host.phase()).toBe('hosting'); // 誘う側は待ったまま
+});
+
+test('版を知らせない古い版（1.0）の相手も、版違いとして知らせる', async () => {
+  const links = createPairLinks();
+  const guest = createSession(links.b, { version: '1', rng: seq(0.1), stopDelayMs: 0 });
+  const ge: SessionEvent[] = [];
+  guest.on((e) => ge.push(e));
+  void links.a.host('金将の五'); // 古い版は合言葉だけで誘う
+  guest.browse();
+  await flush();
+  guest.join(guest.peers()[0]!.peer);
+  await flush();
+  expect(ge).toContainEqual({ type: 'versionMismatch' });
+  expect(guest.phase()).toBe('closed');
 });
 
 test('両方の札がそろうと、同じ setup で始まる。駒落ちがあれば落とした側が先', async () => {

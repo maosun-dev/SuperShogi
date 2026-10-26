@@ -72,7 +72,10 @@ public class NearbyPlugin: CAPPlugin, CAPBridgedPlugin, MCSessionDelegate, MCNea
         DispatchQueue.main.async {
             let s = self.newSession("host")
             self.hostName = name
-            let adv = MCNearbyServiceAdvertiser(peer: s.myPeerID, discoveryInfo: ["name": name], serviceType: self.serviceType)
+            // 版も知らせ、探す側がつなぐ前に見比べられるようにする（1.0 は name だけ）
+            var info = ["name": name]
+            if let v = call.getString("version") { info["version"] = v }
+            let adv = MCNearbyServiceAdvertiser(peer: s.myPeerID, discoveryInfo: info, serviceType: self.serviceType)
             adv.delegate = self
             adv.startAdvertisingPeer()
             self.advertiser = adv
@@ -144,7 +147,7 @@ public class NearbyPlugin: CAPPlugin, CAPBridgedPlugin, MCSessionDelegate, MCNea
             guard browser === self.browser else { return }
             let name = info?["name"] ?? ""
             self.nameByPeer[peerID] = name
-            self.notifyListeners("found", data: ["peer": self.peerId(peerID), "name": name])
+            self.notifyListeners("found", data: ["peer": self.peerId(peerID), "name": name, "version": info?["version"] ?? ""])
         }
     }
 

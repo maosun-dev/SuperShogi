@@ -4,7 +4,7 @@ import type { Link } from './link';
 import { emitter } from './emitter';
 
 type Wire =
-  | { k: 'advert'; from: string; name: string }          // 誘っています（探している人へ）
+  | { k: 'advert'; from: string; name: string; version: string | null } // 誘っています（探している人へ）
   | { k: 'browse'; from: string }                         // 探しています（誘っている人へ）
   | { k: 'join'; from: string; to: string }
   | { k: 'accept'; from: string; to: string; name: string }
@@ -24,6 +24,7 @@ export function createFakeLink(channel = 'super-shogi-fake'): Link {
   const bc = new BroadcastChannel(channel);
   const ev = emitter();
   let hosting: string | null = null;
+  let version: string | null = null;
   let browsing = false;
   let peer: string | null = null;
   let blockedUntil = 0;
@@ -39,7 +40,7 @@ export function createFakeLink(channel = 'super-shogi-fake'): Link {
   // 切れている間に誘う・探すを頼まれたら、切れ終わったときに名乗り直す
   const announceLater = (ms: number): void => {
     setTimeout(() => {
-      if (hosting !== null) post({ k: 'advert', from: me, name: hosting });
+      if (hosting !== null) post({ k: 'advert', from: me, name: hosting, version });
       if (browsing) post({ k: 'browse', from: me });
     }, ms + 50);
   };
@@ -56,8 +57,8 @@ export function createFakeLink(channel = 'super-shogi-fake'): Link {
     if (blocked()) return;
     if ('to' in w && w.to !== me) return;
     switch (w.k) {
-      case 'advert': if (browsing && !peer) ev.emit({ type: 'found', peer: w.from, name: w.name }); break;
-      case 'browse': if (hosting !== null && !peer) post({ k: 'advert', from: me, name: hosting }); break;
+      case 'advert': if (browsing && !peer) ev.emit({ type: 'found', peer: w.from, name: w.name, version: w.version }); break;
+      case 'browse': if (hosting !== null && !peer) post({ k: 'advert', from: me, name: hosting, version }); break;
       case 'join':
         if (hosting === null || peer) return;
         peer = w.from;
@@ -80,7 +81,7 @@ export function createFakeLink(channel = 'super-shogi-fake'): Link {
   };
 
   return {
-    async host(name) { hosting = name; post({ k: 'advert', from: me, name }); },
+    async host(name, v) { hosting = name; version = v ?? null; post({ k: 'advert', from: me, name, version }); },
     async browse() { browsing = true; post({ k: 'browse', from: me }); },
     async join(p) { post({ k: 'join', from: me, to: p }); },
     async send(data) { if (peer) post({ k: 'data', from: me, to: peer, data }); },

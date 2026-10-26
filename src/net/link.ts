@@ -6,7 +6,7 @@ import { createFakeLink } from './fakeLink';
 import { emitter } from './emitter';
 
 export type LinkEvent =
-  | { type: 'found'; peer: string; name: string }
+  | { type: 'found'; peer: string; name: string; version: string | null } // version：誘う側の版（1.0 は知らせないので null）
   | { type: 'lost'; peer: string }
   | { type: 'connected'; peer: string; name: string }
   | { type: 'disconnected'; peer: string }
@@ -14,7 +14,7 @@ export type LinkEvent =
   | { type: 'message'; data: string };
 
 export interface Link {
-  host(name: string): Promise<void>;   // 合言葉 name で誘う。来た相手は受け入れる（1人だけ）
+  host(name: string, version?: string): Promise<void>; // 合言葉 name で誘う（版も知らせる）。来た相手は受け入れる（1人だけ）
   browse(): Promise<void>;             // 誘っている人を探す
   join(peer: string): Promise<void>;   // 見つけた相手につなぐ（失敗したら failed）
   send(data: string): Promise<void>;   // 順番どおり確実に送る（つながっていなければ捨てる）
@@ -24,8 +24,8 @@ export interface Link {
 
 // ---- テスト用：2つの窓口を直接つなぐ。cut で切り、heal でまたつなげるようにする。failJoin で次のつなぐを1回失敗させる ----
 export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void; failJoin(): void } {
-  interface End { id: string; ev: ReturnType<typeof emitter>; hosting: string | null; browsing: boolean; peer: End | null }
-  const mk = (id: string): End => ({ id, ev: emitter(), hosting: null, browsing: false, peer: null });
+  interface End { id: string; ev: ReturnType<typeof emitter>; hosting: string | null; version: string | null; browsing: boolean; peer: End | null }
+  const mk = (id: string): End => ({ id, ev: emitter(), hosting: null, version: null, browsing: false, peer: null });
   const A = mk('A'), B = mk('B');
   let healthy = true;
   let failNext = false;
@@ -36,8 +36,8 @@ export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void
     for (const h of [A, B]) {
       const o = other(h);
       if (healthy && h.hosting !== null && o.browsing && !h.peer) {
-        const name = h.hosting;
-        later(() => o.ev.emit({ type: 'found', peer: h.id, name }));
+        const name = h.hosting, version = h.version;
+        later(() => o.ev.emit({ type: 'found', peer: h.id, name, version }));
       }
     }
   };
@@ -48,7 +48,7 @@ export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void
     later(() => { e.ev.emit({ type: 'disconnected', peer: o.id }); o.ev.emit({ type: 'disconnected', peer: e.id }); });
   };
   const link = (e: End): Link => ({
-    async host(name) { e.hosting = name; announce(); },
+    async host(name, version) { e.hosting = name; e.version = version ?? null; announce(); },
     async browse() { e.browsing = true; announce(); },
     async join(peer) {
       const h = other(e);
@@ -80,7 +80,7 @@ export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void
 
 // ---- iPhone：近距離の部品（plugins/capacitor-nearby） ----
 interface NearbyPlugin {
-  host(o: { name: string }): Promise<void>;
+  host(o: { name: string; version?: string }): Promise<void>;
   browse(): Promise<void>;
   join(o: { peer: string }): Promise<void>;
   send(o: { data: string }): Promise<void>;
@@ -91,14 +91,14 @@ interface NearbyPlugin {
 export function createNativeLink(): Link {
   const plugin = registerPlugin<NearbyPlugin>('Nearby');
   const ev = emitter();
-  void plugin.addListener('found', (e) => ev.emit({ type: 'found', peer: e.peer, name: e.name }));
+  void plugin.addListener('found', (e) => ev.emit({ type: 'found', peer: e.peer, name: e.name, version: e.version || null }));
   void plugin.addListener('lost', (e) => ev.emit({ type: 'lost', peer: e.peer }));
   void plugin.addListener('connected', (e) => ev.emit({ type: 'connected', peer: e.peer, name: e.name }));
   void plugin.addListener('disconnected', (e) => ev.emit({ type: 'disconnected', peer: e.peer }));
   void plugin.addListener('failed', (e) => ev.emit({ type: 'failed', peer: e.peer }));
   void plugin.addListener('message', (e) => ev.emit({ type: 'message', data: e.data }));
   return {
-    host: (name) => plugin.host({ name }),
+    host: (name, version) => plugin.host({ name, version }),
     browse: () => plugin.browse(),
     join: (peer) => plugin.join({ peer }),
     send: (data) => plugin.send({ data }),

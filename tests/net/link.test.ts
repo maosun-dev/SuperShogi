@@ -43,7 +43,7 @@ test('対の窓口：誘う→探す→見つかる→つなぐ→送る→切�
   await a.host('桂馬の三');
   await b.browse();
   await flush();
-  expect(eb).toContainEqual({ type: 'found', peer: 'A', name: '桂馬の三' });
+  expect(eb).toContainEqual({ type: 'found', peer: 'A', name: '桂馬の三', version: null });
   await b.join('A');
   await flush();
   expect(ea).toContainEqual({ type: 'connected', peer: 'B', name: 'guest' });

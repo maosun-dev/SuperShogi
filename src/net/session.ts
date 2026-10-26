@@ -72,6 +72,7 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
   let phase: SessionPhase = 'idle';
   let code: string | null = null;
   const peers = new Map<string, string>();
+  const peerVersions = new Map<string, string | null>(); // 見つけた相手の版（つなぐ前に見比べる）
   let connected = false;
   let retries = 0; // つなぎ直しで、つなぐのに失敗して頼み直した回数
   let myReady: { deck: CardId[]; handicap?: Handicap } | null = null;
@@ -112,7 +113,7 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
   }
   // 切れたあと、もう一度誘う・探す
   function searchAgain(): void {
-    if (role === 'host' && code) void link.host(code);
+    if (role === 'host' && code) void link.host(code, version);
     else { peers.clear(); void link.browse(); }
   }
 
@@ -195,6 +196,7 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
       case 'found':
         if (role !== 'guest') return;
         peers.set(e.peer, e.name);
+        peerVersions.set(e.peer, e.version);
         emit({ type: 'peers' });
         if (phase === 'reconnecting' && e.name === code) { retries = 0; void link.join(e.peer); }
         return;
@@ -250,7 +252,7 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
     host() {
       role = 'host'; phase = 'hosting';
       code = makeCode(rng);
-      void link.host(code);
+      void link.host(code, version);
     },
     browse() {
       role = 'guest'; phase = 'browsing';
@@ -258,7 +260,10 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
       void link.browse();
     },
     join(peer) {
-      if (phase === 'browsing') void link.join(peer);
+      if (phase !== 'browsing') return;
+      // 版が違う相手とはつながらない（近距離の暗号の設定が版で違うと、つながる前に止まって知らせられない）
+      if (peerVersions.get(peer) !== version) { close(); emit({ type: 'versionMismatch' }); return; }
+      void link.join(peer);
     },
     ready(deck, handicap) {
       if (phase !== 'deck' && phase !== 'over') return;
