@@ -112,12 +112,46 @@ export function dropTargets(s: GameState, side: Side, kind: HandKind): Square[] 
   return out;
 }
 
+// from（マスの番号）の駒が to へ動けるか。pieceTargets(s, sqOf(from)) に to が入っているかと必ず同じ答え。
+// 動ける先を全部並べずに、向きの差し引きと間のマスだけで決める（王手の確かめ・点数づけで何度も呼ぶため）
+export function attacks(s: GameState, from: number, to: number): boolean {
+  if (from === to) return false;
+  const p = s.board[from];
+  if (!p || p.frozen) return false;
+  const q = s.board[to];
+  if (q && q.side === p.side) return false;
+  const fc = from % 9, fr = (from - fc) / 9;
+  const tc = to % 9, tr = (to - tc) / 9;
+  const dc = tc - fc;
+  const df = (tr - fr) * forward(p.side); // 持ち主から見て前へ何マスか
+  const equip = p.equip?.cardId;
+  if (equip === 'omori' && (Math.abs(dc) > 1 || Math.abs(df) > 1)) return false;
+  const { steps, slides } = vectors(p);
+  for (const [vc, vf] of steps) if (vc === dc && vf === df) return true;
+  if (equip === 'tenma' && (dc === -1 || dc === 1) && df === 2) return true;
+  if (equip === 'hikijin' && !p.promoted && dc === 0 && df === -1) return true;
+  // 滑る動き：to がその筋の上にあり、間の駒が0（貫きの槍なら1つまで）
+  const allowed = equip === 'tsuranuki' ? 1 : 0;
+  for (const [vc, vf] of slides) {
+    if ((vc === 0 && dc !== 0) || (vf === 0 && df !== 0)) continue;
+    const k = vc !== 0 ? dc * vc : df * vf;
+    if (k < 1 || (vc !== 0 && vf !== 0 && dc * vc !== df * vf)) continue;
+    const stepR = (tr - fr) / k, stepC = dc / k;
+    let blockers = 0;
+    for (let n = 1; n < k; n++) {
+      if (s.board[(fr + stepR * n) * 9 + fc + stepC * n] && ++blockers > allowed) break;
+    }
+    if (blockers <= allowed) return true;
+  }
+  return false;
+}
+
 // side の駒のどれかが sq に動けるか
 export function attackedBy(s: GameState, sq: Square, side: Side): boolean {
+  const to = idx(sq);
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
-    if (!p || p.side !== side) continue;
-    if (pieceTargets(s, sqOf(i)).some(t => t.c === sq.c && t.r === sq.r)) return true;
+    if (p && p.side === side && attacks(s, i, to)) return true;
   }
   return false;
 }
