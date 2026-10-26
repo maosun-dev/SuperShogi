@@ -198,3 +198,18 @@ test('対局で前に出た局面へ戻る手は、ほかに同じくらいの�
   const again = search({ ...s, seen: { ...s.seen, [keyAfter]: 1 } }, 'sente', { ...BASE, maxDepth: 2 });
   expect(again.action).not.toEqual(first.action);
 });
+
+test('maxNodes に達したら打ち切り、それまでに読み終えた深さの手を返す', () => {
+  const s = createGame({ sente: [], gote: [] });
+  const r = search(s, 'sente', { ...BASE, maxDepth: 6, timeLimitMs: 60_000, maxNodes: 3000 });
+  expect(r.nodes).toBeLessThan(3000 * 2 + 200);
+  expect(r.depth).toBeGreaterThanOrEqual(1);
+});
+
+test('maxNodes があっても時間の上限は効く', () => {
+  let t = 0;
+  const now = () => (t += 10);
+  const s = createGame({ sente: [], gote: [] });
+  const r = search(s, 'sente', { ...BASE, maxDepth: 6, timeLimitMs: 100, maxNodes: 10_000_000, now });
+  expect(r.depth).toBeLessThan(6);
+});

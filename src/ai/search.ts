@@ -17,6 +17,7 @@ export interface SearchOptions {
   cardPlies: number;     // 根から何手目までカードの行動を候補に入れるか
   cardWidth: number;     // 候補に入れるカードの行動の数の上限
   noise: number;         // 末端の点数に混ぜるゆらぎの幅（±noise）
+  maxNodes?: number;     // 調べた局面数がこれに達したら、時間切れと同じく打ち切る（無ければ上限なし）
   seed: number;
   now?: () => number;    // 既定は Date.now（テストで差し替える）
 }
@@ -140,7 +141,13 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   // 局面を1つ数え、CHECK_EVERY 局面ごとに時計を見る
   function tick(): void {
     nodes++;
-    if (nodes % CHECK_EVERY === 0 && now() - start >= (canStop ? opts.timeLimitMs : opts.timeLimitMs * 2)) throw new TimeUp();
+    if (nodes % CHECK_EVERY === 0 && outOfBudget(canStop ? 1 : 2)) throw new TimeUp();
+  }
+
+  // 時間か読む量の上限を過ぎたか。根の候補を1つ読み終えるまでは、どちらも scale 倍まで待つ
+  const maxNodes = opts.maxNodes ?? Infinity;
+  function outOfBudget(scale: number): boolean {
+    return now() - start >= opts.timeLimitMs * scale || nodes >= maxNodes * scale;
   }
 
   const path = new Set<string>(); // 根からいまの局面までに通った局面
@@ -355,7 +362,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
         partial = { action: bestAction, score: bestScore };
         canStop = true;
         // 局面数が少なくても、候補を1つ読むごとに時計を見る
-        if (now() - start >= opts.timeLimitMs) throw new TimeUp();
+        if (outOfBudget(1)) throw new TimeUp();
       }
     }
     return { action: bestAction, score: bestScore };
@@ -363,7 +370,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
 
   let result: SearchResult | null = null;
   for (let depth = 1; depth <= opts.maxDepth; depth++) {
-    if (result && now() - start >= opts.timeLimitMs) break;
+    if (result && outOfBudget(1)) break;
     maxPly = depth + EXTEND_MORE;
     try {
       const r = rootSearch(depth, result?.action ?? null);
