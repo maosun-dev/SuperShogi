@@ -14,7 +14,7 @@ export interface Hud {
   setPrompt(text: string | null, opts?: { stop?: boolean; choices?: HandKind[] }): void;
   askPromote(): void;          // 成る／成らないの2つのボタン
   on(ev: HudEvent, fn: (arg?: unknown) => void): void;
-  lock(locked: boolean): void; // 演出中・思考中は押せない見た目にする
+  lock(locked: boolean): void; // 演出中・思考中は押せない見た目にする（手札の説明は読める）
   /** 選んでいる持ち駒・カードを目立たせる（選んでいなければ null） */
   select(sel: { hand?: HandKind | null; card?: number | null }): void;
   /** カードの説明の板を開く。usable が false なら「使う」を押せなくする */
@@ -362,7 +362,8 @@ export function createHud(root: HTMLElement): Hud {
     },
     lock(locked) {
       root.classList.toggle('locked', locked);
-      if (locked) hud.hideDetail();
+      // 使える札の説明は閉じる。読むだけの説明は、相手が指しても開いたまま
+      if (locked && !useBtn.disabled) hud.hideDetail();
     },
     select(s) {
       sel = { hand: s.hand ?? null, card: s.card ?? null };

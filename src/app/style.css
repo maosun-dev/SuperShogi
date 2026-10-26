@@ -562,7 +562,6 @@ button:focus-visible {
 .match .hand::-webkit-scrollbar { display: none; }
 .match .hand .none { height: 112px; display: grid; place-items: center; font-size: 13px; opacity: .55; }
 .match .hand .card.off { opacity: .45; }
-.match.locked .hand .card,
 .match.locked .komadai.me .koma { pointer-events: none; }
 .match.locked .hand { opacity: .75; }
 

@@ -230,8 +230,9 @@ export function matchScreen(params: unknown): Screen {
 
       hud.on('hand', (k) => dispatch({ type: 'hand', kind: k as HandKind }));
       hud.on('card', (u) => {
-        if (opening || m.phase() !== 'human' || net?.blocking()) return;
         const uid = u as number;
+        // 自分の番でないとき（相手の手番・演出中）は、説明を読むだけ
+        if (opening || m.phase() !== 'human' || net?.blocking()) { hud.showDetail(uid, false); return; }
         // 対象を選んでいる最中に同じ札を押したら、選ぶのをやめる
         if ((st.mode === 'card' || st.mode === 'pick') && st.uid === uid) { dispatch({ type: 'cancel' }); return; }
         hud.showDetail(uid, usable().has(uid));
