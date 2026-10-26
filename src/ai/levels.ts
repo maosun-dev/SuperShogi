@@ -3,7 +3,8 @@
 import type { CardId, GameState, Side } from '../rules/types';
 import { legalActions } from '../rules/game';
 import { CARDS } from '../cards';
-import { search, type SearchOptions, type SearchResult } from './search';
+import { actionKey, search, type SearchOptions, type SearchResult } from './search';
+import { josekiMove } from './joseki';
 import { makeRng } from './random';
 
 export type Level = 'weak' | 'normal' | 'strong' | 'oni' | 'shihan' | 'kabuki';
@@ -18,9 +19,12 @@ export function isLevel(v: unknown): v is Level {
 }
 export const TRAP_BEFORE_SHARE = 0.6; // 忍札を伏せられるうちは、時間のこの割合で考える
 export const TRAP_AFTER_SHARE = 0.4;  // 伏せたあとの、続けて指す手
+// 定跡の手に足す点（歩1枚＝100）。点づけの粗さ（玉を動かす手を高く見がち）を越えて定跡を指せるくらい
+export const JOSEKI_BONUS = 150;
 export interface LevelConfig extends Omit<SearchOptions, 'seed' | 'now'> {
   deck: CardId[];     // 決まった持ち込み（くじの強さでは空）
   kuji?: CardId[] | 'all'; // あれば、札見せのたびにこの範囲（'all' は全18枚）からくじで組む
+  joseki?: boolean;   // 序盤に定跡（joseki.ts）の手を勧める手として読む
   blunder: number;   // この割合で、読まずに駒を動かす手からでたらめに選ぶ（王を取れるときは除く）
 }
 
@@ -47,14 +51,16 @@ export const LEVELS: Record<Level, LevelConfig> = {
     deck: [],
     kuji: ['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tsuranuki', 'tenma', 'omori'],
   },
-  // 師範：札の一発逆転を止める受けの札で固める（毎回同じ・コスト10）
+  // 師範：札の一発逆転を止める受けの札で固める（毎回同じ・コスト10）。序盤は定跡
   shihan: {
     maxDepth: 8, timeLimitMs: 4000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
+    joseki: true, preferBonus: JOSEKI_BONUS,
     deck: ['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin', 'oshikaeshi'],
   },
-  // 傾奇者：全18枚からくじ。最後の相手
+  // 傾奇者：全18枚からくじ。最後の相手。序盤は定跡
   kabuki: {
     maxDepth: 8, timeLimitMs: 5000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
+    joseki: true, preferBonus: JOSEKI_BONUS,
     deck: [],
     kuji: 'all',
   },
@@ -63,7 +69,7 @@ export const LEVELS: Record<Level, LevelConfig> = {
 // view は viewFor(本当の局面, side) で作った「見えている情報」だけの局面。
 // timeScale は考える時間の倍率（CPU 同士を戦わせる道具で短くするため。アプリでは1）
 export function chooseCpuAction(view: GameState, side: Side, level: Level, seed: number, timeScale = 1): SearchResult {
-  const { deck: _deck, blunder, ...opts } = LEVELS[level];
+  const { deck: _deck, kuji: _kuji, joseki, blunder, ...opts } = LEVELS[level];
   if (blunder > 0) {
     const rng = makeRng(seed ^ 0x5bd1e995);
     if (rng() < blunder) {
@@ -82,5 +88,8 @@ export function chooseCpuAction(view: GameState, side: Side, level: Level, seed:
   const share = view.trapSetThisTurn || view.pushFollowUp ? TRAP_AFTER_SHARE : canSetTrap ? TRAP_BEFORE_SHARE : 1;
   // 読む量の上限も、考える時間と同じ割合で縮める（速くする前は時間で止まっていたので）
   const maxNodes = opts.maxNodes === undefined ? undefined : Math.max(1, Math.round(opts.maxNodes * timeScale * share));
-  return search(view, side, { ...opts, timeLimitMs: Math.max(20, opts.timeLimitMs * timeScale * share), maxNodes, seed });
+  // 定跡：いちばん進んでいる定跡の次の手を、根で少し点を足して比べる（損なら指さない）
+  const book = joseki ? josekiMove(view, side, seed) : null;
+  const prefer = book ? actionKey(book.action) : undefined;
+  return search(view, side, { ...opts, timeLimitMs: Math.max(20, opts.timeLimitMs * timeScale * share), maxNodes, prefer, seed });
 }

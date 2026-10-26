@@ -10,6 +10,7 @@ import { viewFor } from '../../src/rules/view';
 import { idx } from '../../src/rules/board';
 import type { GameState } from '../../src/rules/types';
 import { emptyState, giveCard, put } from '../helpers';
+import { actionKey } from '../../src/ai/search';
 
 const LV: Level[] = ['weak', 'normal', 'strong'];
 
@@ -165,4 +166,18 @@ describe('大詰の3人', () => {
     expect(LEVELS.oni.kuji).toEqual(['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tsuranuki', 'tenma', 'omori']);
     expect(LEVELS.kabuki.kuji).toBe('all');
   });
+});
+
+describe('定跡（師範・傾奇者）', () => {
+  test('師範・傾奇者は定跡を使い、序幕と鬼は使わない', () => {
+    for (const l of ['shihan', 'kabuki'] as const) expect(LEVELS[l].joseki).toBe(true);
+    for (const l of ['weak', 'normal', 'strong', 'oni'] as const) expect(LEVELS[l].joseki).toBeFalsy();
+  });
+  test('初手、師範は定跡の最初の手のどれか（76歩・26歩・66歩）を指す', () => {
+    const s = createGame({ sente: [], gote: [] });
+    for (const seed of [1, 2, 3]) {
+      const r = chooseCpuAction(viewFor(s, 'sente'), 'sente', 'shihan', seed, 0.2);
+      expect(['m2625', 'm7675', 'm3635']).toContain(actionKey(r.action));
+    }
+  }, 30_000);
 });

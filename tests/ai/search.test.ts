@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { cardCandidates, search, WIN, type SearchOptions } from '../../src/ai/search';
+import { actionKey, cardCandidates, search, WIN, type SearchOptions } from '../../src/ai/search';
 import { applyAction, createGame, legalActions } from '../../src/rules/game';
 import { viewFor } from '../../src/rules/view';
 import type { Action, GameState } from '../../src/rules/types';
@@ -225,4 +225,27 @@ test('1枚の札から残す候補の数は変えられる（既定は3）', () 
   const count = (n?: number) => cardCandidates(s, legalActions(s), 12, n).filter(c => c.a.type === 'card' && c.a.uid === irekae).length;
   expect(count()).toBe(3);
   expect(count(5)).toBe(5);
+});
+
+test('勧める手（prefer）は、少し点を足して比べる', () => {
+  const s = createGame({ sente: [], gote: [] });
+  const opts = { ...BASE, maxDepth: 2 };
+  const plain = search(s, 'sente', opts);
+  // 何もしなければ選ばれにくい端歩（1六歩）を勧めると選ぶ
+  const edge = 'm8685';
+  expect(actionKey(plain.action)).not.toBe(edge);
+  const r = search(s, 'sente', { ...opts, prefer: edge, preferBonus: 300 });
+  expect(actionKey(r.action)).toBe(edge);
+});
+
+test('勧める手でも、駒をただで取られる手なら選ばない', () => {
+  const s = emptyState('sente');
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  put(s, { c: 4, r: 0 }, 'OU', 'gote');
+  put(s, { c: 2, r: 6 }, 'KI', 'sente');
+  put(s, { c: 2, r: 2 }, 'HI', 'gote');
+  // 金を飛車の筋の 7五（c=2, r=4）へ出すと、ただで取られる
+  const bad = 'm2624';
+  const r = search(s, 'sente', { ...BASE, maxDepth: 2, prefer: bad, preferBonus: 80 });
+  expect(actionKey(r.action)).not.toBe(bad);
 });

@@ -19,6 +19,8 @@ export interface SearchOptions {
   noise: number;         // 末端の点数に混ぜるゆらぎの幅（±noise）
   maxNodes?: number;     // 調べた局面数がこれに達したら、時間切れと同じく打ち切る（無ければ上限なし）
   cardPerCard?: number;  // 1枚の札から候補に残す行動の数（無ければ CARD_CANDIDATES_PER_CARD）
+  prefer?: string;       // 勧める手（行動のキー）。根で比べるときだけ preferBonus を足す（定跡）
+  preferBonus?: number;
   seed: number;
   now?: () => number;    // 既定は Date.now（テストで差し替える）
 }
@@ -351,27 +353,31 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     const cands = candidates(root, 0, prevBest ? actionKey(prevBest) : null);
     let alpha = -Infinity;
     let bestAction = cands[0].a;
-    let bestScore = -Infinity;
+    let bestScore = -Infinity;  // 勧める手の点を足したあとの点で比べる
+    let bestRaw = -Infinity;    // 返すのは足す前の点
     // 深さ1で1つも読み終えないうちに時間切れになったときの答え（並べ替えで先頭の手）
     partial = depth === 1 ? { action: cands[0].a, score: -Infinity } : null;
     for (const c of cands) {
       const child = c.child ?? applyActionUnchecked(root, c.a, QUIET).state;
       const d = childDepth(root, child, depth, 0);
-      const v = childScore(root, child, alpha, Infinity, (n, al, be) => negamax(n, d, al, be, 1));
-      if (v > bestScore) {
-        bestScore = v;
+      // 勧める手は点を足して比べるので、窓もそのぶん下げて読む（足す前の点が正しく出るように）
+      const bonus = opts.prefer !== undefined && c.key === opts.prefer ? opts.preferBonus ?? 0 : 0;
+      const v = childScore(root, child, alpha - bonus, Infinity, (n, al, be) => negamax(n, d, al, be, 1));
+      if (v + bonus > bestScore) {
+        bestScore = v + bonus;
+        bestRaw = v;
         bestAction = c.a;
       }
-      if (v > alpha) alpha = v;
+      if (v + bonus > alpha) alpha = v + bonus;
       // 深さ1は、読み終えた候補までの結果を、時間切れのときの答えにする
       if (depth === 1) {
-        partial = { action: bestAction, score: bestScore };
+        partial = { action: bestAction, score: bestRaw };
         canStop = true;
         // 局面数が少なくても、候補を1つ読むごとに時計を見る
         if (outOfBudget(1)) throw new TimeUp();
       }
     }
-    return { action: bestAction, score: bestScore };
+    return { action: bestAction, score: bestRaw };
   }
 
   let result: SearchResult | null = null;
