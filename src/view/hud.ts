@@ -42,10 +42,15 @@ export function kansuji(n: number): string {
   return `${tens === 1 ? '' : DIGITS[tens]}十${DIGITS[n % 10]}`;
 }
 
-/** 相手の残り札の見せ方：術札・纏札は表で、忍札は枚数だけ（伏せた忍札が減った札から当てられないように） */
-export function restView(ids: CardId[]): { open: CardId[]; hiddenTraps: number } {
-  const open = ids.filter(id => CARDS[id].kind !== 'trap');
-  return { open, hiddenTraps: ids.length - open.length };
+/**
+ * 相手の残り札の見せ方：術札・纏札は残っているものを表で。
+ * 忍札は札見せで中身を見せているので、持ち込んだ全部を表で出す（覚えておかなくてよいように）。
+ * 伏せた忍札は相手から見ると「使っていない」ままなので、どれを伏せたかは分からない。印が付くのは発動したものだけ
+ */
+export function restView(cards: { cardId: CardId; used: boolean }[]): { open: CardId[]; traps: { id: CardId; fired: boolean }[] } {
+  const open = cards.filter(c => !c.used && CARDS[c.cardId].kind !== 'trap').map(c => c.cardId);
+  const traps = cards.filter(c => CARDS[c.cardId].kind === 'trap').map(c => ({ id: c.cardId, fired: c.used }));
+  return { open, traps };
 }
 
 /**
@@ -146,11 +151,15 @@ export function createHud(root: HTMLElement): Hud {
   const restBox = el('div', 'rest-box');
   const restTitle = el('b', 'rest-title', '相手の残り札');
   const restList = el('div', 'rest-list');
-  // 術札・纏札を押すと、その札の説明をここに出す（忍札は中身を見せないので押せない）
+  // 持ち込んだ忍札：どれを伏せたかは分からないことを見出しの下に添える
+  const trapHead = el('div', 'rest-traps-head');
+  trapHead.append(el('b', 'rest-title', '持ち込んだ忍札'), el('span', '', 'どれを伏せたかは分かりません'));
+  const trapList = el('div', 'rest-list');
+  // 札を押すと、その札の説明をここに出す
   const restAbout = el('div', 'rest-about');
   restAbout.setAttribute('aria-live', 'polite');
   const restClose = button('rest-close', '閉じる');
-  restBox.append(restTitle, restList, restAbout, restClose);
+  restBox.append(restTitle, restList, trapHead, trapList, restAbout, restClose);
   rest.append(restBox);
 
   root.append(foe, board, footer, rest);
@@ -159,14 +168,16 @@ export function createHud(root: HTMLElement): Hud {
   restBtn.addEventListener('click', () => {
     if (!last) return;
     const foeSide: Side = last.me === 'sente' ? 'gote' : 'sente';
-    const left = last.view.players[foeSide].cards.filter(c => !c.used);
+    const { open, traps } = restView(last.view.players[foeSide].cards);
     restList.replaceChildren();
-    if (left.length === 0) restList.append(el('p', 'rest-none', '残りの札はありません'));
-    const { open, hiddenTraps } = restView(left.map(c => c.cardId));
+    trapList.replaceChildren();
+    if (open.length === 0) restList.append(el('p', 'rest-none', traps.length > 0 ? '術札・纏札は残っていません' : '残りの札はありません'));
+    trapHead.hidden = traps.length === 0;
+    trapList.hidden = traps.length === 0;
     const about = (id: CardId | null): void => {
       restAbout.replaceChildren();
       if (!id) {
-        restAbout.append(el('p', 'rest-hint', open.length > 0 ? '札を押すと説明が出ます' : ''));
+        restAbout.append(el('p', 'rest-hint', open.length + traps.length > 0 ? '札を押すと説明が出ます' : ''));
         return;
       }
       const c = CARDS[id];
@@ -178,26 +189,23 @@ export function createHud(root: HTMLElement): Hud {
     };
     about(null);
     restAbout.className = 'rest-about';
-    for (const id of open) {
-      const fig = button('rest-card', '');
+    const addCard = (list: HTMLElement, id: CardId, fired = false): void => {
+      const fig = button(fired ? 'rest-card fired' : 'rest-card', '');
       fig.setAttribute('aria-pressed', 'false');
-      fig.setAttribute('aria-label', `${CARDS[id].name}の説明`);
+      fig.setAttribute('aria-label', `${CARDS[id].name}${fired ? '（発動済み）' : ''}の説明`);
       fig.innerHTML = cardHtml(id, { size: 'small' }); // 定数だけでできた文字列
+      // 発動した忍札：朱の「済」の判を札に押す
+      if (fired) fig.append(el('span', 'rest-fired', '済'));
       fig.append(el('span', 'cap', CARDS[id].name));
       fig.addEventListener('click', () => {
-        for (const b of restList.querySelectorAll('.rest-card[aria-pressed]')) b.setAttribute('aria-pressed', 'false');
+        for (const b of restBox.querySelectorAll('.rest-card[aria-pressed]')) b.setAttribute('aria-pressed', 'false');
         fig.setAttribute('aria-pressed', 'true');
         about(id);
       });
-      restList.append(fig);
-    }
-    // 忍札は伏せるときと同じ札の裏（紅の縞に「忍」）で、何の札かは見せない
-    for (let i = 0; i < hiddenTraps; i++) {
-      const fig = el('figure', 'rest-card');
-      fig.innerHTML = '<span class="card-back" style="--s:0.486" aria-hidden="true"><i></i></span>'; // 定数だけでできた文字列
-      fig.append(el('figcaption', '', '忍札'));
-      restList.append(fig);
-    }
+      list.append(fig);
+    };
+    for (const id of open) addCard(restList, id);
+    for (const t of traps) addCard(trapList, t.id, t.fired);
     rest.hidden = false;
     restClose.focus();
   });

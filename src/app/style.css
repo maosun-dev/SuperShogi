@@ -637,6 +637,23 @@ button:focus-visible {
 .match .rest-about p { margin: 4px 0 0; font-size: 13px; line-height: 1.7; }
 .match .rest-about.mahou { --c: var(--mahou); }
 .match .rest-about.soubi { --c: var(--soubi); }
+.match .rest-about.wana { --c: var(--wana); }
+/* 持ち込んだ忍札の見出し：どれを伏せたかは分からないことを小さく添える */
+.match .rest-traps-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.match .rest-traps-head[hidden], .match .rest-list[hidden] { display: none; }
+.match .rest-traps-head span { font-size: 11px; opacity: .7; }
+/* 発動した忍札：札を沈ませ、朱の白文の判「済」を斜めに押す */
+.match button.rest-card.fired { position: relative; }
+.match button.rest-card.fired .card { filter: grayscale(.7) brightness(.75); }
+.match .rest-fired {
+  position: absolute; top: 14px; left: 50%;
+  display: grid; place-items: center; width: 28px; height: 28px; margin-left: -14px;
+  background: var(--wana); color: var(--gofun);
+  font-size: 17px; font-weight: 800; line-height: 1;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 2px var(--wana), inset 0 0 0 3px var(--gofun);
+  transform: rotate(-8deg);
+}
 .match .rest-none { font-size: 13px; opacity: .7; }
 .match .rest-close {
   align-self: flex-end;
