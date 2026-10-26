@@ -54,13 +54,13 @@ export const LEVELS: Record<Level, LevelConfig> = {
   // 師範：札の一発逆転を止める受けの札で固める（毎回同じ・コスト10）。序盤は定跡
   shihan: {
     maxDepth: 8, timeLimitMs: 4000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
-    joseki: true, preferBonus: JOSEKI_BONUS,
+    joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true,
     deck: ['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin', 'oshikaeshi'],
   },
   // 傾奇者：全18枚からくじ。最後の相手。序盤は定跡
   kabuki: {
     maxDepth: 8, timeLimitMs: 5000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
-    joseki: true, preferBonus: JOSEKI_BONUS,
+    joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true,
     deck: [],
     kuji: 'all',
   },

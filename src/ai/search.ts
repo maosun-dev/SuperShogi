@@ -21,6 +21,7 @@ export interface SearchOptions {
   cardPerCard?: number;  // 1枚の札から候補に残す行動の数（無ければ CARD_CANDIDATES_PER_CARD）
   prefer?: string;       // 勧める手（行動のキー）。根で比べるときだけ preferBonus を足す（定跡）
   preferBonus?: number;
+  smartEval?: boolean;   // 末端の点に賢くした見方（駒の置き場所・囲い・王の逃げ道）を足す
   seed: number;
   now?: () => number;    // 既定は Date.now（テストで差し替える）
 }
@@ -135,7 +136,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   const rootActions = legalActions(root);
   if (rootActions.length === 0) throw new Error('指せる行動がありません');
   if (rootActions.length === 1) {
-    return { action: rootActions[0], score: evaluate(root, root.turn), depth: 0, nodes: 0 };
+    return { action: rootActions[0], score: evaluate(root, root.turn, opts.smartEval), depth: 0, nodes: 0 };
   }
 
   const rng = makeRng(opts.seed);
@@ -166,7 +167,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
   }
 
   function leaf(s: GameState): number {
-    return evaluate(s, s.turn) + (rng() * 2 - 1) * opts.noise;
+    return evaluate(s, s.turn, opts.smartEval) + (rng() * 2 - 1) * opts.noise;
   }
 
   // 終局の点数（その局面の手番から見る）。早く勝つ・遅く負ける手を選ぶため、根からの手数を引く

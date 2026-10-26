@@ -118,6 +118,48 @@ export function kingSafety(s: GameState, side: Side): number {
   return one(side) - one(foe);
 }
 
-export function evaluate(s: GameState, side: Side): number {
-  return material(s, side) + kingSafety(s, side);
+// ---- 賢くした見方（師範・傾奇者だけ。smart のとき足す）----
+export const KING_HOME = [40, 30, 0];  // 王の段：自陣のいちばん奥・その前・その前（それより前は1段ごとに −20）
+export const KING_EDGE = 5;            // 王が中央の筋から1筋離れるごと
+export const CASTLE = 30;              // 王から2マス以内の自分の金・銀1枚
+export const ESCAPE = 15;              // 王の逃げ道1マス（相手の利きが無く、味方もいない隣のマス）
+export const PAWN_STEP = 5;            // 歩が1段前に出るごと（3段＝敵陣の手前まで）
+
+function positionalOne(s: GameState, me: Side): number {
+  let total = 0;
+  const back = (r: number): number => (me === 'sente' ? 8 - r : r); // 自陣のいちばん奥からの段の数
+  for (let i = 0; i < 81; i++) {
+    const p = s.board[i];
+    if (p && p.side === me && p.kind === 'FU' && !p.promoted) total += Math.min(3, Math.max(0, back(Math.floor(i / 9)) - 2)) * PAWN_STEP;
+  }
+  const k = kingIndex(s, me);
+  if (k < 0) return total;
+  const kc = k % 9, kr = (k - kc) / 9;
+  const depth = back(kr);
+  total += depth < KING_HOME.length ? KING_HOME[depth] : -20 * (depth - 2);
+  total += Math.abs(kc - 4) * KING_EDGE;
+  const enemies = zoneAttackers(s, k, opponent(me));
+  for (let dr = -2; dr <= 2; dr++) {
+    for (let dc = -2; dc <= 2; dc++) {
+      const c = kc + dc, r = kr + dr;
+      if (c < 0 || c > 8 || r < 0 || r > 8 || (!dc && !dr)) continue;
+      const q = s.board[r * 9 + c];
+      if (q && q.side === me && (q.kind === 'KI' || q.kind === 'GI')) total += CASTLE;
+      // 逃げ道は隣の8マスだけ
+      if (Math.abs(dc) > 1 || Math.abs(dr) > 1 || (q && q.side === me)) continue;
+      const to = r * 9 + c;
+      if (!enemies.some(j => attacks(s, j, to))) total += ESCAPE;
+    }
+  }
+  return total;
+}
+
+// 駒の置き場所・囲い・王の逃げ道（side から見た 自分−相手）
+export function positional(s: GameState, side: Side): number {
+  return positionalOne(s, side) - positionalOne(s, opponent(side));
+}
+
+export function evaluate(s: GameState, side: Side, smart = false): number {
+  const base = material(s, side) + kingSafety(s, side);
+  return smart ? base + positional(s, side) : base;
 }

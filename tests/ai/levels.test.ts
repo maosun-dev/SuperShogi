@@ -169,6 +169,10 @@ describe('大詰の3人', () => {
 });
 
 describe('定跡（師範・傾奇者）', () => {
+  test('賢くした見方は師範・傾奇者だけ', () => {
+    for (const l of ['shihan', 'kabuki'] as const) expect(LEVELS[l].smartEval).toBe(true);
+    for (const l of ['weak', 'normal', 'strong', 'oni'] as const) expect(LEVELS[l].smartEval).toBeFalsy();
+  });
   test('師範・傾奇者は定跡を使い、序幕と鬼は使わない', () => {
     for (const l of ['shihan', 'kabuki'] as const) expect(LEVELS[l].joseki).toBe(true);
     for (const l of ['weak', 'normal', 'strong', 'oni'] as const) expect(LEVELS[l].joseki).toBeFalsy();

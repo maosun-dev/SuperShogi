@@ -1,5 +1,5 @@
-import { test, expect } from 'vitest';
-import { evaluate, material } from '../../src/ai/evaluate';
+import { describe, test, expect } from 'vitest';
+import { evaluate, material, positional } from '../../src/ai/evaluate';
 import { createGame } from '../../src/rules/game';
 import { viewFor } from '../../src/rules/view';
 import { emptyState, put, giveCard, setTrap } from '../helpers';
@@ -118,4 +118,50 @@ test('重りの枷：残りの手番が少ないほど持ち主の損が小さ�
     return evaluate(s, 'gote');
   };
   expect(mk(1)).toBeGreaterThan(mk(3));
+});
+
+describe('賢くした見方（positional）', () => {
+  const base = () => {
+    const s = emptyState('sente');
+    put(s, { c: 4, r: 0 }, 'OU', 'gote');
+    return s;
+  };
+  test('初期配置では 0（先後が同じ形）', () => {
+    expect(positional(createGame({ sente: [], gote: [] }), 'sente')).toBe(0);
+  });
+  test('evaluate(s, side, true) は evaluate(s, side) に positional を足したもの', () => {
+    const s = createGame({ sente: [], gote: [] });
+    s.board[6 * 9 + 2] = null; // 先手の 7七の歩を消す
+    expect(evaluate(s, 'sente', true)).toBe(evaluate(s, 'sente') + positional(s, 'sente'));
+  });
+  test('王は自陣の奥・端寄りが高く、中央の5段目に出ると低い', () => {
+    const deep = base(); put(deep, { c: 7, r: 8 }, 'OU', 'sente');
+    const center = base(); put(center, { c: 4, r: 4 }, 'OU', 'sente');
+    expect(positional(deep, 'sente')).toBeGreaterThan(positional(center, 'sente'));
+  });
+  test('金銀を王のそばに寄せると高い', () => {
+    const near = base(); put(near, { c: 7, r: 8 }, 'OU', 'sente'); put(near, { c: 6, r: 7 }, 'KI', 'sente'); put(near, { c: 7, r: 7 }, 'GI', 'sente');
+    const far = base(); put(far, { c: 7, r: 8 }, 'OU', 'sente'); put(far, { c: 1, r: 7 }, 'KI', 'sente'); put(far, { c: 1, r: 6 }, 'GI', 'sente');
+    expect(positional(near, 'sente')).toBeGreaterThan(positional(far, 'sente'));
+  });
+  test('王の逃げ道（相手の利きが無く、味方もいない隣のマス）が多いほど高い', () => {
+    const open = base(); put(open, { c: 4, r: 7 }, 'OU', 'sente');
+    const shut = base(); put(shut, { c: 4, r: 7 }, 'OU', 'sente'); put(shut, { c: 4, r: 2 }, 'HI', 'gote'); put(shut, { c: 0, r: 7 }, 'HI', 'gote');
+    // 相手の飛車2枚の分の駒の点は positional に入らない（駒の点は material）
+    expect(positional(open, 'sente')).toBeGreaterThan(positional(shut, 'sente'));
+  });
+  test('前に出た歩に少し点（敵陣の手前まで）', () => {
+    const back = base(); put(back, { c: 7, r: 8 }, 'OU', 'sente'); put(back, { c: 0, r: 6 }, 'FU', 'sente');
+    const fwd = base(); put(fwd, { c: 7, r: 8 }, 'OU', 'sente'); put(fwd, { c: 0, r: 4 }, 'FU', 'sente');
+    const deep = base(); put(deep, { c: 7, r: 8 }, 'OU', 'sente'); put(deep, { c: 0, r: 1 }, 'FU', 'sente');
+    expect(positional(fwd, 'sente')).toBeGreaterThan(positional(back, 'sente'));
+    // 歩の前進は1段5点・3段まで（7段目から4段目まで）。2段目まで出ても3段ぶん
+    expect(positional(deep, 'sente') - positional(back, 'sente')).toBe(15);
+    expect(positional(fwd, 'sente') - positional(back, 'sente')).toBe(10);
+  });
+  test('王がいない盤でも落ちない', () => {
+    const s = emptyState('sente');
+    put(s, { c: 0, r: 6 }, 'FU', 'sente');
+    expect(Number.isFinite(positional(s, 'sente'))).toBe(true);
+  });
 });
