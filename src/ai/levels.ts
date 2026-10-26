@@ -13,18 +13,20 @@ export interface LevelConfig extends Omit<SearchOptions, 'seed' | 'now'> {
   blunder: number;   // この割合で、読まずに駒を動かす手からでたらめに選ぶ（王を取れるときは除く）
 }
 
-// 持ち込みは計画8の数字で決め直す
+// 持ち込みは計画8の数字で決め直す。
+// maxNodes：速くする前（計画17の前）の作りが、パソコンで考える時間いっぱいに読めた量（1秒あたりの局面数×時間）。
+// 読みを速くしても序幕の強さを今のまま保つための上限（遅い iPhone では今までどおり時間で止まる）
 export const LEVELS: Record<Level, LevelConfig> = {
   weak: {
-    maxDepth: 1, timeLimitMs: 300, qDepth: 1, cardPlies: 1, cardWidth: 4, noise: 250, blunder: 0.15,
+    maxDepth: 1, timeLimitMs: 300, maxNodes: 4_000, qDepth: 1, cardPlies: 1, cardWidth: 4, noise: 250, blunder: 0.15,
     deck: ['oshikaeshi', 'yobimodoshi', 'otoshiana', 'tenma'],
   },
   normal: {
-    maxDepth: 3, timeLimitMs: 1000, qDepth: 4, cardPlies: 1, cardWidth: 6, noise: 30, blunder: 0,
+    maxDepth: 3, timeLimitMs: 1000, maxNodes: 16_000, qDepth: 4, cardPlies: 1, cardWidth: 6, noise: 30, blunder: 0,
     deck: ['rakurai', 'hagane', 'yobimodoshi'],
   },
   strong: {
-    maxDepth: 6, timeLimitMs: 3000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
+    maxDepth: 6, timeLimitMs: 3000, maxNodes: 53_000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
     deck: ['itetsuku', 'aiuchi', 'tsuranuki', 'hagane'],
   },
 };
@@ -49,5 +51,7 @@ export function chooseCpuAction(view: GameState, side: Side, level: Level, seed:
     && view.players[side].cards.some(c => !c.used && CARDS[c.cardId].kind === 'trap');
   // 押し返しの風の続きも、伏せたあとと同じ短い時間
   const share = view.trapSetThisTurn || view.pushFollowUp ? TRAP_AFTER_SHARE : canSetTrap ? TRAP_BEFORE_SHARE : 1;
-  return search(view, side, { ...opts, timeLimitMs: Math.max(20, opts.timeLimitMs * timeScale * share), seed });
+  // 読む量の上限も、考える時間と同じ割合で縮める（速くする前は時間で止まっていたので）
+  const maxNodes = opts.maxNodes === undefined ? undefined : Math.max(1, Math.round(opts.maxNodes * timeScale * share));
+  return search(view, side, { ...opts, timeLimitMs: Math.max(20, opts.timeLimitMs * timeScale * share), maxNodes, seed });
 }

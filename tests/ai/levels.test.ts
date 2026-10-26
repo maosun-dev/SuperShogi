@@ -126,3 +126,20 @@ test('押し返しの風で相手の角を自分の桂の利きへ押し込み�
   const r2 = chooseCpuAction(viewFor(s2, 'sente'), 'sente', 'normal', 1);
   expect(r2.action).toMatchObject({ type: 'move', from: { c: 3, r: 4 }, to: { c: 4, r: 2 } });
 }, 30_000);
+
+// 序幕の3つは、速くする前の作りが時間いっぱいに読めた量を上限にして、強さを今のまま保つ
+test('序幕の3つには読む量の上限があり、弱い ≤ ふつう ≤ 強い', () => {
+  for (const l of LV) expect(LEVELS[l].maxNodes).toBeGreaterThan(0);
+  expect(LEVELS.weak.maxNodes!).toBeLessThanOrEqual(LEVELS.normal.maxNodes!);
+  expect(LEVELS.normal.maxNodes!).toBeLessThanOrEqual(LEVELS.strong.maxNodes!);
+});
+
+test('読む量の上限は、考える時間と同じ割合で縮む（考える時間の倍率）', () => {
+  const s = midgame();
+  const view = viewFor(s, s.turn);
+  const full = chooseCpuAction(view, s.turn, 'strong', 5, 1);
+  const half = chooseCpuAction(view, s.turn, 'strong', 5, 0.5);
+  // 上限か時間のどちらかで止まる。どちらでも、上限（根の候補を読み終えるまでは2倍）を超えない
+  expect(full.nodes).toBeLessThanOrEqual(LEVELS.strong.maxNodes! * 2 + 200);
+  expect(half.nodes).toBeLessThanOrEqual(LEVELS.strong.maxNodes! * 0.5 * 2 + 200);
+}, 60_000);
