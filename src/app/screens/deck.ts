@@ -263,7 +263,8 @@ export function deckScreen(params: unknown): Screen {
         : pageHead('札選び', 'level');
       box.append(head, meter, msg, rows, foot, lk.el);
       root.append(box);
-      if (friend && (!session || (session.phase() !== 'deck' && session.phase() !== 'over'))) {
+      const ph = session?.phase();
+      if (friend && (!session || (ph !== 'deck' && ph !== 'over' && ph !== 'reconnecting'))) {
         endSession();
         void showScreen('link', { notice: '相手が対局をやめました' });
       } else if (session) {
@@ -271,9 +272,13 @@ export function deckScreen(params: unknown): Screen {
         const leave = (notice: string): void => { endSession(); void showScreen('link', { notice }); };
         off = session.on((e) => {
           if (e.type === 'start') void showScreen('reveal', { friend: true });
+          // 札選びの途中で切れても、つなぎ直すあいだ札は選べる（つながったら送り直す）
+          else if (e.type === 'lost') msg.textContent = 'つながりが切れました。つなぎ直しています';
+          else if (e.type === 'back') msg.textContent = waiting ? '相手が札を選んでいます' : '';
           else if (e.type === 'foeQuit') leave('相手が対局をやめました');
           else if (e.type === 'closed') leave('つながりが切れました');
         });
+        if (ph === 'reconnecting') msg.textContent = 'つながりが切れました。つなぎ直しています';
       }
     },
     unmount() {

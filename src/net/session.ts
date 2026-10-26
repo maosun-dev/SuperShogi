@@ -13,7 +13,8 @@ export type SessionPhase = 'idle' | 'hosting' | 'browsing' | 'deck' | 'match' | 
 export type SessionEvent =
   | { type: 'peers' }                          // 見つかった合言葉の一覧が変わった
   | { type: 'connected' }                      // つながって版も合った（札選びへ）
-  | { type: 'joinFailed' }                     // 探す側：つなぐのに失敗した（もう一度選んでもらう）
+  | { type: 'joinFailed' }                     // 探す側：つなぐのに失敗した（自動の頼み直しも尽きた。もう一度選んでもらう）
+  | { type: 'joinRetry' }                      // 探す側：つなぐのに失敗したので、自動で頼み直した
   | { type: 'versionMismatch' }
   | { type: 'start'; setup: Setup }
   | { type: 'act'; action: Action; fp: string | null }   // 相手の手（本当の盤面の向き）
@@ -22,7 +23,7 @@ export type SessionEvent =
   | { type: 'mattaAnswered'; ok: boolean }
   | { type: 'mattaCancelled' }
   | { type: 'rewind'; to: number }             // 待ったが通り、記録を to まで切った
-  | { type: 'lost' }                           // 対局中に切れた（つなぎ直している）
+  | { type: 'lost' }                           // 札選び・対局の途中で切れた（つなぎ直している）
   | { type: 'back' }                           // つなぎ直せた
   | { type: 'foeQuit' }                        // 相手が対局をやめた（対局は消えた）
   | { type: 'closed' };                        // 対局の前に切れた
@@ -54,6 +55,7 @@ export interface Session {
 const PIECE_NAMES = ['歩兵', '香車', '桂馬', '銀将', '金将', '角行', '飛車'];
 const KANSUJI = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const NO_HANDICAP: Handicap = { side: 'sente', kind: 'none' };
+const JOIN_RETRIES = 2; // つなぐのに失敗したとき、自動で頼み直す回数（Bluetooth は1回目で失敗しやすい）
 
 /** 合言葉：駒の名前＋「の」＋漢数字（例「桂馬の三」） */
 export function makeCode(rng: () => number): string {
@@ -75,6 +77,8 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
   const peerVersions = new Map<string, string | null>(); // 見つけた相手の版（つなぐ前に見比べる）
   let connected = false;
   let retries = 0; // つなぎ直しで、つなぐのに失敗して頼み直した回数
+  let joinTries = 0; // 最初のつなぐで、自動で頼み直した回数
+  let resumeDeck = false; // 札選びの途中で切れた（つなぎ直したら札選びへ戻る）
   let myReady: { deck: CardId[]; handicap?: Handicap } | null = null;
   let foeReady: { deck: CardId[]; handicap?: Handicap } | null = null;
   let matchId: string | null = null;
@@ -126,7 +130,9 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
     const s: Setup = { decks: { sente: myReady.deck, gote: foeReady.deck }, handicap, first, kingFx };
     const id = Math.floor(rng() * 0x100000000).toString(16).padStart(8, '0');
     clearMatch();
-    matchId = id; setup = s; phase = 'match';
+    matchId = id; setup = s;
+    // 切れている間に始めたら、つながってから送り直す（hello の resume で）
+    phase = connected ? 'match' : 'reconnecting';
     send({ t: 'start', matchId: id, setup: s });
     emit({ type: 'start', setup: s });
   }
@@ -138,7 +144,20 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
         if (phase === 'hosting' || phase === 'browsing') { phase = 'deck'; emit({ type: 'connected' }); return; }
         if (phase === 'reconnecting') {
           if (matchId && m.matchId === matchId) send({ t: 'sync', n: log.length });
-          else { close(); emit({ type: 'foeQuit' }); }
+          else if (m.resume && !matchId && !m.matchId) {
+            // 札選びの途中でつなぎ直せた。選んでいた札は送り直す
+            phase = 'deck'; resumeDeck = false;
+            emit({ type: 'back' });
+            if (role === 'guest' && myReady) send({ t: 'ready', deck: myReady.deck });
+          } else if (m.resume && role === 'host' && matchId && setup && !m.matchId) {
+            // 始めた知らせが届く前に切れていた。始まりと記録を送り直す
+            phase = 'match'; resumeDeck = false;
+            send({ t: 'start', matchId, setup });
+            if (log.length > 0) send({ t: 'log', from: 0, actions: log, fps });
+            emit({ type: 'back' });
+          } else if (m.resume && role === 'guest' && !matchId && m.matchId) {
+            // 誘う側は切れている間に始めていた。始まりが届くのを待つ
+          } else { close(); emit({ type: 'foeQuit' }); }
         }
         return;
       case 'sync':
@@ -206,22 +225,26 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
       case 'connected':
         connected = true;
         if (role === 'guest' && phase === 'browsing') code = e.name;
-        send({ t: 'hello', version, matchId });
+        send({ t: 'hello', version, matchId, resume: phase === 'reconnecting' });
         return;
       case 'failed':
         if (role !== 'guest' || connected) return;
-        if (phase === 'browsing') emit({ type: 'joinFailed' });
+        if (phase === 'browsing') {
+          if (joinTries < JOIN_RETRIES) { joinTries++; emit({ type: 'joinRetry' }); void link.join(e.peer); }
+          else emit({ type: 'joinFailed' });
+        }
         else if (phase === 'reconnecting' && peers.get(e.peer) === code && retries++ < 3) void link.join(e.peer);
         return;
       case 'disconnected':
         if (!connected) return;
         connected = false;
         dropMatta();
-        if (phase === 'match' || phase === 'reconnecting') {
+        if (phase === 'match' || phase === 'reconnecting' || phase === 'deck') {
+          if (phase === 'deck') resumeDeck = true;
           phase = 'reconnecting';
           emit({ type: 'lost' });
           searchAgain();
-        } else if (phase === 'deck' || phase === 'over') {
+        } else if (phase === 'over') {
           close();
           emit({ type: 'closed' });
         }
@@ -263,11 +286,15 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
       if (phase !== 'browsing') return;
       // 版が違う相手とはつながらない（近距離の暗号の設定が版で違うと、つながる前に止まって知らせられない）
       if (peerVersions.get(peer) !== version) { close(); emit({ type: 'versionMismatch' }); return; }
+      joinTries = 0;
       void link.join(peer);
     },
     ready(deck, handicap) {
-      if (phase !== 'deck' && phase !== 'over') return;
-      phase = 'deck';
+      // 札選びの途中で切れてつなぎ直している間も選べる（つながったら送り直す）
+      const away = phase === 'reconnecting' && resumeDeck && !matchId;
+      if (phase !== 'deck' && phase !== 'over' && !away) return;
+      if (phase === 'over') matchId = null; // もう一局：前の対局の続きとはみなさない
+      if (!away) phase = 'deck';
       myReady = role === 'host' ? { deck, handicap: handicap ?? NO_HANDICAP } : { deck };
       if (role === 'guest') send({ t: 'ready', deck });
       else begin();

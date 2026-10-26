@@ -22,13 +22,13 @@ export interface Link {
   on(fn: (e: LinkEvent) => void): () => void;
 }
 
-// ---- テスト用：2つの窓口を直接つなぐ。cut で切り、heal でまたつなげるようにする。failJoin で次のつなぐを1回失敗させる ----
-export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void; failJoin(): void } {
+// ---- テスト用：2つの窓口を直接つなぐ。cut で切り、heal でまたつなげるようにする。failJoin(n) で次の n 回のつなぐを失敗させる ----
+export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void; failJoin(n?: number): void } {
   interface End { id: string; ev: ReturnType<typeof emitter>; hosting: string | null; version: string | null; browsing: boolean; peer: End | null }
   const mk = (id: string): End => ({ id, ev: emitter(), hosting: null, version: null, browsing: false, peer: null });
   const A = mk('A'), B = mk('B');
   let healthy = true;
-  let failNext = false;
+  let failNext = 0;
   const later = (fn: () => void): void => { queueMicrotask(fn); };
   const other = (e: End): End => (e === A ? B : A);
   // 誘っている側と探している側がそろったら、探している側に見つかったと知らせる
@@ -52,8 +52,8 @@ export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void
     async browse() { e.browsing = true; announce(); },
     async join(peer) {
       const h = other(e);
-      if (failNext || !healthy || h.id !== peer || h.hosting === null || h.peer) {
-        failNext = false;
+      if (failNext > 0 || !healthy || h.id !== peer || h.hosting === null || h.peer) {
+        if (failNext > 0) failNext--;
         later(() => e.ev.emit({ type: 'failed', peer }));
         return;
       }
@@ -74,7 +74,7 @@ export function createPairLinks(): { a: Link; b: Link; cut(): void; heal(): void
     a: link(A), b: link(B),
     cut() { healthy = false; drop(A); },
     heal() { healthy = true; announce(); },
-    failJoin() { failNext = true; },
+    failJoin(n = 1) { failNext = n; },
   };
 }
 

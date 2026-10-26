@@ -4,7 +4,7 @@ import type { Setup } from './record';
 import { isKingFx } from '../fx/kingfx/kinds';
 
 export type Msg =
-  | { t: 'hello'; version: string; matchId: string | null }
+  | { t: 'hello'; version: string; matchId: string | null; resume?: boolean } // resume：切れたあとのつなぎ直し
   | { t: 'ready'; deck: CardId[]; handicap?: Handicap }
   | { t: 'start'; matchId: string; setup: Setup }
   | { t: 'act'; n: number; action: Action; fp: string }
@@ -47,7 +47,7 @@ function isSetup(v: unknown): v is Setup {
 
 function isMsg(m: Obj): boolean {
   switch (m.t) {
-    case 'hello': return isStr(m.version) && (m.matchId === null || isStr(m.matchId));
+    case 'hello': return isStr(m.version) && (m.matchId === null || isStr(m.matchId)) && (m.resume === undefined || typeof m.resume === 'boolean');
     case 'ready': return isStrs(m.deck) && (m.handicap === undefined || isHandicap(m.handicap));
     case 'start': return isStr(m.matchId) && isSetup(m.setup);
     case 'act': return isNum(m.n) && isAction(m.action) && isStr(m.fp);

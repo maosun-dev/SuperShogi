@@ -438,6 +438,8 @@ export function matchScreen(params: unknown): Screen {
           }
         });
         cleanup.push(offNet);
+        // 札選びの途中で切れたまま始まった（誘う側）。つながるまで待つ
+        if (session.phase() === 'reconnecting') { lostLater = true; afterNet(); }
         // 開発用：切断のふり（ブラウザのにせの通信のときだけ）
         if (import.meta.env.DEV && !isNativeApp()) box.append(button('dev-cut', '切断のふり', () => fakeCut(5000)));
       }

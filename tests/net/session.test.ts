@@ -131,6 +131,71 @@ test('切れたら両方つなぎ直し、切れている間に送った手も�
   expect(p.host.log()).toHaveLength(2);
 });
 
+test('つなぐのに失敗しても、2回までは自動で頼み直してつながる', async () => {
+  const links = createPairLinks();
+  const host = createSession(links.a, { version: '1', rng: seq(0.3), stopDelayMs: 0 });
+  const guest = createSession(links.b, { version: '1', rng: seq(0.1), stopDelayMs: 0 });
+  const ge: SessionEvent[] = [];
+  guest.on((e) => ge.push(e));
+  host.host();
+  guest.browse();
+  await flush();
+  links.failJoin(2);
+  guest.join(guest.peers()[0]!.peer);
+  for (let i = 0; i < 6; i++) await flush();
+  expect(ge.filter((e) => e.type === 'joinRetry')).toHaveLength(2);
+  expect(ge).not.toContainEqual({ type: 'joinFailed' });
+  expect(guest.phase()).toBe('deck');
+});
+
+test('札選びの途中で切れても、つなぎ直して札選びに戻る', async () => {
+  const p = await pair();
+  p.cut();
+  await flush();
+  expect(p.ge).toContainEqual({ type: 'lost' });
+  expect(p.he).toContainEqual({ type: 'lost' });
+  expect(p.guest.phase()).toBe('reconnecting');
+  p.heal();
+  for (let i = 0; i < 6; i++) await flush();
+  expect(p.ge).toContainEqual({ type: 'back' });
+  expect(p.he).toContainEqual({ type: 'back' });
+  expect(p.host.phase()).toBe('deck');
+  expect(p.guest.phase()).toBe('deck');
+  p.host.ready(['rakurai']);
+  p.guest.ready(['kagami']);
+  await flush(); await flush();
+  expect(p.guest.phase()).toBe('match');
+  expect(p.guest.setup()).toEqual(p.host.setup());
+});
+
+test('切れている間に選んだ札も、つなぎ直したら届いて始まる', async () => {
+  const p = await pair();
+  p.cut();
+  await flush();
+  p.guest.ready(['kagami']);
+  p.host.ready(['rakurai']);
+  p.heal();
+  for (let i = 0; i < 8; i++) await flush();
+  expect(p.host.phase()).toBe('match');
+  expect(p.guest.phase()).toBe('match');
+  expect(p.guest.setup()).toEqual(p.host.setup());
+});
+
+test('誘う側が始めた直後に切れて、始まりが届かなかったら、つなぎ直して送り直す', async () => {
+  const p = await pair();
+  p.guest.ready(['kagami']);
+  await flush();
+  p.cut();
+  await flush();
+  p.host.ready(['rakurai']); // ここで始めるが、相手には届かない
+  expect(p.guest.setup()).toBeNull();
+  p.heal();
+  for (let i = 0; i < 8; i++) await flush();
+  expect(p.guest.phase()).toBe('match');
+  expect(p.host.phase()).toBe('match');
+  expect(p.guest.setup()).toEqual(p.host.setup());
+});
+
 test('つなぐのに失敗したら知らせて、探すのは続ける', async () => {
   const links = createPairLinks();
   const host = createSession(links.a, { version: '1', rng: seq(0.3), stopDelayMs: 0 });
@@ -140,9 +205,9 @@ test('つなぐのに失敗したら知らせて、探すのは続ける', async
   host.host();
   guest.browse();
   await flush();
-  links.failJoin();
+  links.failJoin(3); // 自動の頼み直し2回も失敗
   guest.join(guest.peers()[0]!.peer);
-  await flush(); await flush();
+  for (let i = 0; i < 6; i++) await flush();
   expect(ge).toContainEqual({ type: 'joinFailed' });
   expect(guest.phase()).toBe('browsing');
   // もう一度押せばつながる

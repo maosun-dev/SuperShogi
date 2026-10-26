@@ -27,6 +27,8 @@ public class NearbyPlugin: CAPPlugin, CAPBridgedPlugin, MCSessionDelegate, MCNea
     private var idByPeer: [MCPeerID: String] = [:]
     private var nameByPeer: [MCPeerID: String] = [:]    // 見つけた相手の合言葉
     private var connected: Set<MCPeerID> = []
+    // 自分の名札は誘う・探すごとに1つを使い回す（作り直すと古い名札が近くに残り、つなぎ先を迷わせる。Apple も使い回しを勧めている）
+    private var myIds: [String: MCPeerID] = [:]
 
     private func peerId(_ peer: MCPeerID) -> String {
         if let id = idByPeer[peer] { return id }
@@ -56,7 +58,8 @@ public class NearbyPlugin: CAPPlugin, CAPBridgedPlugin, MCSessionDelegate, MCNea
 
     private func newSession(_ displayName: String) -> MCSession {
         teardown()
-        let me = MCPeerID(displayName: displayName)
+        let me = myIds[displayName] ?? MCPeerID(displayName: displayName)
+        myIds[displayName] = me
         // 暗号はかけない。1.0（.required）は外ですぐ切れて対局にならず、.none では安定した（2026-10-27）。
         // 送るのは指し手と札だけで、個人の情報はない。暗号の設定が違う版同士はつながらないので、むやみに変えない
         let s = MCSession(peer: me, securityIdentity: nil, encryptionPreference: .none)

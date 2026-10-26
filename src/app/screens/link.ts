@@ -9,7 +9,8 @@ import { button, el, pageHead } from './ui';
 export interface LinkParams { notice?: string } // 前の画面からの知らせ（相手がやめた・切れた）
 
 const HINT_MS = 10000; // これだけ探して見つからなければ、ローカルネットワークの案内を出す
-const JOIN_MS = 25000; // つないでいる間は合言葉を押しても頼み直さない（iPhone は 20 秒で諦めて失敗を知らせる。届かなかったとき用の見切り）
+const JOIN_MS = 25000; // つないでいる間は合言葉を押しても頼み直さない（iPhone は 20 秒で諦めて失敗を知らせる。届かなかったとき用の見切り。自動で頼み直すたびに測り直す）
+const WIFI_NOTE = 'Wi-Fi をオンにしておくと、つながりやすくなります（どこの Wi-Fi にもつながっていなくて大丈夫です）';
 
 /** 合言葉を縦に書いた駒（五角形）。big は誘う側の大きな駒 */
 function komaOf(code: string, big: boolean): HTMLElement {
@@ -56,6 +57,7 @@ export function linkScreen(params: unknown): Screen {
           el('p', 'link-lead', '合言葉'),
           k,
           el('p', 'link-note', '相手の iPhone で「探す」を押し、この合言葉を選んでもらってください'),
+          el('p', 'link-note', WIFI_NOTE),
         );
       };
 
@@ -66,6 +68,7 @@ export function linkScreen(params: unknown): Screen {
       hint.hidden = true;
       // 頼みが重なるとかえってつながりにくいので、つないでいる間は押しても何もしない
       let joining = false;
+      let joiningName = '';
       const joinDone = (): void => { joining = false; clearTimeout(joinTimer); };
       const renderPeers = (): void => {
         list.replaceChildren();
@@ -76,6 +79,7 @@ export function linkScreen(params: unknown): Screen {
           const b = button('link-peer', '', () => {
             if (joining) return;
             joining = true;
+            joiningName = p.name;
             joinTimer = window.setTimeout(joinDone, JOIN_MS);
             s.join(p.peer);
             msg.textContent = `${p.name} につないでいます`;
@@ -86,7 +90,7 @@ export function linkScreen(params: unknown): Screen {
         }
       };
       const browsing = (): void => {
-        body.replaceChildren(el('p', 'link-lead', '相手の合言葉を選んでください'), list, hint);
+        body.replaceChildren(el('p', 'link-lead', '相手の合言葉を選んでください'), list, hint, el('p', 'link-note', WIFI_NOTE));
         renderPeers();
         hintTimer = window.setTimeout(() => { if (s.peers().length === 0) hint.hidden = false; }, HINT_MS);
       };
@@ -95,6 +99,11 @@ export function linkScreen(params: unknown): Screen {
         switch (e.type) {
           case 'peers': renderPeers(); return;
           case 'connected': void showScreen('deck', { friend: true }); return;
+          case 'joinRetry':
+            clearTimeout(joinTimer);
+            joinTimer = window.setTimeout(joinDone, JOIN_MS);
+            msg.textContent = `${joiningName} につなぎ直しています`;
+            return;
           case 'joinFailed':
             joinDone();
             msg.textContent = 'つながりませんでした。もう一度、合言葉を押してください';
