@@ -1052,6 +1052,57 @@ input:focus-visible {
 /* 稽古：定式幕の萌葱の帯の札（藍・金・紅の強さと見分ける）。強さの3枚と少し間を空け、戦績の代わりに「強さも選べます」 */
 .level-fuda.keiko { --c: #3E7B45; margin-top: 4px; }
 .level-fuda .lv-none { font-size: 13px; opacity: .6; }
+
+/* 幕の切り替え：選んだ幕に定式幕（黒・柿・萌葱の縦縞）を引く。選んでいない幕は墨の薄い地 */
+.level-acts {
+  display: flex;
+  flex-shrink: 0;
+  margin: 8px 16px 0;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--sumi) 45%, transparent);
+}
+.level-act {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 0 7px;
+  border: 0;
+  background: color-mix(in srgb, var(--sumi) 78%, transparent);
+  color: color-mix(in srgb, var(--gofun) 72%, transparent);
+  font: inherit;
+  cursor: pointer;
+}
+.level-act[aria-selected="true"] {
+  background: repeating-linear-gradient(90deg, #1d1a17 0 16px, #b4632a 16px 32px, #3e7b45 32px 48px);
+  color: var(--gofun);
+  cursor: default;
+}
+.level-act .act-name { font-size: 22px; line-height: 1; }
+.level-act[aria-selected="true"] .act-name { filter: drop-shadow(0 0 2px var(--sumi)) drop-shadow(0 0 4px var(--sumi)); }
+.level-act .act-sub { font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.level-act[aria-selected="true"] .act-sub { text-shadow: 0 0 3px var(--sumi), 0 0 2px var(--sumi); }
+.level-act:focus-visible { outline: 2px solid var(--gofun); outline-offset: -4px; }
+.level-keiko { padding: 0 16px 12px; }
+.level-keiko .level-fuda { width: 100%; }
+
+/* 大詰の札：柄を札いっぱいに敷き、名前・戦績・札・目安を上に重ねる。字は胡粉（傾奇者は淡い金）に墨の影 */
+.level-fuda.oozume {
+  position: relative;
+  overflow: hidden;
+  background: var(--sumi);
+  color: var(--gofun);
+  border-left: 0;
+  padding: 11px 16px 12px;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--sumi) 60%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--soubi) 55%, transparent);
+}
+.level-fuda.oozume > svg.gara { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.level-fuda.oozume > :not(svg) { position: relative; z-index: 1; }
+.level-fuda.oozume .lv-name { font-size: 32px; filter: drop-shadow(0 1px 0 var(--sumi)) drop-shadow(0 0 4px var(--sumi)) drop-shadow(0 0 8px var(--sumi)); }
+.level-fuda.oozume :is(.lv-tally, .lv-note) { opacity: 1; text-shadow: 0 0 3px var(--sumi), 0 0 2px var(--sumi), 0 0 6px var(--sumi); }
+.level-fuda.kabuki .lv-name { color: var(--kaya-light); }
 /* くじの札の裏：墨と榧の斜めの縞に「籤」の印（伏せ札の紅の裏と見分ける） */
 .card-back.kuji {
   position: relative;

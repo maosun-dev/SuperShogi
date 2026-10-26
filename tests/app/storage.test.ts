@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_SETTINGS, safeStore, loadSettings, saveSettings, loadDeck, saveDeck,
-  loadTally, recordResult, loadHandicap, saveHandicap, type KeyValueStore,
+  loadTally, recordResult, loadHandicap, saveHandicap, loadLevelAct, saveLevelAct, SAVE_KEYS, type KeyValueStore,
 } from '../../src/app/storage';
 
 // Map で作った偽の保存先
@@ -81,5 +81,28 @@ describe('保存', () => {
     const st = safeStore();
     saveSettings(st, { ...DEFAULT_SETTINGS, fx: 'short', volume: 0.5 });
     expect(loadSettings(st)).toEqual({ ...DEFAULT_SETTINGS, fx: 'short', volume: 0.5 });
+  });
+});
+
+describe('強さ選びの幕', () => {
+  const mem = () => {
+    const m = new Map<string, string>();
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
+  };
+  it('保存が無い・壊れているときは序幕', () => {
+    const st = mem();
+    expect(loadLevelAct(st)).toBe('jo');
+    st.setItem('superShogi.levelAct', '"xx"');
+    expect(loadLevelAct(st)).toBe('jo');
+    st.setItem('superShogi.levelAct', '{');
+    expect(loadLevelAct(st)).toBe('jo');
+  });
+  it('大詰を選ぶと覚えておく', () => {
+    const st = mem();
+    saveLevelAct(st, 'oo');
+    expect(loadLevelAct(st)).toBe('oo');
+  });
+  it('アプリの消えにくい保存にも写す鍵に入っている', () => {
+    expect(SAVE_KEYS).toContain('superShogi.levelAct');
   });
 });

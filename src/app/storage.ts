@@ -26,8 +26,9 @@ const KEY_DECK = 'superShogi.deck';
 const KEY_TALLY = 'superShogi.tally';
 const KEY_HANDICAP = 'superShogi.handicap';
 const KEY_KEIKO = 'superShogi.keiko';
+const KEY_LEVEL_ACT = 'superShogi.levelAct';
 // アプリで消えにくい保存領域にも写す鍵の一覧
-export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP, KEY_KEIKO] as const;
+export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP, KEY_KEIKO, KEY_LEVEL_ACT] as const;
 export const NO_HANDICAP: Handicap = { side: 'sente', kind: 'none' };
 
 // アプリのときだけ、保存の鍵を Preferences にも書く版を返す（Web ではこれまでどおり）
@@ -114,6 +115,17 @@ export function loadKeiko(st: KeyValueStore): Keiko {
 
 export function saveKeiko(st: KeyValueStore, k: Keiko): void {
   st.setItem(KEY_KEIKO, JSON.stringify(k));
+}
+
+/** 強さ選びの幕：序幕（jo）か大詰（oo）。前に選んだ方を次も出す */
+export type LevelAct = 'jo' | 'oo';
+
+export function loadLevelAct(st: KeyValueStore): LevelAct {
+  return readJson(st, KEY_LEVEL_ACT) === 'oo' ? 'oo' : 'jo';
+}
+
+export function saveLevelAct(st: KeyValueStore, act: LevelAct): void {
+  st.setItem(KEY_LEVEL_ACT, JSON.stringify(act));
 }
 
 function count(v: unknown): number {
