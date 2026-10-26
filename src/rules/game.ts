@@ -145,7 +145,7 @@ export function applyAction(s0: GameState, a: Action): { state: GameState; event
 }
 
 // 合法かどうかの確認をしない適用（CPU の読み用）。legalActions から選んだ行動だけを渡すこと。
-// quiet のときは王手の知らせ（check）を作らない（読みでは知らせを使わないため。局面は同じ）
+// quiet のときは王手の知らせ（check）と千日手の記録（seen）を作らない（読みでは使わないため。ほかの局面は同じ）
 export function applyActionUnchecked(
   s0: GameState, a: Action, opts: { quiet?: boolean } = {},
 ): { state: GameState; events: GameEvent[] } {
@@ -419,11 +419,16 @@ function endTurn(s: GameState, events: GameEvent[], quiet = false): void {
   s.turn = opponent(mover);
   s.ply++;
   if (!quiet && isInCheck(s, s.turn)) events.push({ type: 'check', side: s.turn });
-  const key = positionKey(s);
-  s.seen[key] = (s.seen[key] ?? 0) + 1;
-  if (s.seen[key] >= REPETITION_LIMIT) {
-    finish(s, events, { winner: null, reason: 'repetition' });
-  } else if (s.ply > MOVE_LIMIT) {
+  // 千日手の記録。CPU の読み（quiet）では付けない（読みは通った局面を自分で覚えて、戻ったら引き分けと数える）
+  if (!quiet) {
+    const key = positionKey(s);
+    s.seen[key] = (s.seen[key] ?? 0) + 1;
+    if (s.seen[key] >= REPETITION_LIMIT) {
+      finish(s, events, { winner: null, reason: 'repetition' });
+      return;
+    }
+  }
+  if (s.ply > MOVE_LIMIT) {
     finish(s, events, { winner: null, reason: 'move-limit' });
   } else if (!hasAnyAction(s)) {
     // 指せる行動が1つもない（凍った王だけ、など）ときは、手番を自動で相手へ回す

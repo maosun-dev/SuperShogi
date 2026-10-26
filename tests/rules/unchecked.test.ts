@@ -30,12 +30,16 @@ test('終わった対局には確認を省いた版でも例外', () => {
   expect(() => applyActionUnchecked(s, a)).toThrow(IllegalActionError);
 });
 
-test('quiet の適用は、知らせを作らないだけで局面は同じ', async () => {
+// quiet（CPU の読み用）は、王手の知らせと千日手の記録（seen）を作らない。それ以外の局面は同じ
+test('quiet の適用は、知らせと千日手の記録を省くだけで局面は同じ', async () => {
   const { benchPositions } = await import('../ai/helpers/positions');
   let n = 0;
   for (const s of benchPositions()) {
     for (const a of legalActions(s)) {
-      expect(applyActionUnchecked(s, a, { quiet: true }).state).toEqual(applyActionUnchecked(s, a).state);
+      const quiet = applyActionUnchecked(s, a, { quiet: true }).state;
+      const full = applyActionUnchecked(s, a).state;
+      expect(quiet.seen).toEqual(s.seen);
+      expect({ ...quiet, seen: {} }).toEqual({ ...full, seen: {} });
       n++;
     }
   }

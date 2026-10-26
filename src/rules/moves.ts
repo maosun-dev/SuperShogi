@@ -12,23 +12,21 @@ const ORTHO: Vec[] = [[0, 1], [0, -1], [-1, 0], [1, 0]];
 const DIAG: Vec[] = [[-1, 1], [1, 1], [-1, -1], [1, -1]];
 const KNIGHT: Vec[] = [[-1, 2], [1, 2]];
 
-// 1マス（または跳ぶ）動きと、滑る動き
-function vectors(p: Piece): { steps: Vec[]; slides: Vec[] } {
-  if (p.promoted) {
-    if (p.kind === 'HI') return { steps: DIAG, slides: ORTHO };
-    if (p.kind === 'KA') return { steps: ORTHO, slides: DIAG };
-    return { steps: GOLD, slides: [] };
-  }
-  switch (p.kind) {
-    case 'FU': return { steps: [[0, 1]], slides: [] };
-    case 'KY': return { steps: [], slides: [[0, 1]] };
-    case 'KE': return { steps: KNIGHT, slides: [] };
-    case 'GI': return { steps: SILVER, slides: [] };
-    case 'KI': return { steps: GOLD, slides: [] };
-    case 'KA': return { steps: [], slides: DIAG };
-    case 'HI': return { steps: [], slides: ORTHO };
-    case 'OU': return { steps: KING, slides: [] };
-  }
+// 1マス（または跳ぶ）動きと、滑る動き。読みで何度も呼ぶので、組は作り置きを返す
+interface Moves { steps: readonly Vec[]; slides: readonly Vec[] }
+const NONE: readonly Vec[] = [];
+const M = (steps: readonly Vec[], slides: readonly Vec[]): Moves => ({ steps, slides });
+const MOVES_RAW: Record<PieceKind, Moves> = {
+  FU: M([[0, 1]], NONE), KY: M(NONE, [[0, 1]]), KE: M(KNIGHT, NONE), GI: M(SILVER, NONE),
+  KI: M(GOLD, NONE), KA: M(NONE, DIAG), HI: M(NONE, ORTHO), OU: M(KING, NONE),
+};
+const MOVES_GOLD = M(GOLD, NONE);
+const MOVES_RYU = M(DIAG, ORTHO);
+const MOVES_UMA = M(ORTHO, DIAG);
+
+function vectors(p: Piece): Moves {
+  if (p.promoted) return p.kind === 'HI' ? MOVES_RYU : p.kind === 'KA' ? MOVES_UMA : MOVES_GOLD;
+  return MOVES_RAW[p.kind];
 }
 
 // その駒が動ける先（味方のいるマスは除く。相手の駒のマスは含む）。
@@ -37,7 +35,7 @@ export function pieceTargets(s: GameState, from: Square): Square[] {
   return pieceTargetIdx(s, idx(from)).map(sqOf);
 }
 
-const BACK: Vec[] = [[0, -1]];
+const BACK: readonly Vec[] = [[0, -1]];
 
 // pieceTargets と同じマスを同じ並び順で、マスの番号（r*9+c）で返す。CPU の読みで何度も呼ぶので、マスの物を作らない
 export function pieceTargetIdx(s: GameState, from: number): number[] {
@@ -140,6 +138,8 @@ export function attacks(s: GameState, from: number, to: number): boolean {
   const equip = p.equip?.cardId;
   if (equip === 'omori' && (Math.abs(dc) > 1 || Math.abs(df) > 1)) return false;
   const { steps, slides } = vectors(p);
+  // 滑らない駒（1マスの動き・桂の跳び）は2マスより遠くへは届かない
+  if (slides.length === 0 && (dc > 2 || dc < -2 || df > 2 || df < -2)) return false;
   for (const [vc, vf] of steps) if (vc === dc && vf === df) return true;
   if (equip === 'tenma' && (dc === -1 || dc === 1) && df === 2) return true;
   if (equip === 'hikijin' && !p.promoted && dc === 0 && df === -1) return true;

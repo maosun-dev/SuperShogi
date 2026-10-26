@@ -72,17 +72,21 @@ function kingIndex(s: GameState, side: Side): number {
   return s.board.findIndex(p => p !== null && p.side === side && p.kind === 'OU');
 }
 
-// 王のまわり（隣8マスと王のマス）に届きうる相手の駒。滑る駒は全部、ほかは王から3マス以内だけ
-// （1マスの動き・桂の跳びは2マスまでしか届かないので、まわりの端から2マス＝王から3マス）
+// 王のまわり（隣8マスと王のマス）に届きうる相手の駒。
+// 1マスの動き・桂の跳びは2マスまでしか届かないので、王から3マス以内だけ。
+// 滑る駒は、筋がまわりの3×3を通るものだけ（縦横は王の列か段から1以内、斜めは王の斜めの筋から2以内）
 function zoneAttackers(s: GameState, k: number, by: Side): number[] {
   const kc = k % 9, kr = (k - kc) / 9;
   const out: number[] = [];
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
     if (!p || p.side !== by || p.frozen) continue;
-    const slides = p.kind === 'HI' || p.kind === 'KA' || (p.kind === 'KY' && !p.promoted);
     const c = i % 9, r = (i - c) / 9;
-    if (slides || Math.max(Math.abs(c - kc), Math.abs(r - kr)) <= 3) out.push(i);
+    const dc = c - kc, dr = r - kr;
+    if (Math.max(Math.abs(dc), Math.abs(dr)) <= 3) { out.push(i); continue; }
+    const ortho = dc >= -1 && dc <= 1 || dr >= -1 && dr <= 1;
+    const diag = Math.abs(dc - dr) <= 2 || Math.abs(dc + dr) <= 2;
+    if (p.kind === 'HI' ? ortho : p.kind === 'KA' ? diag : p.kind === 'KY' && !p.promoted && dc >= -1 && dc <= 1) out.push(i);
   }
   return out;
 }
