@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getSound, musicResponseUsable, volumeToGain } from '../../src/fx/sound';
+import { afterEach, vi } from 'vitest';
+import { createSound, getSound, musicResponseUsable, volumeToGain } from '../../src/fx/sound';
 
 describe('musicResponseUsable（曲のファイルの返事を使ってよいか）', () => {
   it('200 と 206（範囲を指定した返事）は使う', () => {
@@ -69,5 +70,42 @@ describe('録った音（2026-10-24）', () => {
   it('新しい2曲の出し入れも例外を出さない', () => {
     const s = getSound();
     expect(() => { s.music('sakura'); s.music('title'); s.music(null); }).not.toThrow();
+  });
+});
+
+describe('裏へ回ってから戻ったとき（iPhone で音が戻らなかった、2026-10-26）', () => {
+  // 音の仕組みのにせもの。作った数と閉じたかだけ見る
+  const made: FakeCtx[] = [];
+  class FakeCtx {
+    state = 'running';
+    sampleRate = 48000;
+    currentTime = 0;
+    destination = {};
+    constructor() { made.push(this); }
+    createGain() {
+      const p = { value: 1, setValueAtTime() {}, linearRampToValueAtTime() {}, setTargetAtTime() {} };
+      return { gain: p, connect: (x: unknown) => x };
+    }
+    createBuffer(_c: number, n: number) { return { getChannelData: () => new Float32Array(n) }; }
+    addEventListener() {}
+    resume() { this.state = 'running'; return Promise.resolve(); }
+    suspend() { this.state = 'suspended'; return Promise.resolve(); }
+    close() { this.state = 'closed'; return Promise.resolve(); }
+  }
+  afterEach(() => { vi.unstubAllGlobals(); made.length = 0; });
+
+  it('裏へ回ったら音の仕組みを閉じ、戻って解錠したら新しく作り直す', () => {
+    vi.stubGlobal('AudioContext', FakeCtx);
+    vi.stubGlobal('fetch', () => Promise.reject(new Error('読まない')));
+    const s = createSound();
+    s.unlock();
+    expect(made).toHaveLength(1);
+    expect(s.running()).toBe(true);
+    s.sleep();
+    expect(made[0]!.state).toBe('closed');
+    expect(s.running()).toBe(false);
+    s.unlock();
+    expect(made).toHaveLength(2);
+    expect(s.running()).toBe(true);
   });
 });

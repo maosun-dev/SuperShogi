@@ -125,7 +125,7 @@ export interface Sound {
   running(): boolean;
   /** 流す曲を決める（null で止める）。音が出せるようになるまでは待ち、出せるようになったら流す */
   music(name: MusicName | null): void;
-  /** 裏へ回ったときに音を止める（戻ったら unlock で再開） */
+  /** 裏へ回ったときに音を止める（音の仕組みを捨てる。戻ったら unlock で作り直す） */
   sleep(): void;
 }
 
@@ -406,7 +406,7 @@ const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => f
 const MUSIC_FADE_IN = 1.2; // 秒
 const MUSIC_FADE_OUT = 0.25; // 時定数（秒）。約1秒で聞こえなくなる
 
-function createSound(): Sound {
+export function createSound(): Sound {
   let ctx: Ctx | null = null;
   let master: GainNode | null = null;
   let kit: Kit | null = null;
@@ -447,7 +447,10 @@ function createSound(): Sound {
   const turn = new Map<SoundName, number>(); // 交互に鳴らす番
   function loadSamples(c: Ctx): void {
     const paths = new Set(Object.values(SAMPLES).flatMap((s) => s.files));
-    for (const path of paths) void fetchAudio(c, path).then((b) => { if (b && ctx === c) clips.set(path, b); });
+    for (const path of paths) {
+      if (clips.has(path)) continue; // 作り直したときは読んだ音を使い回す
+      void fetchAudio(c, path).then((b) => { if (b && ctx === c) clips.set(path, b); });
+    }
   }
 
   /** 録った音を鳴らす。まだ読めていなければ false */
@@ -524,7 +527,12 @@ function createSound(): Sound {
       syncMusic();
     },
     sleep() {
-      try { if (ctx && ctx.state === 'running') void ctx.suspend().catch(() => {}); } catch { /* 止められなくても進める */ }
+      // iPhone のアプリは裏から戻ると AudioContext が固まり、触っても音が戻らないことがある（2026-10-26）。
+      // 止めるだけでなく閉じて捨て、戻ったら unlock で作り直す。読んだ音は使い回す。曲は戻ったら頭から流し直す
+      const c = ctx;
+      if (!c) return;
+      ctx = null; kit = null; master = null; playing = null;
+      try { void c.close().catch(() => {}); } catch { /* 閉じられなくても進める */ }
     },
     unlock() {
       if (failed) return;
