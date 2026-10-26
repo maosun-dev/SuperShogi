@@ -213,3 +213,16 @@ test('maxNodes があっても時間の上限は効く', () => {
   const r = search(s, 'sente', { ...BASE, maxDepth: 6, timeLimitMs: 100, maxNodes: 10_000_000, now });
   expect(r.depth).toBeLessThan(6);
 });
+
+test('1枚の札から残す候補の数は変えられる（既定は3）', () => {
+  const s = emptyState('sente');
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  put(s, { c: 7, r: 7 }, 'HI', 'sente');
+  put(s, { c: 1, r: 7 }, 'KA', 'sente');
+  for (let c = 0; c < 9; c++) put(s, { c, r: 6 }, 'FU', 'sente');
+  put(s, { c: 4, r: 0 }, 'OU', 'gote');
+  const irekae = giveCard(s, 'sente', 'irekae');
+  const count = (n?: number) => cardCandidates(s, legalActions(s), 12, n).filter(c => c.a.type === 'card' && c.a.uid === irekae).length;
+  expect(count()).toBe(3);
+  expect(count(5)).toBe(5);
+});

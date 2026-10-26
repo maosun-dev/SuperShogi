@@ -18,6 +18,7 @@ export interface SearchOptions {
   cardWidth: number;     // 候補に入れるカードの行動の数の上限
   noise: number;         // 末端の点数に混ぜるゆらぎの幅（±noise）
   maxNodes?: number;     // 調べた局面数がこれに達したら、時間切れと同じく打ち切る（無ければ上限なし）
+  cardPerCard?: number;  // 1枚の札から候補に残す行動の数（無ければ CARD_CANDIDATES_PER_CARD）
   seed: number;
   now?: () => number;    // 既定は Date.now（テストで差し替える）
 }
@@ -97,8 +98,10 @@ function targetValue(s: GameState, a: Action): number {
 
 // カードの行動を1回ずつ適用して点数を付け、よい順に選ぶ。
 // 点数が同じなら価値の高い駒を対象にした方を先にする（装備がいつも盤の順の最初の駒に付かないように）。
-// 1枚のカードからは CARD_CANDIDATES_PER_CARD 個までにして、他のカードが枠から締め出されないようにする
-export function cardCandidates(s: GameState, actions: Action[], cardWidth: number): CardCand[] {
+// 1枚のカードからは perCard 個までにして、他のカードが枠から締め出されないようにする
+export function cardCandidates(
+  s: GameState, actions: Action[], cardWidth: number, perCard = CARD_CANDIDATES_PER_CARD,
+): CardCand[] {
   const cards: (CardCand & { tie: number; uid: number })[] = [];
   for (const a of actions) {
     if (a.type !== 'card') continue;
@@ -106,13 +109,13 @@ export function cardCandidates(s: GameState, actions: Action[], cardWidth: numbe
     cards.push({ a, child, score: evaluate(child, s.turn), tie: targetValue(s, a), uid: a.uid });
   }
   cards.sort((x, y) => y.score - x.score || y.tie - x.tie);
-  const perCard = new Map<number, number>();
+  const taken = new Map<number, number>(); // 札ごとに残した数
   const out: CardCand[] = [];
   for (const c of cards) {
     if (out.length >= cardWidth) break;
-    const n = perCard.get(c.uid) ?? 0;
-    if (n >= CARD_CANDIDATES_PER_CARD) continue;
-    perCard.set(c.uid, n + 1);
+    const n = taken.get(c.uid) ?? 0;
+    if (n >= perCard) continue;
+    taken.set(c.uid, n + 1);
     out.push({ a: c.a, child: c.child, score: c.score });
   }
   return out;
@@ -219,7 +222,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
       out.push({ a, key, order: orderKey(s, a, key, best, ply) });
     }
     if (ply < opts.cardPlies) {
-      for (const c of cardCandidates(s, cardHints(s, all), opts.cardWidth)) {
+      for (const c of cardCandidates(s, cardHints(s, all), opts.cardWidth, opts.cardPerCard)) {
         const key = actionKey(c.a);
         out.push({ a: c.a, key, child: c.child, order: key === best ? -2_000_000_000 : 2 });
       }
