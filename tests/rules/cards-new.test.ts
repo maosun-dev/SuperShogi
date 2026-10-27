@@ -378,7 +378,7 @@ test('重りの枷：付けた駒は隣8マスだけ。桂は動けない。王�
   expect(pieceTargets(s2, { c: 6, r: 1 })).toEqual([]);
 });
 
-test('札は全18種類で、術・忍・纏が6種類ずつ。王の盾・貫きの槍はなく、陣替えの旗がコスト2', () => {
+test('札は全18種類で、術・忍・纏が6種類ずつ。王の盾・貫きの槍はなく、陣替えの旗がコスト1', () => {
   const defs = Object.values(CARDS);
   expect(defs).toHaveLength(18);
   for (const kind of ['magic', 'trap', 'equip'] as const) {
@@ -386,6 +386,6 @@ test('札は全18種類で、術・忍・纏が6種類ずつ。王の盾・貫�
   }
   expect('tate' in CARDS).toBe(false);
   expect('tsuranuki' in CARDS).toBe(false);
-  expect(CARDS.hikijin.cost).toBe(2);
+  expect(CARDS.hikijin.cost).toBe(1);
   expect(CARDS.itetsuku.kind).toBe('trap');
 });

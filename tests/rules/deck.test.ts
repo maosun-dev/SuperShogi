@@ -47,7 +47,7 @@ test('札のコスト（2026-10 の直し）', async () => {
   expect(cost).toEqual({
     oshikaeshi: 2, irekae: 1, yobimodoshi: 2, shoryu: 2, kakuotoshi: 2, rakurai: 4,
     itetsuku: 1, narifuuji: 1, otoshiana: 3, kagami: 3, aiuchi: 3, migawari: 6,
-    hikijin: 2, tenma: 2, omori: 2, hagane: 3, idaten: 4, bangasa: 2,
+    hikijin: 1, tenma: 2, omori: 2, hagane: 3, idaten: 4, bangasa: 2,
   });
   expect(CARDS.hikijin.name).toBe('陣替えの旗');
   expect(CARDS.bangasa.name).toBe('番傘');

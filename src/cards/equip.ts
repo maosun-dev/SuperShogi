@@ -43,8 +43,8 @@ export const hagane: CardDef = {
 };
 
 export const hikijin: CardDef = {
-  id: 'hikijin', name: '陣替えの旗', kind: 'equip', cost: 2, fx: 'hikijin',
-  text: '自分のまだ成っていない歩・香車・桂馬・銀に付ける。付けた駒は、真後ろと左右へ1マス動ける',
+  id: 'hikijin', name: '陣替えの旗', kind: 'equip', cost: 1, fx: 'hikijin',
+  text: '自分のまだ成っていない歩・香車・桂馬・銀に付ける。付けた駒は、真後ろと左右へ1マス動ける（歩は二歩になる横へは動けない）',
   prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: (s, side) => barePieces(s, side, p =>
     !p.promoted && (p.kind === 'FU' || p.kind === 'KY' || p.kind === 'KE' || p.kind === 'GI')),
