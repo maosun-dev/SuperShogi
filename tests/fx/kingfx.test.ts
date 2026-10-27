@@ -53,7 +53,7 @@ describe('取る駒の動き（takerAlong）', () => {
     takerAlong(k, 1);
     expect(taker.position.y).toBeCloseTo(PIECE_Y);
     expect(taker.position.z).toBeCloseTo(-4.4);
-  });
+  }, 30_000); // 演出の部品（three）を読み込むので、機械が忙しいと5秒を超える
 });
 
 describe('大花火の見え方（fitView）', () => {
@@ -65,5 +65,5 @@ describe('大花火の見え方（fitView）', () => {
     expect(phone.dist).toBeGreaterThan(pc.dist * 2);
     expect(phone.width).toBeCloseTo(6.8 * 2);   // 大輪の幅ちょうどが画面の横幅
     expect(pc.width).toBeGreaterThan(6.8 * 2);
-  });
+  }, 30_000);
 });
