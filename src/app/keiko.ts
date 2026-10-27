@@ -11,8 +11,10 @@ export { DEFAULT_KEIKO, type Keiko } from './storage';
 // 相手の持ち込みを決める。稽古でなければ強さごとの札（鬼・傾奇者はその範囲からくじ）、稽古のくじなら rng で組む
 export function drawFoeDeck(level: Level, keiko: Keiko | undefined, rng: () => number): CardId[] {
   if (!keiko) {
-    const { kuji, deck } = LEVELS[level];
-    if (kuji) return kuji === 'all' ? autoDeck(rng) : autoDeck(rng, kuji);
+    const { kuji, kujiGuard, deck } = LEVELS[level];
+    // 守りの札を1枚決めてから、残りをくじの範囲で埋める（鬼）
+    const start = kujiGuard ? [kujiGuard[Math.floor(rng() * kujiGuard.length)]] : [];
+    if (kuji) return kuji === 'all' ? autoDeck(rng, undefined, start) : autoDeck(rng, kuji, start);
     return [...deck];
   }
   return keiko.deck === 'kuji' ? autoDeck(rng) : [...keiko.deck];

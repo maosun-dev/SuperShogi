@@ -24,6 +24,7 @@ export const JOSEKI_BONUS = 150;
 export interface LevelConfig extends Omit<SearchOptions, 'seed' | 'now'> {
   deck: CardId[];     // 決まった持ち込み（くじの強さでは空）
   kuji?: CardId[] | 'all'; // あれば、札見せのたびにこの範囲（'all' は全18枚）からくじで組む
+  kujiGuard?: CardId[]; // くじの前に、この中から1枚だけ先に入れる（鬼の守りの札）
   joseki?: boolean;   // 序盤に定跡（joseki.ts）の手を勧める手として読む
   blunder: number;   // この割合で、読まずに駒を動かす手からでたらめに選ぶ（王を取れるときは除く）
 }
@@ -45,11 +46,13 @@ export const LEVELS: Record<Level, LevelConfig> = {
     deck: ['itetsuku', 'aiuchi', 'tsuranuki', 'hagane'],
   },
   // 大詰：読む量の上限は付けず、速くなった読みを考える時間いっぱいに使う
-  // 鬼：攻めの札だけでくじ（守りの札・忍札は入れない＝攻めは強く、受けは甘い）
+  // 鬼：守りの札を1枚だけ入れ、残りは攻めの札でくじ（攻め中心。攻めの札だけだと、強いの罠と鎧に攻めを止められて
+  // 強いに4割も勝てなかった。2026-10-27 の対局の数字）
   oni: {
     maxDepth: 8, timeLimitMs: 3000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
     deck: [],
     kuji: ['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tsuranuki', 'tenma', 'omori'],
+    kujiGuard: ['hagane', 'itetsuku', 'aiuchi', 'otoshiana', 'narifuuji', 'hikijin', 'kagami'],
   },
   // 師範：札の一発逆転を止める受けの札で固める（毎回同じ・コスト10）。序盤は定跡
   shihan: {

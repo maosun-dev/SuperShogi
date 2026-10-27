@@ -23,13 +23,17 @@ describe('稽古：相手の決め方', () => {
     for (const d of decks) expect(validateDeck(d)).toBeNull();
     expect(new Set(decks.map((d) => d.join())).size).toBeGreaterThan(1);
   });
-  it('鬼・傾奇者は稽古でなくても毎回くじ（決まりを守り、鬼は攻めの札だけ）。師範は決まった6枚', () => {
+  it('鬼・傾奇者は稽古でなくても毎回くじ（決まりを守り、鬼は守りの札1枚＋攻めの札）。師範は決まった6枚', () => {
     const rng = makeRng(11);
     const oni = Array.from({ length: 200 }, () => drawFoeDeck('oni', undefined, rng));
     for (const d of oni) {
       expect(validateDeck(d)).toBeNull();
-      for (const id of d) expect(LEVELS.oni.kuji).toContain(id);
+      // 守りの札がちょうど1枚、残りは攻めの札
+      expect(d.filter((id) => LEVELS.oni.kujiGuard!.includes(id))).toHaveLength(1);
+      for (const id of d) expect([...(LEVELS.oni.kuji as string[]), ...LEVELS.oni.kujiGuard!]).toContain(id);
+      expect(d.length).toBeGreaterThanOrEqual(2);
     }
+    expect(new Set(oni.flatMap((d) => d.filter((id) => LEVELS.oni.kujiGuard!.includes(id)))).size).toBeGreaterThan(3);
     expect(new Set(oni.map((d) => d.join())).size).toBeGreaterThan(1);
     const kabuki = Array.from({ length: 200 }, () => drawFoeDeck('kabuki', undefined, rng));
     for (const d of kabuki) expect(validateDeck(d)).toBeNull();

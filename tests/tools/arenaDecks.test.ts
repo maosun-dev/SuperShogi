@@ -10,13 +10,13 @@ describe('対局の道具の持ち込み', () => {
     expect(deckFor('strong', makeRng(1))).toEqual(LEVELS.strong.deck);
     expect(deckFor('shihan', makeRng(1))).toEqual(LEVELS.shihan.deck);
   });
-  it('鬼は鬼の範囲から、傾奇者は全部から、決まりを守ってくじで組む（空にならない）', () => {
+  it('鬼は鬼の範囲（攻めの札＋守りの札1枚）から、傾奇者は全部から、決まりを守ってくじで組む（空にならない）', () => {
     const rng = makeRng(3);
     for (let i = 0; i < 50; i++) {
       const oni = deckFor('oni', rng);
       expect(oni.length).toBeGreaterThan(0);
       expect(validateDeck(oni)).toBeNull();
-      for (const id of oni) expect(LEVELS.oni.kuji).toContain(id);
+      for (const id of oni) expect([...(LEVELS.oni.kuji as string[]), ...LEVELS.oni.kujiGuard!]).toContain(id);
       const kabuki = deckFor('kabuki', rng);
       expect(kabuki.length).toBeGreaterThan(0);
       expect(validateDeck(kabuki)).toBeNull();

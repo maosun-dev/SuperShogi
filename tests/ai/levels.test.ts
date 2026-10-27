@@ -165,6 +165,9 @@ describe('大詰の3人', () => {
     expect(LEVELS.shihan.kuji).toBeUndefined();
     expect(LEVELS.oni.kuji).toEqual(['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tsuranuki', 'tenma', 'omori']);
     expect(LEVELS.kabuki.kuji).toBe('all');
+    // 鬼は守りの札を1枚だけ混ぜる（攻めの札だけだと、強いの罠と鎧に攻めを止められて勝てなかった）
+    expect(LEVELS.oni.kujiGuard).toEqual(['hagane', 'itetsuku', 'aiuchi', 'otoshiana', 'narifuuji', 'hikijin', 'kagami']);
+    expect(LEVELS.kabuki.kujiGuard).toBeUndefined();
   });
 });
 
