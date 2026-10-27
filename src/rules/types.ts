@@ -65,6 +65,7 @@ export type GameEvent =
   | { type: 'handTransferred'; kind: HandKind; from: Side; to: Side }
   | { type: 'frozen'; pieceId: number; at: Square; turns: number }
   | { type: 'numbed'; pieceId: number; at: Square }        // 落雷のまわりで痺れた
+  | { type: 'warded'; pieceId: number; at: Square; owner: Side; cardId: CardId } // 番傘が罠を1回受け止めた（罠は使い切り・傘は外れる）
   | { type: 'reachLimited'; pieceId: number; at: Square }  // 落雷を受けた飛車・角が3マスまでになった
   | { type: 'demoted'; pieceId: number; at: Square }
   | { type: 'promotedInPlace'; pieceId: number; at: Square }

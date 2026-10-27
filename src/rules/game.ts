@@ -223,13 +223,14 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
     events.push({ type: 'armorBlocked', defenderId: target.id, attackerId: p.id, at: to });
     return 'blocked';
   }
-  // 番傘の駒には、相手の忍札（身代わり・成り封じ・相討ち・落とし穴・凍てつく床）が効かない
-  const warded = hasEquip(p, 'umbrella');
-  if (target?.kind === 'OU' && !warded && guardKing(s, events, target, to, p)) return 'blocked';
-  if (promote && !warded && !mustPromote(p.kind, side, to)) {
+  // 番傘の駒は、相手の忍札（身代わり・成り封じ・相討ち・落とし穴・凍てつく床）を1回だけ受け止める（ward）
+  if (target?.kind === 'OU' && guardKing(s, events, target, to, p, from)) return 'blocked';
+  if (promote && !mustPromote(p.kind, side, to)) {
     // 成り封じ：成らずに動く（成らないと行き所がない手では発動しない）。その駒は対局の終わりまで成れない
     const t = findTrap(s, opponent(side), 'promote');
-    if (t) {
+    if (t && hasEquip(p, 'umbrella')) {
+      ward(s, events, p, from, t);
+    } else if (t) {
       fireTrap(s, events, t);
       p.sealed = true;
       events.push({ type: 'promotionBlocked', pieceId: p.id });
@@ -249,10 +250,12 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
     finish(s, events, { winner: side, reason: 'king-captured' });
     return 'moved';
   }
-  if (target && p.kind !== 'OU' && !warded) {
-    // 相討ち：取った駒も壊す（王で取ったときは発動せず残る）
+  if (target && p.kind !== 'OU') {
+    // 相討ち：取った駒も壊す（王で取ったときは発動せず残る）。番傘の駒なら傘が受け止める
     const t = findTrap(s, target.side, 'capture');
-    if (t) {
+    if (t && hasEquip(p, 'umbrella')) {
+      ward(s, events, p, to, t);
+    } else if (t) {
       fireTrap(s, events, t);
       destroyAt(s, events, to, 'aiuchi');
       return 'moved';
@@ -263,7 +266,7 @@ function stepMove(s: GameState, events: GameEvent[], from: Square, to: Square, p
 }
 
 // 身代わり：王の隣8マスの味方のうちいちばん安い駒（同じなら盤の順で先）を代わりに壊し、王はそのマスへ移る。発動したら true
-function guardKing(s: GameState, events: GameEvent[], king: Piece, at: Square, attacker: Piece): boolean {
+function guardKing(s: GameState, events: GameEvent[], king: Piece, at: Square, attacker: Piece, attackerAt: Square): boolean {
   const t = findTrap(s, king.side, 'kingCapture');
   if (!t) return false;
   let best: { sq: Square; value: number } | null = null;
@@ -276,6 +279,11 @@ function guardKing(s: GameState, events: GameEvent[], king: Piece, at: Square, a
     if (!best || v < best.value) best = { sq, value: v };
   }
   if (!best) return false;
+  // 番傘の駒が取りに来た：傘が身代わりを受け止め、王はそのまま取られる
+  if (hasEquip(attacker, 'umbrella')) {
+    ward(s, events, attacker, attackerAt, t);
+    return false;
+  }
   fireTrap(s, events, t);
   destroyAt(s, events, best.sq, 'migawari');
   s.board[idx(at)] = null;
@@ -301,6 +309,13 @@ function findTrap(s: GameState, owner: Side, trigger: TrapTrigger): SetTrap | un
     .sort((a, b) => a.uid - b.uid)[0];
 }
 
+// 番傘：罠を1回だけ受け止める。罠は使い切られて表に出（warded に札の中身）、傘は破れて外れる。駒は無事
+function ward(s: GameState, events: GameEvent[], p: Piece, at: Square, t: SetTrap): void {
+  s.traps = s.traps.filter(x => x.uid !== t.uid);
+  p.equip = null;
+  events.push({ type: 'warded', pieceId: p.id, at, owner: t.owner, cardId: t.cardId! });
+}
+
 // 罠を取り除き、発動を記録する
 function fireTrap(s: GameState, events: GameEvent[], t: SetTrap): void {
   s.traps = s.traps.filter(x => x.uid !== t.uid);
@@ -319,12 +334,13 @@ function destroyAt(s: GameState, events: GameEvent[], sq: Square, cause: CardId)
 // 落とし穴は王には発動せず残る。凍てつく床は王も凍らせる
 function enterSquare(s: GameState, events: GameEvent[], sq: Square): void {
   const p = s.board[idx(sq)];
-  if (!p || hasEquip(p, 'umbrella')) return; // 番傘の駒には罠が発動しない（罠は伏せたまま）
+  if (!p) return;
   const t = s.traps
     .filter(t => t.owner !== p.side && t.at && sameSq(t.at, sq) && t.cardId && CARDS[t.cardId].trap?.trigger === 'enter')
     .filter(t => !(p.kind === 'OU' && t.cardId === 'otoshiana'))
     .sort((a, b) => a.uid - b.uid)[0];
   if (!t) return;
+  if (hasEquip(p, 'umbrella')) { ward(s, events, p, sq, t); return; }
   fireTrap(s, events, t);
   if (t.cardId === 'itetsuku') freezePiece(s, events, sq);
   else destroyAt(s, events, sq, t.cardId!);
@@ -352,8 +368,10 @@ function cardContext(s: GameState, events: GameEvent[], side: Side): CardContext
     },
     promoteInPlace(sq) {
       const p = s.board[idx(sq)]!;
-      const t = hasEquip(p, 'umbrella') ? undefined : findTrap(s, opponent(p.side), 'promote');
-      if (t) {
+      const t = findTrap(s, opponent(p.side), 'promote');
+      if (t && hasEquip(p, 'umbrella')) {
+        ward(s, events, p, sq, t);
+      } else if (t) {
         fireTrap(s, events, t);
         p.sealed = true;
         events.push({ type: 'promotionBlocked', pieceId: p.id });

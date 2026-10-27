@@ -85,10 +85,10 @@ export function titleView(): GameState {
 // &cpu=normal などで相手の持ち込みと強さを変える
 
 type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw'
-  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'equips' | 'omori-break'
+  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'equips' | 'omori-break' | 'bangasa-ward'
   | 'move' | 'capture' | 'promote' | 'drop' | 'resign';
 const SCENES: FxScene[] = [
-  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'equips', 'omori-break',
+  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'equips', 'omori-break', 'bangasa-ward',
   'move', 'capture', 'promote', 'drop', 'resign',
 ];
 const TRAP_SCENES = ['otoshiana', 'kagami', 'narifuuji', 'itetsuku', 'aiuchi', 'migawari'];
@@ -185,6 +185,11 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
     case 'otoshiana':
       trap('otoshiana', PIT);
       break;
+    case 'bangasa-ward':
+      // 自分の 7七 の歩に番傘。相手が 7六 に落とし穴。Space で歩が進み、傘が受け止める
+      trap('otoshiana', PIT);
+      s.board[6 * 9 + 2]!.equip = { cardId: 'bangasa' };
+      break;
     case 'kagami':
       trap('kagami', null);
       break;
@@ -279,6 +284,7 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
     case 'otoshiana':
     case 'itetsuku':
     case 'aiuchi':
+    case 'bangasa-ward':
       return legal.filter(isMove).find((a) => same(a.to, PIT) && pieceAt(view, a.from)?.kind !== 'OU');
     case 'migawari':
       return legal.filter(isMove).find((a) => pieceAt(view, a.to)?.kind === 'OU');
@@ -317,7 +323,7 @@ const PICKS: [string, string][] = [
   ['kagami', '忍・鏡の結界'], ['aiuchi', '忍・相討ち'], ['migawari', '忍・身代わり'],
   ['hikijin', '纏・陣替えの旗'], ['tenma', '纏・天馬の蹄'], ['hagane', '纏・鋼の鎧'],
   ['omori', '纏・重りの枷'], ['bangasa', '纏・番傘'], ['idaten', '纏・韋駄天'],
-  ['hagane-block', '出番・鎧が守る'], ['omori-break', '出番・枷が外れる'],
+  ['hagane-block', '出番・鎧が守る'], ['omori-break', '出番・枷が外れる'], ['bangasa-ward', '出番・番傘が受け止める'],
   ['equips', '纏札の印を見る'], ['move', '1手・動かす'], ['capture', '1手・取る'], ['promote', '1手・成る'], ['drop', '1手・打つ'],
   ['check', '決着・王手'], ['win', '決着・勝ち'], ['lose', '決着・負け'], ['draw', '決着・引き分け'], ['resign', '決着・投了'],
 ];

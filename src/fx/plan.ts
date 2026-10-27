@@ -13,7 +13,8 @@ export type Cue =
   | { kind: 'equip'; side: Side; pieceId: number; cardId: CardId; negated?: boolean }
   | { kind: 'armor'; defenderId: number; attackerId: number; at: Square }
   | { kind: 'second'; pieceId: number; from: Square; to: Square; promoted: boolean }   // 韋駄天の2回目
-  | { kind: 'equipBreak'; pieceId: number; at: Square; cardId: CardId }              // 纏札が外れた（槍・枷）
+  | { kind: 'equipBreak'; pieceId: number; at: Square; cardId: CardId }              // 纏札が外れた（枷）
+  | { kind: 'ward'; pieceId: number; at: Square; owner: Side; cardId: CardId }        // 番傘が罠を受け止めた（cardId は罠）
   | { kind: 'notice'; text: string }                                                   // 小さな知らせ
   | { kind: 'check'; side: Side }
   | { kind: 'gameOver'; result: Result };
@@ -106,6 +107,9 @@ export function planFx(events: GameEvent[], actor: Side): Cue[] {
       case 'promotedInPlace':
       case 'handTransferred':
         sink()?.push(e);
+        break;
+      case 'warded':
+        cues.push({ kind: 'ward', pieceId: e.pieceId, at: e.at, owner: e.owner, cardId: e.cardId });
         break;
       case 'armorBlocked':
         cues.push({ kind: 'armor', defenderId: e.defenderId, attackerId: e.attackerId, at: e.at });

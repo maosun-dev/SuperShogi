@@ -222,7 +222,9 @@ describe('落雷（2026-10 の作り直し）', () => {
   });
 });
 
-describe('番傘（付けた駒には相手の忍札が効かない）', () => {
+describe('番傘（相手の忍札を1回だけ受け止める）', () => {
+  // 受け止めた：罠は表に出て使い切られ、傘は破れて外れ、駒は無事
+  const warded = (events: import('../../src/rules/types').GameEvent[]) => events.filter(e => e.type === 'warded');
   test('付けられるのは自分の王以外の、纏札の付いていない駒', () => {
     const s = base();
     put(s, { c: 4, r: 6 }, 'GI', 'sente');
@@ -233,53 +235,74 @@ describe('番傘（付けた駒には相手の忍札が効かない）', () => {
     expect(t).not.toContainEqual([{ c: 5, r: 6 }]);
     expect(t).not.toContainEqual([{ c: 8, r: 8 }]);
   });
-  test('落とし穴・凍てつく床のマスに入っても発動せず、罠は残る。知らせも出ない', () => {
+  test('落とし穴・凍てつく床：駒は無事、罠は使い切られ、傘は外れる', () => {
     for (const trap of ['otoshiana', 'itetsuku'] as const) {
       const s = base();
-      put(s, { c: 4, r: 6 }, 'GI', 'sente', { equip: 'bangasa' });
+      const gi = put(s, { c: 4, r: 6 }, 'GI', 'sente', { equip: 'bangasa' });
       setTrap(s, 'gote', trap, { c: 4, r: 5 });
       const { state, events } = applyAction(s, mv({ c: 4, r: 6 }, { c: 4, r: 5 }));
-      expect(at(state, 4, 5)?.kind).toBe('GI');
-      expect(at(state, 4, 5)?.frozen).toBeUndefined();
-      expect(state.traps).toHaveLength(1);
-      expect(events.some(e => e.type === 'trapTriggered')).toBe(false);
-      expect(events.map(e => e.type)).toEqual(['moved']);
+      const p = at(state, 4, 5)!;
+      expect(p.kind).toBe('GI');
+      expect(p.frozen).toBeUndefined();
+      expect(p.equip).toBeNull();
+      expect(state.traps).toHaveLength(0);
+      expect(warded(events)).toEqual([{ type: 'warded', pieceId: gi.id, at: { c: 4, r: 5 }, owner: 'gote', cardId: trap }]);
     }
   });
-  test('相手の駒を取っても相討ちが発動しない', () => {
+  test('2回目はもう防がない（傘は1回きり）', () => {
+    const s = base();
+    put(s, { c: 4, r: 6 }, 'GI', 'sente', { equip: 'bangasa' });
+    setTrap(s, 'gote', 'itetsuku', { c: 4, r: 5 });
+    setTrap(s, 'gote', 'otoshiana', { c: 4, r: 4 });
+    let st = applyAction(s, mv({ c: 4, r: 6 }, { c: 4, r: 5 })).state;
+    st = applyAction(st, mv({ c: 0, r: 0 }, { c: 0, r: 1 })).state;
+    st = applyAction(st, mv({ c: 4, r: 5 }, { c: 4, r: 4 })).state;
+    expect(at(st, 4, 4)).toBeNull(); // 落とし穴で壊れた
+  });
+  test('相討ち：取った駒は無事、罠は使い切られ、傘は外れる', () => {
     const s = base();
     put(s, { c: 4, r: 6 }, 'GI', 'sente', { equip: 'bangasa' });
     put(s, { c: 4, r: 5 }, 'FU', 'gote');
     setTrap(s, 'gote', 'aiuchi');
     const { state, events } = applyAction(s, mv({ c: 4, r: 6 }, { c: 4, r: 5 }));
-    expect(at(state, 4, 5)?.kind).toBe('GI');
-    expect(state.traps).toHaveLength(1);
-    expect(events.some(e => e.type === 'trapTriggered')).toBe(false);
+    expect(at(state, 4, 5)).toMatchObject({ kind: 'GI', equip: null });
+    expect(state.traps).toHaveLength(0);
+    expect(warded(events)).toHaveLength(1);
   });
-  test('成ろうとしても成り封じが発動しない（成り上がりでも）', () => {
+  test('成り封じ：成れる（成り上がりでも）。罠は使い切られ、傘は外れる', () => {
     const s = base();
     put(s, { c: 4, r: 3 }, 'GI', 'sente', { equip: 'bangasa' });
     setTrap(s, 'gote', 'narifuuji');
     const { state } = applyAction(s, mv({ c: 4, r: 3 }, { c: 4, r: 2 }, true));
-    expect(at(state, 4, 2)?.promoted).toBe(true);
-    expect(state.traps).toHaveLength(1);
+    expect(at(state, 4, 2)).toMatchObject({ promoted: true, equip: null });
+    expect(state.traps).toHaveLength(0);
     const t = base();
     put(t, { c: 4, r: 6 }, 'GI', 'sente', { equip: 'bangasa' });
     setTrap(t, 'gote', 'narifuuji');
     const uid = giveCard(t, 'sente', 'shoryu');
     const r = applyAction(t, card(uid, [{ c: 4, r: 6 }]));
-    expect(at(r.state, 4, 6)?.promoted).toBe(true);
-    expect(r.state.traps).toHaveLength(1);
+    expect(at(r.state, 4, 6)).toMatchObject({ promoted: true, equip: null });
+    expect(r.state.traps).toHaveLength(0);
   });
-  test('相手の王を取りに行っても身代わりが発動しない', () => {
+  test('身代わり：王を取れる（罠は使い切られる）', () => {
     const s = emptyState();
     put(s, { c: 8, r: 8 }, 'OU', 'sente');
     put(s, { c: 4, r: 1 }, 'OU', 'gote');
     put(s, { c: 3, r: 1 }, 'FU', 'gote');
     put(s, { c: 4, r: 2 }, 'KI', 'sente', { equip: 'bangasa' });
     setTrap(s, 'gote', 'migawari');
-    const { state } = applyAction(s, mv({ c: 4, r: 2 }, { c: 4, r: 1 }));
+    const { state, events } = applyAction(s, mv({ c: 4, r: 2 }, { c: 4, r: 1 }));
     expect(state.result).toEqual({ winner: 'sente', reason: 'king-captured' });
+    expect(warded(events)).toHaveLength(1);
+  });
+  test('身代わりの発動の条件（王の隣の味方）が無ければ、傘は使われない', () => {
+    const s = emptyState();
+    put(s, { c: 8, r: 8 }, 'OU', 'sente');
+    put(s, { c: 4, r: 1 }, 'OU', 'gote');
+    put(s, { c: 4, r: 2 }, 'KI', 'sente', { equip: 'bangasa' });
+    setTrap(s, 'gote', 'migawari');
+    const { events } = applyAction(s, mv({ c: 4, r: 2 }, { c: 4, r: 1 }));
+    expect(warded(events)).toHaveLength(0);
   });
 });
 

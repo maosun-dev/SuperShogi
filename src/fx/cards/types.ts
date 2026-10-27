@@ -12,6 +12,7 @@ export type MoveCue = Extract<Cue, { kind: 'move' }>;
 export type ArmorCue = Extract<Cue, { kind: 'armor' }>;
 export type BreakCue = Extract<Cue, { kind: 'equipBreak' }>;
 export type SecondCue = Extract<Cue, { kind: 'second' }>;
+export type WardCue = Extract<Cue, { kind: 'ward' }>;
 
 export interface CardFx<C> {
   /** 前振り：名前ドンの前 */
@@ -35,6 +36,8 @@ export interface EquipFx extends CardFx<EquipCue> {
   onBreak?(ctx: FxCtx, cue: BreakCue): Promise<void>;
   /** 韋駄天の2回目の移動 */
   onSecond?(ctx: FxCtx, cue: SecondCue): Promise<void>;
+  /** 番傘が罠を受け止めた */
+  onWard?(ctx: FxCtx, cue: WardCue): Promise<void>;
 }
 
 /** 効果の出来事のうち、最初の type のもの */

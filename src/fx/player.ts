@@ -14,7 +14,7 @@ import { FxCancelled, atHome, cameraHome, clearLayers, clearTransients, makeCtx,
 import { playMagic, prepareMagic } from './magic';
 import { resetStagecraft } from './stagecraft';
 import { playTrapFire, playTrapSet } from './trap';
-import { playArmor, playEquip, playEquipBreak, playEquipMove, playSecond } from './equip';
+import { playArmor, playEquip, playEquipBreak, playEquipMove, playSecond, playWard } from './equip';
 import { playCheck, playGameOver, playOpening, playResign } from './finale';
 import { playDrop, playMove } from './move';
 
@@ -73,6 +73,9 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
       return;
     case 'equipBreak':
       await playEquipBreak(ctx, cue);
+      return;
+    case 'ward':
+      await playWard(ctx, cue);
       return;
     case 'check':
       await playCheck(ctx, cue);

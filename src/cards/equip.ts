@@ -63,7 +63,7 @@ export const idaten: CardDef = {
 
 export const bangasa: CardDef = {
   id: 'bangasa', name: '番傘', kind: 'equip', cost: 2, fx: 'bangasa',
-  text: '自分の王以外の駒に付ける。付けた駒には相手の忍札が効かない（落とし穴・凍てつく床・相討ち・成り封じ・身代わりは、その駒には発動せず伏せたまま残る）',
+  text: '自分の王以外の駒に付ける。付けた駒が相手の忍札（落とし穴・凍てつく床・相討ち・成り封じ・身代わり）にかかったとき、1回だけ傘が受け止める。その罠は使い切られ、傘は破れて外れる',
   prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: (s, side) => barePieces(s, side, p => p.kind !== 'OU'),
   resolve: attach('bangasa'),

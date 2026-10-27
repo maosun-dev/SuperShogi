@@ -55,6 +55,7 @@ function mirrorEvent(e: GameEvent): GameEvent {
     case 'cardUsed': return { ...e, side: mirrorSide(e.side), targets: e.targets.map(mirrorSq) };
     case 'trapSet': return { ...e, side: mirrorSide(e.side), at: sqOrNull(e.at) };
     case 'trapTriggered': return { ...e, owner: mirrorSide(e.owner), at: sqOrNull(e.at) };
+    case 'warded': return { ...e, owner: mirrorSide(e.owner), at: mirrorSq(e.at) };
     case 'destroyed': case 'armorBlocked': case 'frozen': case 'demoted': case 'promotedInPlace': case 'equipBroken':
     case 'numbed': case 'reachLimited':
       return { ...e, at: mirrorSq(e.at) };

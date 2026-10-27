@@ -9,7 +9,7 @@ import { brighten, lightsUp } from './stagecraft';
 import { EQUIP_FX } from './cards';
 import { equipMoveKind } from './equipMove';
 import { hideEquipMark } from './cards/parts';
-import type { ArmorCue, BreakCue, EquipCue, MoveCue, SecondCue } from './cards/types';
+import type { ArmorCue, BreakCue, EquipCue, MoveCue, SecondCue, WardCue } from './cards/types';
 
 const NAME_MS = 700;
 
@@ -58,6 +58,18 @@ export async function playArmor(ctx: FxCtx, cue: ArmorCue): Promise<void> {
     lightsUp(ctx);
     if (!atHome(ctx)) await cameraHome(ctx, 600);
   }
+}
+
+/** 番傘が罠を受け止めた：傘が開いて受け止め、破れて外れる。何の罠だったかを知らせる */
+export async function playWard(ctx: FxCtx, cue: WardCue): Promise<void> {
+  try {
+    await EQUIP_FX.bangasa?.onWard?.(ctx, cue);
+  } finally {
+    lightsUp(ctx);
+  }
+  ctx.sync();
+  await showNotice(ctx, `番傘が${CARDS[cue.cardId].name}を受け止めました`);
+  if (!atHome(ctx)) await cameraHome(ctx, 600);
 }
 
 /** 纏札が外れた（重りの枷の手番が尽きた）：札ごとの壊れ方のあと、名前で知らせる */
