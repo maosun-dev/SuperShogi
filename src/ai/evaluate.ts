@@ -20,6 +20,7 @@ export const OMORI_MIN = 150;
 export const FROZEN_RATE = 0.15;   // 凍った駒：残りの手番1つにつき駒の点数のこの割合を引く
 export const SEALED_BIG = 150;     // 成れない飛車・角
 export const SEALED_SMALL = 40;    // ほかの成れない駒
+export const REACH_LIMITED = 300;  // 滑れるのが3マスまでになった飛車・角
 export const KING_GUARD = 40;      // 王の隣8マスにいる味方1つ
 export const ATTACK = 30;          // 相手の王とその隣のマスへの利き1つ（1マス2つまで数える）
 
@@ -41,6 +42,8 @@ function sideScore(s: GameState, side: Side): number {
     const v = p.promoted ? (PROMOTED_VALUE[p.kind] ?? PIECE_VALUE[p.kind]) : PIECE_VALUE[p.kind];
     total += v;
     if (p.frozen) total -= v * FROZEN_RATE * p.frozen;
+    if (p.numb) total -= v * FROZEN_RATE * p.numb;   // 痺れも凍結と同じく動けない
+    if (p.reach) total -= REACH_LIMITED;             // 落雷を受けて3マスまでになった飛車・角
     if (p.sealed) total -= p.kind === 'HI' || p.kind === 'KA' ? SEALED_BIG : SEALED_SMALL;
     // 重りの枷：残りの手番が少ないほど損は小さい
     if (p.shackle) total -= Math.max(OMORI_MIN, v * OMORI_RATE) * p.shackle.left / OMORI_TURNS;

@@ -49,9 +49,19 @@ function pick(s: GameState, side: Side, cardId: CardId, acts: CardAction[]): Car
   const myKing = kingSq(s, side);
   switch (cardId) {
     case 'oshikaeshi':
-    case 'rakurai':
     case 'omori':
       return topBy(acts, a => targetValue(s, a), HINT_TOP);
+    case 'rakurai': {
+      // 飛車・角（3マスまでにする）と、それ以外（壊してまわりを痺れさせる）を分けて、両方から候補を残す
+      const big = (a: CardAction) => { const k = at(s, a.targets[0])?.kind; return k === 'HI' || k === 'KA'; };
+      return [...topBy(acts.filter(big), a => targetValue(s, a), 2), ...topBy(acts.filter(a => !big(a)), a => targetValue(s, a), HINT_TOP)];
+    }
+    case 'bangasa': {
+      // 相手に伏せた札か、まだ使っていない忍札があるときだけ。価値の高い自分の駒に
+      const foe = side === 'sente' ? 'gote' : 'sente';
+      const threat = s.traps.some(t => t.owner === foe) || s.players[foe].cards.some(c => !c.used && CARDS[c.cardId].kind === 'trap');
+      return threat ? topBy(acts, a => targetValue(s, a), HINT_TOP) : [];
+    }
     case 'irekae': {
       const check = isInCheck(s, side);
       const big = (a: CardAction) => a.targets.some(t => {

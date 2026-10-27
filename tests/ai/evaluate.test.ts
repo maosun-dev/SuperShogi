@@ -165,3 +165,13 @@ describe('賢くした見方（positional）', () => {
     expect(Number.isFinite(positional(s, 'sente'))).toBe(true);
   });
 });
+
+test('3マスまでの飛車は300低く、痺れた駒は凍った駒と同じだけ低い（2026-10）', () => {
+  const base = () => { const s = emptyState(); put(s, { c: 4, r: 4 }, 'HI', 'sente'); return s; };
+  const plain = material(base(), 'sente');
+  const r = base(); r.board[4 * 9 + 4]!.reach = 3;
+  expect(material(r, 'sente')).toBe(plain - 300);
+  const n = base(); n.board[4 * 9 + 4]!.numb = 1;
+  const f = base(); f.board[4 * 9 + 4]!.frozen = 1;
+  expect(material(n, 'sente')).toBeCloseTo(material(f, 'sente'));
+});
