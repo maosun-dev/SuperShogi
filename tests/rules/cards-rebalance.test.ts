@@ -282,3 +282,25 @@ describe('番傘（付けた駒には相手の忍札が効かない）', () => {
     expect(state.result).toEqual({ winner: 'sente', reason: 'king-captured' });
   });
 });
+
+describe('見直しで見つかった所', () => {
+  test('鏡の結界で打ち消された押し返しの風は、続けて指せず手番が相手へ移る', () => {
+    const s = base();
+    setTrap(s, 'gote', 'kagami');
+    put(s, { c: 4, r: 4 }, 'KI', 'gote');
+    const uid = giveCard(s, 'sente', 'oshikaeshi');
+    const { state, events } = applyAction(s, card(uid, [{ c: 4, r: 4 }]));
+    expect(events.some(e => e.type === 'magicNegated')).toBe(true);
+    expect(state.pushFollowUp).toBe(false);
+    expect(state.turn).toBe('gote');
+    expect(at(state, 4, 4)?.kind).toBe('KI');
+  });
+  test('陣替えの旗の歩が横へ動いて二歩になる手は指せない', () => {
+    const s = base();
+    put(s, { c: 4, r: 4 }, 'FU', 'sente', { equip: 'hikijin' });
+    put(s, { c: 5, r: 6 }, 'FU', 'sente');   // 右の筋に歩がいる
+    const moves = legalActions(s).filter(a => a.type === 'move' && a.from.c === 4 && a.from.r === 4);
+    expect(moves.some(a => a.type === 'move' && a.to.c === 5 && a.to.r === 4)).toBe(false); // 二歩
+    expect(moves.some(a => a.type === 'move' && a.to.c === 3 && a.to.r === 4)).toBe(true);  // 左は空いた筋
+  });
+});

@@ -94,6 +94,8 @@ export function moveActions(s: GameState): Action[] {
       const to = sqOf(t);
       const target = s.board[t];
       if (noKingTake && target?.kind === 'OU') continue;
+      // 陣替えの旗の歩が横へ動いて二歩になる手は指せない（入れ替えの術・格落としと同じ決まり）
+      if (p.kind === 'FU' && !p.promoted && to.c !== from.c && pawnInColumn(s, side, to.c)) continue;
       for (const promote of promoteOptions(p, from, to)) {
         out.push({ type: 'move', from, to, promote });
         // 韋駄天：取らない2回目。1手目で王を取るなら2回目はない
@@ -106,6 +108,15 @@ export function moveActions(s: GameState): Action[] {
     }
   }
   return out;
+}
+
+// その筋に side の成っていない歩があるか
+function pawnInColumn(s: GameState, side: Side, c: number): boolean {
+  for (let r = 0; r < 9; r++) {
+    const q = s.board[r * 9 + c];
+    if (q && q.side === side && q.kind === 'FU' && !q.promoted) return true;
+  }
+  return false;
 }
 
 function hasEquip(p: Piece, flag: 'armor' | 'doubleMove' | 'umbrella'): boolean {
@@ -180,9 +191,10 @@ export function applyActionUnchecked(
     enterSquare(s, events, a.to);
   } else {
     const inst = s.players[side].cards.find(c => c.uid === a.uid)!;
-    useCard(s, events, side, inst, a.targets, a.pick);
+    const negated = useCard(s, events, side, inst, a.targets, a.pick);
     const def = CARDS[inst.cardId];
-    if (def.kind === 'trap' || def.continuesTurn) {
+    // 鏡の結界に打ち消された札は、続けて指せない（押し返しの風でも手番は終わる）
+    if (!negated && (def.kind === 'trap' || def.continuesTurn)) {
       // 忍札は伏せても手番が終わらない。押し返しの風も使ったあと続けて指せる。
       // 続けて行える行動が無いときだけ手番を回す
       if (def.kind === 'trap') s.trapSetThisTurn = true;
@@ -353,9 +365,10 @@ function cardContext(s: GameState, events: GameEvent[], side: Side): CardContext
   };
 }
 
+// 札を使う。鏡の結界に打ち消されたら true
 function useCard(
   s: GameState, events: GameEvent[], side: Side, inst: CardInstance, targets: Square[], pick?: HandKind,
-): void {
+): boolean {
   const def = CARDS[inst.cardId];
   inst.used = true;
   if (def.trap) {
@@ -364,7 +377,7 @@ function useCard(
     const at = def.trap.placement === 'square' ? targets[0] : null;
     s.traps.push({ uid, owner: side, cardId: def.id, at });
     events.push({ type: 'trapSet', side, uid, cardId: def.id, at });
-    return;
+    return false;
   }
   events.push({ type: 'cardUsed', side, cardId: inst.cardId, targets });
   if ((def.kind === 'magic' || def.kind === 'equip') && def.cost >= 2) {
@@ -373,10 +386,11 @@ function useCard(
     if (t) {
       fireTrap(s, events, t);
       events.push({ type: 'magicNegated', side, cardId: def.id });
-      return;
+      return true;
     }
   }
   def.resolve?.(cardContext(s, events, side), targets, pick);
+  return false;
 }
 
 function finish(s: GameState, events: GameEvent[], result: NonNullable<GameState['result']>): void {
@@ -437,7 +451,12 @@ function hasAnyAction(s: GameState): boolean {
     const p = s.board[i];
     if (!p || p.side !== s.turn) continue;
     const from = sqOf(i);
-    if (pieceTargetIdx(s, i).some(t => promoteOptions(p, from, sqOf(t)).length > 0)) return true;
+    // 二歩になる横の動き（陣替えの旗の歩）は数えない（moveActions と同じ決まり）
+    if (pieceTargetIdx(s, i).some(t => {
+      const to = sqOf(t);
+      if (p.kind === 'FU' && !p.promoted && to.c !== from.c && pawnInColumn(s, s.turn, to.c)) return false;
+      return promoteOptions(p, from, to).length > 0;
+    })) return true;
   }
   return legalActions(s).length > 0;
 }
