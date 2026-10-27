@@ -1,4 +1,4 @@
-// 効果音の解錠。操作のきっかけで音を出せる状態にし、裏から戻ったときは付け直す。
+// 効果音の解錠。操作のきっかけで音を出せる状態にし、裏に回ったら止め、表に戻ったら付け直す。
 import type { Sound } from '../fx/sound';
 
 export interface EventTargetLike {
@@ -29,14 +29,17 @@ export function armSoundUnlock(sound: Unlockable, target: EventTargetLike): void
   for (const k of KINDS) target.addEventListener(k, unlock, { capture: true });
 }
 
-/** 裏から戻って音が止まっていたら、すぐ再開を試し、だめなら次の操作で鳴らし直せるよう付け直す */
-export function watchResume(
-  sound: Unlockable,
-  target: EventTargetLike,
-  doc: { visibilityState: string; addEventListener(t: 'visibilitychange', f: () => void): void },
-): void {
-  doc.addEventListener('visibilitychange', () => {
-    if (doc.visibilityState !== 'visible' || sound.running()) return;
+/** アプリが裏に回った・表に戻ったの知らせ（iPhone はアプリ本体から、ブラウザは visibilitychange から） */
+export interface AppLife {
+  onBackground(fn: () => void): void;
+  onActive(fn: () => void): void;
+}
+
+/** 裏に回ったら音を止め、表に戻って止まっていたら、すぐ再開を試し、だめなら次の操作で鳴らし直せるよう付け直す */
+export function watchAppLife(sound: Unlockable & Pick<Sound, 'sleep'>, target: EventTargetLike, life: AppLife): void {
+  life.onBackground(() => sound.sleep());
+  life.onActive(() => {
+    if (sound.running()) return;
     sound.unlock();
     if (!sound.running()) armSoundUnlock(sound, target);
   });

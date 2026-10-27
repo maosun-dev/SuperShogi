@@ -10,6 +10,7 @@ import { type Screen } from '../screens';
 import { button, el, pageHead } from './ui';
 import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
 import { CREDITS, MIT_TEXT, OFL_NOTE } from '../credits';
+import { soundLogText } from '../../fx/soundLog';
 import { KING_FX, KING_FX_LABEL, type KingFxChoice } from '../../fx/kingfx/kinds';
 
 export function settingsScreen(): Screen {
@@ -119,6 +120,22 @@ export function settingsScreen(): Screen {
       row.append(vol, out);
       volSec.append(lab, row);
       show();
+      // 調べる用（隠し）：「音の大きさ」を続けて5回押すと、音の記録を出す・しまう。
+      // 裏から戻ると音が消える件で、実機の記録を写真に撮って送ってもらうため（2026-10-27）
+      const logBox = el('pre', 'sound-log');
+      logBox.hidden = true;
+      volSec.append(logBox);
+      let taps = 0, tapAt = 0;
+      lab.addEventListener('click', () => {
+        const now = Date.now();
+        taps = now - tapAt < 800 ? taps + 1 : 1;
+        tapAt = now;
+        if (taps < 5) return;
+        taps = 0;
+        logBox.textContent = `${soundLogText() || '（記録なし）'}
+今 ${getSound().state()}`;
+        logBox.hidden = !logBox.hidden;
+      });
 
       // ---- 対局の曲：曲目の一覧。選んだ行に朱の「此」、右の「聴」でその場で流す ----
       const bgSec = el('section', 'set-item');

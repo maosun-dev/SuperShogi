@@ -1465,6 +1465,8 @@ input:focus-visible {
 .vol-row { display: flex; align-items: center; gap: 14px; }
 .vol-row input { flex: 1; min-width: 0; height: 32px; accent-color: var(--wana); }
 .vol-row input:focus-visible { outline-color: var(--wana); }
+/* 調べる用の音の記録（隠し。「音の大きさ」を5回押すと出る） */
+.sound-log { margin: 10px 0 0; padding: 8px; max-height: 45vh; overflow: auto; font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; border: 1px dashed currentColor; }
 .vol-num { min-width: 2.6em; font-family: var(--font-display); font-size: 26px; text-align: right; }
 
 /* 舞台の見本：3枚の小さな刷り物を並べる。選んでいる1枚は墨の額と朱の「此」の印 */

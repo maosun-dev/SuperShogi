@@ -3,6 +3,7 @@
 // - AudioContext は最初の unlock()（最初の操作）で作る。作れない・失敗したときは何もしない
 // - play は決して例外を出さない（音の失敗で演出を止めない）
 // - 雑音のバッファは1つだけ作って使い回す。鳴らした部品は止める時刻を決めておき、自然に終わらせる
+import { soundLog } from './soundLog';
 import { loadSettings, safeStore } from '../app/storage';
 
 export type SoundName =
@@ -127,6 +128,8 @@ export interface Sound {
   music(name: MusicName | null): void;
   /** 裏へ回ったときに音を止める（音の仕組みを捨てる。戻ったら unlock で作り直す） */
   sleep(): void;
+  /** 調べる用：音の仕組みの状態と時計（例「running t=12.34」）。時計が進まなければ固まっている */
+  state(): string;
 }
 
 /** 音量つまみ（0〜1）→ 本当の大きさ。耳には2乗ぐらいがちょうどよい。範囲外・数でないものは丸める */
@@ -401,7 +404,7 @@ const SAMPLE_EXTRA: Partial<Record<SoundName, Recipe>> = {
   komaHard: (k, t, g) => tone(k, t, 160, 0.16, 0.45 * g, 90),
 };
 
-const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false, music() {}, sleep() {} };
+const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false, music() {}, sleep() {}, state: () => '音なし' };
 
 const MUSIC_FADE_IN = 1.2; // 秒
 const MUSIC_FADE_OUT = 0.25; // 時定数（秒）。約1秒で聞こえなくなる
@@ -511,6 +514,7 @@ export function createSound(): Sound {
           gain.gain.linearRampToValueAtTime(t.gain, now + MUSIC_FADE_IN);
           src.connect(gain).connect(out);
           src.start(now);
+          soundLog(`曲 ${name}`);
           playing = { name, src, gain };
         } catch (e) {
           console.error(`曲を流せませんでした（${name}）`, e);
@@ -519,6 +523,14 @@ export function createSound(): Sound {
     } catch (e) {
       console.error('曲の切り替えに失敗しました', e);
     }
+  }
+
+  /** 再開を試す。うまくいったか・断られたかを記録に残す */
+  function tryResume(c: Ctx, why: string): void {
+    soundLog(`再開を試す(${why}) ${c.state}`);
+    void c.resume()
+      .then(() => soundLog(`再開できた ${c.state}`))
+      .catch((e: unknown) => soundLog(`再開できない ${e instanceof Error ? e.name : String(e)}`));
   }
 
   return {
@@ -530,6 +542,7 @@ export function createSound(): Sound {
       // iPhone のアプリは裏から戻ると AudioContext が固まり、触っても音が戻らないことがある（2026-10-26）。
       // 止めるだけでなく閉じて捨て、戻ったら unlock で作り直す。読んだ音は使い回す。曲は戻ったら頭から流し直す
       const c = ctx;
+      soundLog(`止める ${c ? c.state : '仕組みなし'}`);
       if (!c) return;
       ctx = null; kit = null; master = null; playing = null;
       try { void c.close().catch(() => {}); } catch { /* 閉じられなくても進める */ }
@@ -548,10 +561,12 @@ export function createSound(): Sound {
           kit = { ctx, out: master, noise: noiseBuffer(ctx) };
           loadSamples(ctx);
           // 音が出せるようになったら、待っていた曲を流す
-          ctx.addEventListener('statechange', () => syncMusic());
+          const made = ctx;
+          made.addEventListener('statechange', () => { soundLog(`状態 ${made.state}`); syncMusic(); });
+          soundLog(`作る ${made.state}`);
         }
         // running 以外（suspended と、iOS の interrupted）はどちらも再開を試す
-        if (ctx.state !== 'running') void ctx.resume().catch(() => {});
+        if (ctx.state !== 'running') tryResume(ctx, '解錠');
         else syncMusic();
       } catch (e) {
         failed = true;
@@ -563,7 +578,7 @@ export function createSound(): Sound {
       try {
         if (!ctx || !kit || failed) return;
         // 音が出せない間は再開だけ試し、音は予約せず捨てる（解錠の瞬間に溜まった音が一斉に鳴らないように）
-        if (ctx.state !== 'running') { void ctx.resume().catch(() => {}); return; }
+        if (ctx.state !== 'running') { soundLog(`鳴らせない ${ctx.state}`); tryResume(ctx, '鳴らす'); return; }
         const at = ctx.currentTime + 0.005, g = opts?.gain ?? 1;
         if (playSample(ctx, kit.out, name, at, g)) SAMPLE_EXTRA[name]?.(kit, at, g);
         else RECIPES[name](kit, at, g);
@@ -572,6 +587,7 @@ export function createSound(): Sound {
       }
     },
     running: () => ctx !== null && ctx.state === 'running',
+    state: () => (ctx ? `${ctx.state} t=${ctx.currentTime.toFixed(2)}` : '仕組みなし'),
     setVolume(v) {
       volume = v;
       try {

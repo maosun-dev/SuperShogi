@@ -22,7 +22,9 @@ import { revealScreen } from './screens/reveal';
 import { settingsScreen } from './screens/settings';
 import { linkScreen } from './screens/link';
 import { howtoScreen } from './screens/howto';
-import { armSoundUnlock, watchResume } from './unlock';
+import { armSoundUnlock, watchAppLife } from './unlock';
+import { appLife } from './appLife';
+import { soundLog } from '../fx/soundLog';
 import { prepareSaves } from './native';
 import { autoMatchParams, fxMatchParams } from './dev';
 import { bannerOn, initAds, setBannerWanted } from './ads';
@@ -64,11 +66,15 @@ function start(): void {
   sound.setVolume(settings.volume);
   // 幕の音：ふだんは拍子木、決着から結果画面へは歌舞伎の垂れ幕
   setClapper((to) => sound.play(to === 'result' ? 'maku' : 'hyoshigi'));
-  // 最初の操作で解錠し、裏から戻って止まっていたら付け直す
+  // 最初の操作で解錠する。裏に回ったら曲ごと音を止め、表に戻って止まっていたら付け直す
   armSoundUnlock(sound, window);
-  watchResume(sound, window, document);
-  // 裏へ回ったら曲ごと音を止める（戻ったら watchResume が再開する）
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') sound.sleep(); });
+  const life = appLife();
+  watchAppLife(sound, window, life);
+  // 調べる用：表に戻った直後と1秒後の音の仕組みの状態（時計が進んでいなければ固まっている）
+  life.onActive(() => {
+    soundLog(`戻った直後 ${sound.state()}`);
+    window.setTimeout(() => soundLog(`1秒後 ${sound.state()}`), 1000);
+  });
   registerScreen('title', () => titleScreen());
   registerScreen('zukan', () => zukanScreen());
   registerScreen('match', (p) => matchScreen(p));
