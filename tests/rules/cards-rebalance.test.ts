@@ -307,16 +307,17 @@ describe('番傘（相手の忍札を1回だけ受け止める）', () => {
 });
 
 describe('見直しで見つかった所', () => {
-  test('鏡の結界で打ち消された押し返しの風は、続けて指せず手番が相手へ移る', () => {
+  // 押し返しの風はコスト1に戻ったので、鏡の結界はもともと打ち消さない（打ち消された札は続けて指せない直しは、
+  // 続けて指せる札がまた打ち消しの対象になったときのために残している）
+  test('鏡の結界は、コスト1の押し返しの風を打ち消さず、続けて指せる', () => {
     const s = base();
     setTrap(s, 'gote', 'kagami');
     put(s, { c: 4, r: 4 }, 'KI', 'gote');
     const uid = giveCard(s, 'sente', 'oshikaeshi');
     const { state, events } = applyAction(s, card(uid, [{ c: 4, r: 4 }]));
-    expect(events.some(e => e.type === 'magicNegated')).toBe(true);
-    expect(state.pushFollowUp).toBe(false);
-    expect(state.turn).toBe('gote');
-    expect(at(state, 4, 4)?.kind).toBe('KI');
+    expect(events.some(e => e.type === 'magicNegated')).toBe(false);
+    expect(state.pushFollowUp).toBe(true);
+    expect(state.traps).toHaveLength(1);
   });
   test('陣替えの旗の歩が横へ動いて二歩になる手は指せない', () => {
     const s = base();
@@ -325,5 +326,37 @@ describe('見直しで見つかった所', () => {
     const moves = legalActions(s).filter(a => a.type === 'move' && a.from.c === 4 && a.from.r === 4);
     expect(moves.some(a => a.type === 'move' && a.to.c === 5 && a.to.r === 4)).toBe(false); // 二歩
     expect(moves.some(a => a.type === 'move' && a.to.c === 3 && a.to.r === 4)).toBe(true);  // 左は空いた筋
+  });
+});
+
+describe('マスに伏せる罠は、伏せた手番のうちは発動しない', () => {
+  // 自分が落とし穴・凍てつく床を伏せ、同じ手番に押し返しの風で相手の駒を押し込んでも発動しない
+  for (const trap of ['otoshiana', 'itetsuku'] as const) {
+    test(`${trap}：伏せて押し込んでも発動しない。罠は伏せたまま残り、次の手番からは発動する`, () => {
+      const s = base();
+      const fu = put(s, { c: 4, r: 4 }, 'FU', 'gote'); // 後手の歩。押し返すと r−1（4,3）へ
+      const t = giveCard(s, 'sente', trap);
+      const w = giveCard(s, 'sente', 'oshikaeshi');
+      let st = applyAction(s, card(t, [{ c: 4, r: 3 }])).state;
+      const r = applyAction(st, card(w, [{ c: 4, r: 4 }]));
+      st = r.state;
+      expect(at(st, 4, 3)?.id).toBe(fu.id);
+      expect(at(st, 4, 3)?.frozen).toBeUndefined();
+      expect(r.events.some(e => e.type === 'trapTriggered')).toBe(false);
+      expect(st.traps).toHaveLength(1);
+    });
+  }
+  test('前の手番に伏せた落とし穴は、押し込めば発動する', () => {
+    const s = base();
+    put(s, { c: 4, r: 4 }, 'FU', 'gote');
+    setTrap(s, 'sente', 'otoshiana', { c: 4, r: 3 });  // 前から伏せてあった
+    const w = giveCard(s, 'sente', 'oshikaeshi');
+    const r = applyAction(s, card(w, [{ c: 4, r: 4 }]));
+    expect(at(r.state, 4, 3)).toBeNull();
+  });
+  test('落とし穴・凍てつく床の説明文に書いてある', async () => {
+    const { CARDS } = await import('../../src/cards');
+    expect(CARDS.otoshiana.text).toContain('伏せた手番のうちは発動しない');
+    expect(CARDS.itetsuku.text).toContain('伏せた手番のうちは発動しない');
   });
 });

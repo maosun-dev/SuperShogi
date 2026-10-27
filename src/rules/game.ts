@@ -336,7 +336,8 @@ function enterSquare(s: GameState, events: GameEvent[], sq: Square): void {
   const p = s.board[idx(sq)];
   if (!p) return;
   const t = s.traps
-    .filter(t => t.owner !== p.side && t.at && sameSq(t.at, sq) && t.cardId && CARDS[t.cardId].trap?.trigger === 'enter')
+    // 伏せた手番のうちは発動しない（伏せてすぐ押し返しで押し込む、を止めるため）
+    .filter(t => t.owner !== p.side && t.at && sameSq(t.at, sq) && t.cardId && CARDS[t.cardId].trap?.trigger === 'enter' && t.ply !== s.ply)
     .filter(t => !(p.kind === 'OU' && t.cardId === 'otoshiana'))
     .sort((a, b) => a.uid - b.uid)[0];
   if (!t) return;
@@ -393,7 +394,7 @@ function useCard(
     // 罠を伏せる。場所が漏れないよう cardUsed は出さない
     const uid = s.nextId++;
     const at = def.trap.placement === 'square' ? targets[0] : null;
-    s.traps.push({ uid, owner: side, cardId: def.id, at });
+    s.traps.push({ uid, owner: side, cardId: def.id, at, ply: s.ply });
     events.push({ type: 'trapSet', side, uid, cardId: def.id, at });
     return false;
   }

@@ -27,8 +27,8 @@ function slotTargets(s: GameState, side: Side): Square[][] {
 }
 
 export const otoshiana: CardDef = {
-  id: 'otoshiana', name: '落とし穴', kind: 'trap', cost: 3, fx: 'otoshiana',
-  text: 'このマスに入った相手の駒を破壊する。王が入ったときは発動せず、札は残る。相手からは場所が見えない',
+  id: 'otoshiana', name: '落とし穴', kind: 'trap', cost: 2, fx: 'otoshiana',
+  text: 'このマスに入った相手の駒を破壊する。王が入ったときは発動せず、札は残る。伏せた手番のうちは発動しない。相手からは場所が見えない',
   prompt: '落とし穴を仕掛けるマスを選んでください',
   targetSets: squareTargets,
   trap: { placement: 'square', trigger: 'enter' },
@@ -36,7 +36,7 @@ export const otoshiana: CardDef = {
 
 export const itetsuku: CardDef = {
   id: 'itetsuku', name: '凍てつく床', kind: 'trap', cost: 1, fx: 'itetsuku',
-  text: 'このマスに入った相手の駒を凍らせる。王は1手番、王以外は2手番動けない。相手からは場所が見えない',
+  text: 'このマスに入った相手の駒を凍らせる。王は1手番、王以外は2手番動けない。伏せた手番のうちは発動しない。相手からは場所が見えない',
   prompt: '凍てつく床を仕掛けるマスを選んでください',
   targetSets: squareTargets,
   trap: { placement: 'square', trigger: 'enter' },

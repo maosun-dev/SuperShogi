@@ -21,7 +21,8 @@ export interface Piece {
 }
 export interface CardInstance { uid: number; cardId: CardId; used: boolean }
 // 伏せた罠。cardId / at が null なのは「相手から見て隠されている」状態
-export interface SetTrap { uid: number; owner: Side; cardId: CardId | null; at: Square | null }
+// ply は伏せた手番（マスに伏せる罠は、伏せた手番のうちは発動しない）
+export interface SetTrap { uid: number; owner: Side; cardId: CardId | null; at: Square | null; ply?: number }
 export interface PlayerState { hand: Record<HandKind, number>; cards: CardInstance[] }
 export type HandicapKind = 'none' | 'kyo' | 'kaku' | 'hisha' | 'hikyo' | 'nimai' | 'yonmai' | 'rokumai';
 export interface Handicap { side: Side; kind: HandicapKind }

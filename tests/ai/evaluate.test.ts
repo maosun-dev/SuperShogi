@@ -57,18 +57,18 @@ test('落とし穴の上乗せ', () => {
   put(s, { c: 4, r: 4 }, 'FU', 'gote'); // 後手の歩は r+1 方向へ進む
   setTrap(s, 'sente', 'otoshiana', { c: 4, r: 5 });
   // 歩の駒価値（後手）を除いた先手側の点数を、後手から見た符号で確認する
-  expect(material(s, 'sente')).toBe(3 * 100 + 100 - 100);
+  expect(material(s, 'sente')).toBe(2 * 100 + 100 - 100);
   const t = emptyState();
   put(t, { c: 4, r: 4 }, 'FU', 'gote');
   setTrap(t, 'sente', 'otoshiana', { c: 0, r: 8 });
-  expect(material(t, 'sente')).toBe(3 * 100 - 100);
+  expect(material(t, 'sente')).toBe(2 * 100 - 100);
 });
 
 test('王だけが動ける落とし穴は上乗せしない', () => {
   const s = emptyState();
   put(s, { c: 4, r: 4 }, 'OU', 'gote');
   setTrap(s, 'sente', 'otoshiana', { c: 4, r: 5 });
-  expect(material(s, 'sente')).toBe(3 * 100);
+  expect(material(s, 'sente')).toBe(2 * 100);
 });
 
 test('王の隣に味方がいる方が高い', () => {

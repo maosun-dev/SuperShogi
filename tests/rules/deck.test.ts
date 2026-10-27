@@ -8,7 +8,7 @@ test('コスト合計10ちょうどは通る', () => {
 });
 
 test('コスト11は通らない', () => {
-  expect(validateDeck(['idaten', 'rakurai', 'otoshiana'])).toBe('コストが10を超えています');
+  expect(validateDeck(['idaten', 'rakurai', 'aiuchi'])).toBe('コストが10を超えています');
 });
 
 test('同じ札2枚は通らない', () => {
@@ -20,7 +20,7 @@ test('空のデッキは通る', () => {
 });
 
 test('createGame は不正なデッキで IllegalActionError', () => {
-  expect(() => createGame({ sente: ['idaten', 'rakurai', 'otoshiana'], gote: [] })).toThrow(IllegalActionError);
+  expect(() => createGame({ sente: ['idaten', 'rakurai', 'aiuchi'], gote: [] })).toThrow(IllegalActionError);
 });
 
 test('createGame は持ち込んだカードを全部手札に入れ、uid を振る', () => {
@@ -37,7 +37,7 @@ test('保存した持ち込みの掃除：知らない札と2枚目を外す', (
 });
 
 test('保存した持ち込みの掃除：前から足してコスト10を超える札は外す', () => {
-  expect(sanitizeDeck(['idaten', 'rakurai', 'otoshiana', 'tenma'])).toEqual(['idaten', 'rakurai', 'tenma']);
+  expect(sanitizeDeck(['idaten', 'rakurai', 'aiuchi', 'tenma'])).toEqual(['idaten', 'rakurai', 'tenma']);
 });
 
 // 2026-10 の札の直し（設計書 docs/superpowers/specs/2026-10-27-card-rebalance-design.md）
@@ -45,8 +45,8 @@ test('札のコスト（2026-10 の直し）', async () => {
   const { CARDS } = await import('../../src/cards');
   const cost = Object.fromEntries(Object.values(CARDS).map(c => [c.id, c.cost]));
   expect(cost).toEqual({
-    oshikaeshi: 2, irekae: 1, yobimodoshi: 2, shoryu: 2, kakuotoshi: 2, rakurai: 4,
-    itetsuku: 1, narifuuji: 1, otoshiana: 3, kagami: 3, aiuchi: 3, migawari: 6,
+    oshikaeshi: 1, irekae: 1, yobimodoshi: 2, shoryu: 2, kakuotoshi: 2, rakurai: 4,
+    itetsuku: 1, narifuuji: 1, otoshiana: 2, kagami: 3, aiuchi: 3, migawari: 6,
     hikijin: 1, tenma: 2, omori: 2, hagane: 3, idaten: 4, bangasa: 2,
   });
   expect(CARDS.hikijin.name).toBe('陣替えの旗');

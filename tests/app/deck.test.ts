@@ -6,7 +6,7 @@ import { makeRng } from '../../src/ai/random';
 describe('カード選びの計算', () => {
   it('残りのコストと足せない理由', () => {
     expect(deckCost(['rakurai', 'idaten'])).toBe(8);
-    expect(addReason(['rakurai', 'idaten'], 'otoshiana')).toBe('残りのコストが足りません');
+    expect(addReason(['rakurai', 'idaten'], 'aiuchi')).toBe('残りのコストが足りません');
     expect(addReason(['tenma'], 'tenma')).toBe('同じ札は1枚までです');
     expect(addReason([], 'tenma')).toBeNull();
   });

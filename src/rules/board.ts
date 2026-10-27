@@ -98,7 +98,7 @@ export function cloneState(s: GameState): GameState {
   return {
     board: s.board.map(p => (p ? clonePiece(p) : null)),
     players,
-    traps: s.traps.map(t => ({ uid: t.uid, owner: t.owner, cardId: t.cardId, at: t.at ? { c: t.at.c, r: t.at.r } : null })),
+    traps: s.traps.map(t => ({ uid: t.uid, owner: t.owner, cardId: t.cardId, at: t.at ? { c: t.at.c, r: t.at.r } : null, ...(t.ply !== undefined ? { ply: t.ply } : {}) })),
     turn: s.turn,
     ply: s.ply,
     trapSetThisTurn: s.trapSetThisTurn,

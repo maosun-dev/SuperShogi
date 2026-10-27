@@ -21,27 +21,27 @@
  },
  {
   "action": "m4837",
-  "score": 400,
+  "score": 580,
   "depth": 4
  },
  {
-  "action": "m8483",
-  "score": 270,
-  "depth": 4
+  "action": "m4051",
+  "score": -560,
+  "depth": 5
  },
  {
-  "action": "m1303",
-  "score": -230,
-  "depth": 3
+  "action": "m7062",
+  "score": 220,
+  "depth": 5
  },
  {
-  "action": "m3746",
-  "score": -1540,
-  "depth": 3
+  "action": "m5142",
+  "score": -610,
+  "depth": 5
  },
  {
   "action": "c41::",
-  "score": 220,
+  "score": 260,
   "depth": 4
  },
  {
@@ -101,7 +101,7 @@
  },
  {
   "action": "m4847",
-  "score": 560,
+  "score": 640,
   "depth": 4
  },
  {
@@ -126,7 +126,7 @@
  },
  {
   "action": "m7108+",
-  "score": 2790,
+  "score": 2870,
   "depth": 4
  },
  {
