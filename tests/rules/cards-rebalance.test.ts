@@ -221,3 +221,64 @@ describe('落雷（2026-10 の作り直し）', () => {
     expect(CARDS.rakurai.text).toBe('相手の王以外の駒1つに雷を落とす。飛車・角（竜・馬も）でなければ壊し、まわり8マスの駒（自分の駒も）は、使った人の次の手番が終わるまで痺れて動けない。飛車・角なら壊さず、対局の終わりまで滑って進めるのは3マスまでになる');
   });
 });
+
+describe('番傘（付けた駒には相手の忍札が効かない）', () => {
+  test('付けられるのは自分の王以外の、纏札の付いていない駒', () => {
+    const s = base();
+    put(s, { c: 4, r: 6 }, 'GI', 'sente');
+    put(s, { c: 5, r: 6 }, 'KI', 'sente', { equip: 'hagane' });
+    const uid = giveCard(s, 'sente', 'bangasa');
+    const t = cardActs(s, uid).map(a => a.targets);
+    expect(t).toContainEqual([{ c: 4, r: 6 }]);
+    expect(t).not.toContainEqual([{ c: 5, r: 6 }]);
+    expect(t).not.toContainEqual([{ c: 8, r: 8 }]);
+  });
+  test('落とし穴・凍てつく床のマスに入っても発動せず、罠は残る。知らせも出ない', () => {
+    for (const trap of ['otoshiana', 'itetsuku'] as const) {
+      const s = base();
+      put(s, { c: 4, r: 6 }, 'GI', 'sente', { equip: 'bangasa' });
+      setTrap(s, 'gote', trap, { c: 4, r: 5 });
+      const { state, events } = applyAction(s, mv({ c: 4, r: 6 }, { c: 4, r: 5 }));
+      expect(at(state, 4, 5)?.kind).toBe('GI');
+      expect(at(state, 4, 5)?.frozen).toBeUndefined();
+      expect(state.traps).toHaveLength(1);
+      expect(events.some(e => e.type === 'trapTriggered')).toBe(false);
+      expect(events.map(e => e.type)).toEqual(['moved']);
+    }
+  });
+  test('相手の駒を取っても相討ちが発動しない', () => {
+    const s = base();
+    put(s, { c: 4, r: 6 }, 'GI', 'sente', { equip: 'bangasa' });
+    put(s, { c: 4, r: 5 }, 'FU', 'gote');
+    setTrap(s, 'gote', 'aiuchi');
+    const { state, events } = applyAction(s, mv({ c: 4, r: 6 }, { c: 4, r: 5 }));
+    expect(at(state, 4, 5)?.kind).toBe('GI');
+    expect(state.traps).toHaveLength(1);
+    expect(events.some(e => e.type === 'trapTriggered')).toBe(false);
+  });
+  test('成ろうとしても成り封じが発動しない（成り上がりでも）', () => {
+    const s = base();
+    put(s, { c: 4, r: 3 }, 'GI', 'sente', { equip: 'bangasa' });
+    setTrap(s, 'gote', 'narifuuji');
+    const { state } = applyAction(s, mv({ c: 4, r: 3 }, { c: 4, r: 2 }, true));
+    expect(at(state, 4, 2)?.promoted).toBe(true);
+    expect(state.traps).toHaveLength(1);
+    const t = base();
+    put(t, { c: 4, r: 6 }, 'GI', 'sente', { equip: 'bangasa' });
+    setTrap(t, 'gote', 'narifuuji');
+    const uid = giveCard(t, 'sente', 'shoryu');
+    const r = applyAction(t, card(uid, [{ c: 4, r: 6 }]));
+    expect(at(r.state, 4, 6)?.promoted).toBe(true);
+    expect(r.state.traps).toHaveLength(1);
+  });
+  test('相手の王を取りに行っても身代わりが発動しない', () => {
+    const s = emptyState();
+    put(s, { c: 8, r: 8 }, 'OU', 'sente');
+    put(s, { c: 4, r: 1 }, 'OU', 'gote');
+    put(s, { c: 3, r: 1 }, 'FU', 'gote');
+    put(s, { c: 4, r: 2 }, 'KI', 'sente', { equip: 'bangasa' });
+    setTrap(s, 'gote', 'migawari');
+    const { state } = applyAction(s, mv({ c: 4, r: 2 }, { c: 4, r: 1 }));
+    expect(state.result).toEqual({ winner: 'sente', reason: 'king-captured' });
+  });
+});
