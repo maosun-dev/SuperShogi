@@ -17,7 +17,7 @@ import { hikijin } from './hikijin';
 import { tenma } from './tenma';
 import { hagane } from './hagane';
 import { omori } from './omori';
-import { tsuranuki } from './tsuranuki';
+import { bangasa } from './bangasa';
 import { idaten } from './idaten';
 
 export const MAGIC_FX: Partial<Record<CardId, CardFx<MagicCue>>> = {
@@ -29,5 +29,5 @@ export const TRAP_FX: Partial<Record<CardId, CardFx<TrapFireCue>>> = {
 };
 
 export const EQUIP_FX: Partial<Record<CardId, EquipFx>> = {
-  hikijin, tenma, hagane, omori, tsuranuki, idaten,
+  hikijin, tenma, hagane, omori, bangasa, idaten,
 };

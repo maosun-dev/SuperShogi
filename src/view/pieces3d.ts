@@ -6,7 +6,7 @@ import { isInCheck } from '../rules/moves';
 import type { Stage } from './stage';
 import { PAL, PALS, rgba } from './palette';
 import { CW, CD, addPulse, decal, disposeTree, ring, squarePos } from './board3d';
-import { armorPlate, banner, chainRing, flame, flutter, hoofprint, ironBall, spear } from './equipProps';
+import { armorPlate, banner, chainRing, flame, flutter, hoofprint, ironBall, umbrella } from './equipProps';
 import { CARD_ART } from './cardArt';
 
 /** 盤の上の駒の高さ（駒の物の原点の y） */
@@ -323,12 +323,12 @@ function makeEquip(id: CardId, side: Side, s: number): { obj: THREE.Group; stop:
       g.add(chain, ball);
       break;
     }
-    case 'tsuranuki': {
-      // 駒の後ろに担いだ細い槍（穂先が前を向く）
-      const sp = spear(1.35 * s);
-      sp.position.set(-0.36 * s, 0.3 * s, 0.1 * s);
-      sp.rotation.x = 0.35;
-      g.add(sp);
+    case 'bangasa': {
+      // 駒の後ろに差した小さな番傘（紅の和紙に胡粉の骨）。少し後ろへ傾ける
+      const u = umbrella(0.34 * s);
+      u.position.set(-0.3 * s, 0.62 * s, 0.22 * s);
+      u.rotation.set(0.35, 0, 0.25);
+      g.add(u);
       break;
     }
     case 'idaten': {

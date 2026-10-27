@@ -45,8 +45,8 @@ test('strong 同士で300手まで指しても、毎手が本当の局面で合�
 // 計画9で変えた札（押し返しの続き・成り上がり・退き陣の旗・身代わり・槍・枷）を持たせて通しで試す
 test('計画9の札を持った CPU 同士で120手指しても、毎手が本当の局面で合法', async () => {
   let s = createGame({
-    sente: ['oshikaeshi', 'shoryu', 'hikijin', 'tsuranuki', 'itetsuku'],
-    gote: ['oshikaeshi', 'migawari', 'omori', 'hikijin'],
+    sente: ['oshikaeshi', 'shoryu', 'hikijin', 'bangasa', 'itetsuku'],
+    gote: ['oshikaeshi', 'migawari', 'omori'],
   });
   let plies = 0;
   for (; plies < 120 && !s.result; plies++) {

@@ -114,7 +114,7 @@ describe('対局の進行役', () => {
     put(real, { c: 2, r: 5 }, 'KA', 'sente');
     const all: CardId[] = [
       'oshikaeshi', 'irekae', 'rakurai', 'kakuotoshi', 'shoryu', 'yobimodoshi', 'otoshiana', 'itetsuku',
-      'kagami', 'narifuuji', 'aiuchi', 'migawari', 'tenma', 'hagane', 'hikijin', 'tsuranuki', 'omori', 'idaten',
+      'kagami', 'narifuuji', 'aiuchi', 'migawari', 'tenma', 'hagane', 'hikijin', 'bangasa', 'omori', 'idaten',
     ];
     for (const c of all) giveCard(real, 'sente', c);
     setTrap(real, 'gote', 'otoshiana', { c: 2, r: 4 });

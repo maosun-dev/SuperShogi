@@ -7,7 +7,7 @@ export type CardId =
   | 'oshikaeshi' | 'irekae' | 'rakurai' | 'itetsuku' | 'yobimodoshi'
   | 'otoshiana' | 'kagami' | 'narifuuji'
   | 'tenma' | 'hagane' | 'hikijin' | 'idaten'
-  | 'kakuotoshi' | 'shoryu' | 'aiuchi' | 'migawari' | 'tsuranuki' | 'omori';
+  | 'kakuotoshi' | 'shoryu' | 'aiuchi' | 'migawari' | 'bangasa' | 'omori';
 
 // c は先手から見て左が0・右が8、r は上（後手側）が0・下（先手側）が8
 export interface Square { c: number; r: number }

@@ -95,12 +95,13 @@ export const CARD_ART: Record<CardId, string> = {
     <path d="M17 32 L4 36 L5 40 L12 39 L11 58 L16 58 L17 47 L18 58 L23 58 L22 39 L29 40 L30 36Z" fill="${P}" stroke="${S}" stroke-width="1.8" stroke-linejoin="round"/>
     <path d="M6 54 L30 26" stroke="${W}" stroke-width="3.4" stroke-linecap="round"/>
     <circle cx="36" cy="40" r="2.4" fill="${G}" stroke="${S}" stroke-width="1"/>`,
-  // 貫きの槍：一本の槍が駒を貫き、穂先は金
-  tsuranuki: `${piece(22, 22, 24, 28, 2)}
-    <path d="M6 58 L36 10" stroke="${S}" stroke-width="3.2" stroke-linecap="round"/>
-    <path d="M14 49 L18 43 M26 30 L29 25" stroke="${P}" stroke-width="1" stroke-linecap="round"/>
-    <polygon points="41,2 39,14 33,10" fill="${G}" stroke="${S}" stroke-width="1.2" stroke-linejoin="round"/>
-    <path d="M30 17 L37 21" stroke="${S}" stroke-width="2" stroke-linecap="round"/>`,
+  // 番傘：駒の上に紅の番傘。傘の上で墨の雫（忍札）がはじかれて左右へ散る
+  bangasa: `${piece(23, 34, 22, 25, 1.8)}
+    <path d="M5 24 Q23 4 41 24 Q35 21 29 24 Q23 21 17 24 Q11 21 5 24Z" fill="${W}" stroke="${S}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M23 9 L11 22.6 M23 9 L17 24 M23 9 L23 23 M23 9 L29 24 M23 9 L35 22.6" stroke="${P}" stroke-width="0.9" stroke-linecap="round"/>
+    <circle cx="23" cy="8.4" r="1.6" fill="${G}" stroke="${S}" stroke-width="0.9"/>
+    <path d="M23 23 L23 33" stroke="${S}" stroke-width="1.6"/>
+    <path d="M8 6 Q6 9 8 10 Q10 9 8 6Z M3 15 Q1 18 3 19 Q5 18 3 15Z M38 6 Q36 9 38 10 Q40 9 38 6Z M43 15 Q41 18 43 19 Q45 18 43 15Z" fill="${S}"/>`,
   // 重りの枷：駒の足に鉄の輪、鎖の先に墨の重り（金の光がひと筋）
   omori: `${piece(15, 6, 22, 28, 1.8)}
     <rect x="5" y="31" width="20" height="6" rx="2" fill="${S}"/>

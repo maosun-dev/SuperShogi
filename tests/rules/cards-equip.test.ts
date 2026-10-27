@@ -215,41 +215,6 @@ test('装備した駒が取られると、持ち駒に装備は付いてこな�
   expect(r3.state.board[idx({ c: 2, r: 4 })]).toMatchObject({ kind: 'GI', equip: null });
 });
 
-// ---------- 貫きの槍は1回きり（計画9） ----------
-
-test('貫きの槍：飛び越えて動いたら外れ、equipBroken が出る。次からは飛び越えられない', () => {
-  const s = base();
-  const hi = put(s, { c: 4, r: 8 }, 'HI', 'sente', { equip: 'tsuranuki' });
-  put(s, { c: 4, r: 6 }, 'FU', 'sente');
-  put(s, { c: 4, r: 2 }, 'FU', 'gote');
-  const { state, events } = applyAction(s, mv({ c: 4, r: 8 }, { c: 4, r: 4 }));
-  expect(state.board[idx({ c: 4, r: 4 })]?.equip).toBeNull();
-  expect(events).toContainEqual({ type: 'equipBroken', pieceId: hi.id, at: { c: 4, r: 4 }, cardId: 'tsuranuki' });
-  state.turn = 'sente';
-  expect(pieceTargets(state, { c: 4, r: 4 })).not.toContainEqual({ c: 4, r: 1 });
-});
-
-test('貫きの槍：飛び越えない動きでは外れない', () => {
-  const s = base();
-  put(s, { c: 4, r: 8 }, 'HI', 'sente', { equip: 'tsuranuki' });
-  put(s, { c: 4, r: 6 }, 'FU', 'sente');
-  const { state, events } = applyAction(s, mv({ c: 4, r: 8 }, { c: 4, r: 7 }));
-  expect(state.board[idx({ c: 4, r: 7 })]?.equip).toEqual({ cardId: 'tsuranuki' });
-  expect(events.some(e => e.type === 'equipBroken')).toBe(false);
-});
-
-test('貫きの槍：香車が飛び越えて敵陣で成ると、成りと外れるのが両方起きる', () => {
-  const s = base();
-  put(s, { c: 4, r: 8 }, 'KY', 'sente', { equip: 'tsuranuki' });
-  put(s, { c: 4, r: 5 }, 'FU', 'sente');
-  const { state } = applyAction(s, mv({ c: 4, r: 8 }, { c: 4, r: 2 }, true));
-  expect(state.board[idx({ c: 4, r: 2 })]).toMatchObject({ kind: 'KY', promoted: true, equip: null });
-});
-
-test('貫きの槍はコスト4', () => {
-  expect(CARDS.tsuranuki.cost).toBe(4);
-});
-
 // ---------- 重りの枷は3手番で外れる（計画9） ----------
 
 // 先手が後手の銀に枷を付け、両者が王を動かして手番を回す

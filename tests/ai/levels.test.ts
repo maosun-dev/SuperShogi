@@ -27,7 +27,9 @@ function midgame(): GameState {
 
 test('どの強さの持ち込みも validateDeck を通る', () => {
   for (const l of LV) expect(validateDeck(LEVELS[l].deck)).toBeNull();
-  expect(LEVELS.strong.deck).toEqual(['itetsuku', 'aiuchi', 'tsuranuki', 'hagane']);
+  expect(LEVELS.weak.deck).toEqual(['oshikaeshi', 'yobimodoshi', 'otoshiana', 'tenma']);
+  expect(LEVELS.normal.deck).toEqual(['rakurai', 'hagane', 'yobimodoshi']);
+  expect(LEVELS.strong.deck).toEqual(['itetsuku', 'aiuchi', 'hagane', 'tenma']);
 });
 
 test('強い方が深く・迷いが少ない', () => {
@@ -160,13 +162,13 @@ describe('大詰の3人', () => {
     for (const l of OOZUME) expect(LEVELS[l].maxNodes).toBeUndefined();
   });
   test('札：師範は決まった6枚（コスト10）、鬼は攻めの10種類からくじ、傾奇者は全部からくじ', () => {
-    expect(LEVELS.shihan.deck).toEqual(['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin', 'oshikaeshi']);
+    expect(LEVELS.shihan.deck).toEqual(['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin']);
     expect(validateDeck(LEVELS.shihan.deck)).toBeNull();
     expect(LEVELS.shihan.kuji).toBeUndefined();
-    expect(LEVELS.oni.kuji).toEqual(['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tsuranuki', 'tenma', 'omori']);
+    expect(LEVELS.oni.kuji).toEqual(['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tenma', 'omori']);
     expect(LEVELS.kabuki.kuji).toBe('all');
     // 鬼は守りの札を1枚だけ混ぜる（攻めの札だけだと、強いの罠と鎧に攻めを止められて勝てなかった）
-    expect(LEVELS.oni.kujiGuard).toEqual(['hagane', 'itetsuku', 'aiuchi', 'otoshiana', 'narifuuji', 'hikijin', 'kagami']);
+    expect(LEVELS.oni.kujiGuard).toEqual(['hagane', 'itetsuku', 'aiuchi', 'otoshiana', 'narifuuji', 'hikijin', 'kagami', 'bangasa']);
     expect(LEVELS.kabuki.kujiGuard).toBeUndefined();
   });
 });

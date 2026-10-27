@@ -149,7 +149,7 @@ test('成り封じを受けた駒は対局の終わりまで成れない。取�
   expect(moved.id).toBe(gi.id);
   expect(moved.sealed).toBe(true);
   expect(canPromote(moved, { c: 4, r: 2 }, { c: 4, r: 1 })).toBe(false);
-  expect(CARDS.narifuuji.cost).toBe(2);
+  expect(CARDS.narifuuji.cost).toBe(1);
 });
 
 test('成れない歩は、成らないと行き所のない最奥段へ動けない', () => {
@@ -161,14 +161,15 @@ test('成れない歩は、成らないと行き所のない最奥段へ動け�
 
 // ---------- 鏡の結界 ----------
 
-test('鏡の結界：コスト1の押し返しの風には発動しない', () => {
+test('鏡の結界：コスト1の入れ替えの術には発動しない', () => {
   const s = base();
   setTrap(s, 'gote', 'kagami');
-  put(s, { c: 4, r: 4 }, 'KI', 'gote');
-  const uid = giveCard(s, 'sente', 'oshikaeshi');
-  const { state, events } = applyAction(s, card(uid, [{ c: 4, r: 4 }]));
+  put(s, { c: 3, r: 6 }, 'KI', 'sente');
+  put(s, { c: 5, r: 6 }, 'GI', 'sente');
+  const uid = giveCard(s, 'sente', 'irekae');
+  const { state, events } = applyAction(s, card(uid, [{ c: 3, r: 6 }, { c: 5, r: 6 }]));
   expect(events.some(e => e.type === 'magicNegated')).toBe(false);
-  expect(at(state, 4, 3)?.kind).toBe('KI');
+  expect(at(state, 3, 6)?.kind).toBe('GI');
   expect(state.traps).toHaveLength(1);
 });
 
@@ -357,45 +358,6 @@ test('身代わり：王の隣に味方がいなければ発動せず、王が�
   expect(state.result).toEqual({ winner: 'sente', reason: 'king-captured' });
 });
 
-// ---------- 貫きの槍 ----------
-
-test('貫きの槍：途中の駒を1つ飛び越え、次の駒の手前まで進むか、相手の駒なら取れる', () => {
-  const s = base();
-  put(s, { c: 4, r: 8 }, 'KY', 'sente', { equip: 'tsuranuki' });
-  put(s, { c: 4, r: 6 }, 'FU', 'sente');   // 飛び越える味方
-  put(s, { c: 4, r: 3 }, 'FU', 'gote');    // 次の相手の駒（取れる）
-  put(s, { c: 4, r: 1 }, 'KI', 'gote');    // 2つ目は飛び越えない
-  const t = pieceTargets(s, { c: 4, r: 8 });
-  expect(has(t, 4, 7)).toBe(true);
-  expect(has(t, 4, 6)).toBe(false);
-  expect(has(t, 4, 5)).toBe(true);
-  expect(has(t, 4, 4)).toBe(true);
-  expect(has(t, 4, 3)).toBe(true);
-  expect(has(t, 4, 2)).toBe(false);
-  expect(has(t, 4, 1)).toBe(false);
-});
-
-test('貫きの槍：最初にぶつかった相手の駒も取れ、その先へも飛び越えられる', () => {
-  const s = base();
-  put(s, { c: 4, r: 8 }, 'HI', 'sente', { equip: 'tsuranuki' });
-  put(s, { c: 4, r: 5 }, 'FU', 'gote');
-  const t = pieceTargets(s, { c: 4, r: 8 });
-  expect(has(t, 4, 5)).toBe(true);
-  expect(has(t, 4, 4)).toBe(true);
-  expect(has(t, 4, 0)).toBe(true);
-});
-
-test('貫きの槍：付けられるのは飛・角・香（竜・馬も）で、成香には付けられない', () => {
-  const s = base();
-  put(s, { c: 1, r: 6 }, 'KY', 'sente', { promoted: true });
-  put(s, { c: 2, r: 6 }, 'KA', 'sente', { promoted: true });
-  put(s, { c: 3, r: 6 }, 'KY', 'sente');
-  put(s, { c: 4, r: 6 }, 'GI', 'sente');
-  const uid = giveCard(s, 'sente', 'tsuranuki');
-  const targets = cardActs(s, uid).map(a => a.targets);
-  expect(targets).toEqual([[{ c: 2, r: 6 }], [{ c: 3, r: 6 }]]);
-});
-
 // ---------- 重りの枷 ----------
 
 test('重りの枷：付けた駒は隣8マスだけ。桂は動けない。王は選べない', () => {
@@ -416,13 +378,14 @@ test('重りの枷：付けた駒は隣8マスだけ。桂は動けない。王�
   expect(pieceTargets(s2, { c: 6, r: 1 })).toEqual([]);
 });
 
-test('札は全18種類で、術・忍・纏が6種類ずつ。王の盾はなく、退き陣の旗がコスト1', () => {
+test('札は全18種類で、術・忍・纏が6種類ずつ。王の盾・貫きの槍はなく、陣替えの旗がコスト2', () => {
   const defs = Object.values(CARDS);
   expect(defs).toHaveLength(18);
   for (const kind of ['magic', 'trap', 'equip'] as const) {
     expect(defs.filter(d => d.kind === kind)).toHaveLength(6);
   }
   expect('tate' in CARDS).toBe(false);
-  expect(CARDS.hikijin.cost).toBe(1);
+  expect('tsuranuki' in CARDS).toBe(false);
+  expect(CARDS.hikijin.cost).toBe(2);
   expect(CARDS.itetsuku.kind).toBe('trap');
 });

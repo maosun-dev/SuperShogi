@@ -43,7 +43,7 @@ export const LEVELS: Record<Level, LevelConfig> = {
   },
   strong: {
     maxDepth: 6, timeLimitMs: 3000, maxNodes: 53_000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
-    deck: ['itetsuku', 'aiuchi', 'tsuranuki', 'hagane'],
+    deck: ['itetsuku', 'aiuchi', 'hagane', 'tenma'],
   },
   // 大詰：読む量の上限は付けず、速くなった読みを考える時間いっぱいに使う
   // 鬼：守りの札を1枚だけ入れ、残りは攻めの札でくじ（攻め中心。攻めの札だけだと、強いの罠と鎧に攻めを止められて
@@ -51,14 +51,15 @@ export const LEVELS: Record<Level, LevelConfig> = {
   oni: {
     maxDepth: 8, timeLimitMs: 3000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
     deck: [],
-    kuji: ['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tsuranuki', 'tenma', 'omori'],
-    kujiGuard: ['hagane', 'itetsuku', 'aiuchi', 'otoshiana', 'narifuuji', 'hikijin', 'kagami'],
+    kuji: ['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tenma', 'omori'],
+    kujiGuard: ['hagane', 'itetsuku', 'aiuchi', 'otoshiana', 'narifuuji', 'hikijin', 'kagami', 'bangasa'],
   },
-  // 師範：札の一発逆転を止める受けの札で固める（毎回同じ・コスト10）。序盤は定跡
+  // 師範：札の一発逆転を止める受けの札で固める（毎回同じ・コスト10）。序盤は定跡。
+  // 2026-10 の札の直しで押し返しの風（2になった）を外した
   shihan: {
     maxDepth: 8, timeLimitMs: 4000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
     joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true,
-    deck: ['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin', 'oshikaeshi'],
+    deck: ['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin'],
   },
   // 傾奇者：全18枚からくじ。最後の相手。序盤は定跡
   kabuki: {

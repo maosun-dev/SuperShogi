@@ -17,12 +17,12 @@ function openBoard(): GameState {
   put(s, { c: 2, r: 5 }, 'KE', 'sente', { equip: 'tenma' });          // 桂に天馬（同じ跳びが重なる）
   put(s, { c: 6, r: 5 }, 'GI', 'sente', { equip: 'hikijin' });        // 銀に退き陣
   put(s, { c: 6, r: 3 }, 'GI', 'gote', { equip: 'hikijin' });         // 後手の銀に退き陣（向きが逆）
-  put(s, { c: 0, r: 4 }, 'HI', 'sente', { equip: 'tsuranuki' });      // 飛に槍、筋に駒が2つ
+  put(s, { c: 0, r: 4 }, 'HI', 'sente', { equip: 'bangasa' });        // 飛に番傘（動きは変わらない）、筋に駒が2つ
   put(s, { c: 3, r: 4 }, 'FU', 'gote');
   put(s, { c: 5, r: 4 }, 'FU', 'gote');
   put(s, { c: 8, r: 8 }, 'KA', 'gote', { promoted: true, equip: 'omori' }); // 馬に枷
   put(s, { c: 4, r: 4 }, 'KE', 'gote', { equip: 'tenma', frozen: 1 });     // 凍った桂
-  put(s, { c: 8, r: 0 }, 'KY', 'sente', { equip: 'tsuranuki', promoted: true });
+  put(s, { c: 8, r: 0 }, 'KY', 'sente', { equip: 'bangasa', promoted: true });
   put(s, { c: 3, r: 5 }, 'KE', 'gote');                               // 王から3段離れた桂が王のまわりに利く
   return s;
 }
@@ -74,19 +74,16 @@ export function pieceTargetsRef(s: GameState, from: Square): Square[] {
     if (q && q.side === p.side) continue;
     add(to);
   }
-  const pierce = p.equip?.cardId === 'tsuranuki';
+  // 2026-10：貫きの槍はなくなった（写しも飛び越えない）
   for (const [dc, df] of slides) {
     let to = { c: from.c + dc, r: from.r + df * f };
-    let jumped = false;
     while (onBoard(to)) {
       const q = s.board[idx(to)];
       if (q) {
         if (q.side !== p.side) add(to);
-        if (!pierce || jumped) break;
-        jumped = true;
-      } else {
-        add(to);
+        break;
       }
+      add(to);
       to = { c: to.c + dc, r: to.r + df * f };
     }
   }

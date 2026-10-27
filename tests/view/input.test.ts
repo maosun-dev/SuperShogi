@@ -192,7 +192,7 @@ describe('input', () => {
       itetsuku: '凍てつく床を仕掛けるマスを選んでください',
       kakuotoshi: '成りを戻す相手の駒を選んでください',
       shoryu: '成らせる自分の駒を選んでください',
-      tsuranuki: '纏札を付ける自分の駒を選んでください',
+      bangasa: '纏札を付ける自分の駒を選んでください',
       omori: '重りの枷を付ける相手の駒を選んでください',
     };
     for (const [id, text] of Object.entries(want)) expect(CARDS[id as CardId].prompt).toBe(text);

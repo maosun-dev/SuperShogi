@@ -114,19 +114,45 @@ export function ironBall(r: number): THREE.Mesh {
   return m;
 }
 
-/** 槍：細い柄と金の穂先。先が -z（駒の前）を向く。len は全長 */
-export function spear(len: number): THREE.Group {
+/** 番傘：紅の和紙を張った傘（胡粉の骨の筋・金の頭）と、墨の柄。r は傘の半径。open 0〜1 で開き具合 */
+export function umbrella(r: number, open = 1): THREE.Group {
   const g = new THREE.Group();
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, len * 0.8, 6), new THREE.MeshStandardMaterial({ color: PAL.wanaDeep, roughness: 0.6 }));
-  shaft.rotation.x = Math.PI / 2;
-  shaft.position.z = len * 0.1;
-  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.055, len * 0.2, 4), new THREE.MeshStandardMaterial({ color: PAL.soubiLight, metalness: 0.8, roughness: 0.25 }));
-  tip.rotation.x = -Math.PI / 2;
-  tip.position.z = -len * 0.4;
-  g.add(shaft, tip);
-  g.traverse((o) => { (o as THREE.Mesh).castShadow = true; });
+  const canopy = new THREE.Group();
+  const ribs = 12;
+  // 紅の和紙の傘：低い円すいを、骨の数だけの面で（少し角ばった和傘の形）
+  const paper = new THREE.Mesh(
+    new THREE.ConeGeometry(r, r * 0.42, ribs, 1, true),
+    new THREE.MeshStandardMaterial({ color: PAL.wana, roughness: 0.75, side: THREE.DoubleSide }),
+  );
+  paper.castShadow = true;
+  canopy.add(paper);
+  // 骨の筋（胡粉）と、ふちの蛇の目の輪（胡粉の帯）
+  const ribMat = new THREE.MeshBasicMaterial({ color: PAL.gofun });
+  for (let i = 0; i < ribs; i++) {
+    const a = (i / ribs) * Math.PI * 2;
+    const len = Math.hypot(r, r * 0.42);
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.006, len), ribMat);
+    rib.position.set(Math.cos(a) * r / 2, 0.002, Math.sin(a) * r / 2);
+    rib.rotation.y = -a + Math.PI / 2;
+    rib.rotation.x = Math.atan2(r * 0.42, r);
+    canopy.add(rib);
+  }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(r * 0.62, r * 0.05, 4, ribs), ribMat);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = -r * 0.42 * 0.12;
+  canopy.add(ring);
+  const top = new THREE.Mesh(new THREE.SphereGeometry(r * 0.08, 8, 6), new THREE.MeshStandardMaterial({ color: PAL.soubiLight, metalness: 0.7, roughness: 0.3 }));
+  top.position.y = r * 0.21;
+  canopy.add(top);
+  canopy.position.y = r * 0.21;
+  canopy.scale.set(Math.max(0.05, open), 1, Math.max(0.05, open));
+  canopy.name = 'canopy';
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.025, r * 0.025, r * 1.3, 6), new THREE.MeshStandardMaterial({ color: PAL.sumi, roughness: 0.5 }));
+  stick.position.y = -r * 0.45;
+  g.add(canopy, stick);
   return g;
 }
+
 
 /** 炎の模様（下が白く、上へ紅く細る） */
 function flameTexture(own: boolean): THREE.CanvasTexture {

@@ -181,13 +181,7 @@ describe('planFx', () => {
     expect(cues[0]).toMatchObject({ kind: 'move', captured: { at: sq(0, 0) } });
   });
 
-  it('纏札が外れた：equipBreak（槍を使い切った）', () => {
-    const s = base();
-    const hi = put(s, sq(4, 8), 'HI', 'sente', { equip: 'tsuranuki' });
-    put(s, sq(4, 6), 'FU', 'sente');
-    const c = cuesOf(s, { type: 'move', from: sq(4, 8), to: sq(4, 4), promote: false });
-    expect(c).toContainEqual({ kind: 'equipBreak', pieceId: hi.id, at: sq(4, 4), cardId: 'tsuranuki' });
-  });
+
 
   it('小さな知らせ：passed と secondMoveSkipped', () => {
     const evs: GameEvent[] = [

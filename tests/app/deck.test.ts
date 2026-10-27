@@ -5,8 +5,8 @@ import { makeRng } from '../../src/ai/random';
 
 describe('カード選びの計算', () => {
   it('残りのコストと足せない理由', () => {
-    expect(deckCost(['rakurai', 'idaten'])).toBe(9);
-    expect(addReason(['rakurai', 'idaten'], 'irekae')).toBe('残りのコストが足りません');
+    expect(deckCost(['rakurai', 'idaten'])).toBe(8);
+    expect(addReason(['rakurai', 'idaten'], 'otoshiana')).toBe('残りのコストが足りません');
     expect(addReason(['tenma'], 'tenma')).toBe('同じ札は1枚までです');
     expect(addReason([], 'tenma')).toBeNull();
   });
@@ -29,6 +29,6 @@ describe('大きな札のボタン（入れる・抜く）', () => {
     expect(lookActions(['rakurai'], 'rakurai')).toEqual({ kind: 'remove', disabled: false, note: '' });
   });
   it('コストが足りない札は「入れる」を押せず、理由を添える', () => {
-    expect(lookActions(['idaten', 'rakurai'], 'tsuranuki')).toEqual({ kind: 'add', disabled: true, note: '残りのコストが足りません' });
+    expect(lookActions(['idaten', 'rakurai'], 'hagane')).toEqual({ kind: 'add', disabled: true, note: '残りのコストが足りません' });
   });
 });

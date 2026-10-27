@@ -27,11 +27,11 @@ export interface CardFx<C> {
 }
 
 export interface EquipFx extends CardFx<EquipCue> {
-  /** 付けた駒の、札の力を使う手（退き陣で下がる・天馬で跳ぶ・槍で飛び越える）。ふだんの1手の前に流す */
+  /** 付けた駒の、札の力を使う手（陣替えで下がる・横へずれる・天馬で跳ぶ）。ふだんの1手の前に流す */
   onMove?(ctx: FxCtx, cue: MoveCue): Promise<void>;
   /** 鋼の鎧が守った */
   onArmor?(ctx: FxCtx, cue: ArmorCue): Promise<void>;
-  /** 纏札が外れた（槍を使い切った・枷の手番が尽きた） */
+  /** 纏札が外れた（枷の手番が尽きた） */
   onBreak?(ctx: FxCtx, cue: BreakCue): Promise<void>;
   /** 韋駄天の2回目の移動 */
   onSecond?(ctx: FxCtx, cue: SecondCue): Promise<void>;

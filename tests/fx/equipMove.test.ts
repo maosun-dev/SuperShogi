@@ -28,11 +28,7 @@ describe('纏札の出番の手 equipMoveKind', () => {
     expect(equipMoveKind(s, sq(4, 6), sq(3, 4))).toBe('tenma');
     expect(equipMoveKind(s, sq(4, 6), sq(4, 5))).toBeNull();
   });
-  it('貫きの槍：まっすぐ進む途中の駒を飛び越える手', () => {
-    const s = withEquip(7, 7, 'tsuranuki'); // 先手の飛車。前に歩がいる
-    expect(equipMoveKind(s, sq(7, 7), sq(7, 5))).toBe('tsuranuki');
-    expect(equipMoveKind(s, sq(7, 7), sq(7, 6))).toBeNull();  // 隣の歩を取る手は飛び越えていない
-  });
+
   it('纏札の無い駒・別の札の駒は null', () => {
     const s = createGame({ sente: [], gote: [] });
     expect(equipMoveKind(s, sq(4, 6), sq(4, 5))).toBeNull();

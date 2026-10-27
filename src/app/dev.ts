@@ -77,7 +77,6 @@ export function titleView(): GameState {
 // ?fx=marks       凍結・成れない・重りの枷の印を見るだけの局面
 // ?fx=equips      6種類の纏札の印（旗・蹄の跡・鎧・鎖と鉄球・槍・炎）を見るだけの局面（後手の駒にも付ける）
 // ?fx=kakuotoshi  相手の飛車を竜にしておく（格落としの的）
-// ?fx=spear-break 自分の飛車に貫きの槍。Space で前の歩を飛び越えて進み、槍が外れる
 // ?fx=omori-break 相手の 3一 の銀に残り1の重りの枷。Space で歩を進め、CPU が指し終えると枷が外れる
 // ?fx=move        初期配置のまま。Space で歩を1つ進める（ふだんの1手）
 // ?fx=capture     相手の歩が 7五、自分の歩が 7六。Space で取る（CPU が取り返すと、相手の手の光りも見られる）
@@ -86,10 +85,10 @@ export function titleView(): GameState {
 // &cpu=normal などで相手の持ち込みと強さを変える
 
 type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw'
-  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'equips' | 'spear-break' | 'omori-break'
+  | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'equips' | 'omori-break'
   | 'move' | 'capture' | 'promote' | 'drop' | 'resign';
 const SCENES: FxScene[] = [
-  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'equips', 'spear-break', 'omori-break',
+  'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'equips', 'omori-break',
   'move', 'capture', 'promote', 'drop', 'resign',
 ];
 const TRAP_SCENES = ['otoshiana', 'kagami', 'narifuuji', 'itetsuku', 'aiuchi', 'migawari'];
@@ -167,13 +166,13 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       at(2, 6).equip = { cardId: 'hikijin' };
       at(1, 8).equip = { cardId: 'tenma' };
       at(2, 8).equip = { cardId: 'hagane' };
-      at(7, 7).equip = { cardId: 'tsuranuki' };
+      at(7, 7).equip = { cardId: 'bangasa' };
       at(5, 8).equip = { cardId: 'idaten' };
       at(6, 6).equip = { cardId: 'omori', left: 3 };
       // 後手の駒（向きが合っているか）
       at(6, 2).equip = { cardId: 'hikijin' };
       at(6, 0).equip = { cardId: 'hagane' };
-      at(1, 1).equip = { cardId: 'tsuranuki' };
+      at(1, 1).equip = { cardId: 'bangasa' };
       at(5, 0).equip = { cardId: 'idaten' };
       break;
     }
@@ -204,9 +203,6 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       break;
     case 'draw':
       s.ply = 300;
-      break;
-    case 'spear-break':
-      s.board[7 * 9 + 7]!.equip = { cardId: 'tsuranuki' };
       break;
     case 'omori-break':
       s.board[0 * 9 + 6]!.equip = { cardId: 'omori', left: 1 };
@@ -276,8 +272,6 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
       return legal.find((a) => eventsOf(view, a).some((e) => e.type === 'check' && e.side === 'gote'));
     case 'win':
       return legal.find((a) => eventsOf(view, a).some((e) => e.type === 'gameOver' && e.result.winner === 'sente'));
-    case 'spear-break':
-      return legal.filter(isMove).find((a) => eventsOf(view, a).some((e) => e.type === 'equipBroken'));
     case 'capture':
       return legal.filter(isMove).find((a) => same(a.to, MEET));
     case 'promote':
@@ -300,9 +294,9 @@ const PICKS: [string, string][] = [
   ['yobimodoshi', '術・呼び戻し'], ['kakuotoshi', '術・格落とし'], ['rakurai', '術・落雷'],
   ['itetsuku', '忍・凍てつく床'], ['otoshiana', '忍・落とし穴'], ['narifuuji', '忍・成り封じ'],
   ['kagami', '忍・鏡の結界'], ['aiuchi', '忍・相討ち'], ['migawari', '忍・身代わり'],
-  ['hikijin', '纏・退き陣の旗'], ['tenma', '纏・天馬の蹄'], ['hagane', '纏・鋼の鎧'],
-  ['omori', '纏・重りの枷'], ['tsuranuki', '纏・貫きの槍'], ['idaten', '纏・韋駄天'],
-  ['hagane-block', '出番・鎧が守る'], ['spear-break', '出番・槍で跳び越える'], ['omori-break', '出番・枷が外れる'],
+  ['hikijin', '纏・陣替えの旗'], ['tenma', '纏・天馬の蹄'], ['hagane', '纏・鋼の鎧'],
+  ['omori', '纏・重りの枷'], ['bangasa', '纏・番傘'], ['idaten', '纏・韋駄天'],
+  ['hagane-block', '出番・鎧が守る'], ['omori-break', '出番・枷が外れる'],
   ['equips', '纏札の印を見る'], ['move', '1手・動かす'], ['capture', '1手・取る'], ['promote', '1手・成る'], ['drop', '1手・打つ'],
   ['check', '決着・王手'], ['win', '決着・勝ち'], ['lose', '決着・負け'], ['draw', '決着・引き分け'], ['resign', '決着・投了'],
 ];

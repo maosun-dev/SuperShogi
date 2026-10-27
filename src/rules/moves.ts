@@ -30,7 +30,7 @@ function vectors(p: Piece): Moves {
 }
 
 // その駒が動ける先（味方のいるマスは除く。相手の駒のマスは含む）。
-// 凍った駒は動けない。重りの枷を付けた駒は隣8マスだけ。貫きの槍は滑る途中の駒を1つ飛び越えられる。退き陣の旗は真後ろへ1マス
+// 凍った駒は動けない。重りの枷を付けた駒は隣8マスだけ。陣替えの旗は真後ろ（と左右）へ1マス
 export function pieceTargets(s: GameState, from: Square): Square[] {
   return pieceTargetIdx(s, idx(from)).map(sqOf);
 }
@@ -63,21 +63,17 @@ export function pieceTargetIdx(s: GameState, from: number): number[] {
   };
   for (const [dc, df] of steps) step(dc, df);
   for (const [dc, df] of extra) step(dc, df);
-  const pierce = equip === 'tsuranuki';
   for (const [dc, df] of slides) {
     const dr = df * f;
     let c = fc + dc, r = fr + dr;
-    let jumped = false;
     while (c >= 0 && c <= 8 && r >= 0 && r <= 8) {
       const i = r * 9 + c;
       const q = s.board[i];
       if (q) {
         if (q.side !== p.side) add(i);
-        if (!pierce || jumped) break;
-        jumped = true;
-      } else {
-        add(i);
+        break;
       }
+      add(i);
       c += dc; r += dr;
     }
   }
@@ -143,8 +139,7 @@ export function attacks(s: GameState, from: number, to: number): boolean {
   for (const [vc, vf] of steps) if (vc === dc && vf === df) return true;
   if (equip === 'tenma' && (dc === -1 || dc === 1) && df === 2) return true;
   if (equip === 'hikijin' && !p.promoted && dc === 0 && df === -1) return true;
-  // 滑る動き：to がその筋の上にあり、間の駒が0（貫きの槍なら1つまで）
-  const allowed = equip === 'tsuranuki' ? 1 : 0;
+  // 滑る動き：to がその筋の上にあり、間に駒が無い
   for (const [vc, vf] of slides) {
     if ((vc === 0 && dc !== 0) || (vf === 0 && df !== 0)) continue;
     const k = vc !== 0 ? dc * vc : df * vf;
@@ -152,9 +147,9 @@ export function attacks(s: GameState, from: number, to: number): boolean {
     const stepR = (tr - fr) / k, stepC = dc / k;
     let blockers = 0;
     for (let n = 1; n < k; n++) {
-      if (s.board[(fr + stepR * n) * 9 + fc + stepC * n] && ++blockers > allowed) break;
+      if (s.board[(fr + stepR * n) * 9 + fc + stepC * n] && ++blockers > 0) break;
     }
-    if (blockers <= allowed) return true;
+    if (blockers === 0) return true;
   }
   return false;
 }

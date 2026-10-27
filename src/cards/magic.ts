@@ -35,8 +35,8 @@ function swapIsSound(s: GameState, side: Side, a: Square, b: Square): boolean {
 }
 
 export const oshikaeshi: CardDef = {
-  id: 'oshikaeshi', name: '押し返しの風', kind: 'magic', cost: 1, fx: 'oshikaeshi',
-  text: '相手の駒1つを、相手側へ1マス押し戻す。押し戻す先が空いているときだけ使える。王も対象にできる。押し戻したあと、続けて駒を1つ動かすか、持ち駒を1つ打てる',
+  id: 'oshikaeshi', name: '押し返しの風', kind: 'magic', cost: 2, fx: 'oshikaeshi',
+  text: '相手の駒1つを、相手側へ1マス押し戻す。押し戻す先が空いているときだけ使える。王も対象にできる。押し戻したあと、続けて駒を1つ動かすか、持ち駒を1つ打てる（この手番は王を取れない）',
   continuesTurn: true,
   prompt: '押し戻す相手の駒を選んでください',
   targetSets(s, side) {
@@ -56,7 +56,7 @@ export const oshikaeshi: CardDef = {
 };
 
 export const irekae: CardDef = {
-  id: 'irekae', name: '入れ替えの術', kind: 'magic', cost: 2, fx: 'irekae',
+  id: 'irekae', name: '入れ替えの術', kind: 'magic', cost: 1, fx: 'irekae',
   text: '自分の駒2つの位置を入れ替える。王も対象にできる。行き所のない駒や二歩ができるなら使えない',
   prompt: '入れ替える自分の駒を2つ選んでください',
   targetSets(s, side) {
@@ -98,7 +98,7 @@ function hasPawnInColumn(s: GameState, side: Side, c: number, except: Square): b
 }
 
 export const kakuotoshi: CardDef = {
-  id: 'kakuotoshi', name: '格落とし', kind: 'magic', cost: 3, fx: 'kakuotoshi',
+  id: 'kakuotoshi', name: '格落とし', kind: 'magic', cost: 2, fx: 'kakuotoshi',
   text: '相手の成った駒1つを、成る前の駒に戻す。戻した駒は対局の終わりまで成れない。纏札は残る。戻すと行き所のない駒や二歩になる駒は選べない',
   prompt: '成りを戻す相手の駒を選んでください',
   targetSets(s, side) {

@@ -9,10 +9,10 @@ import type { Action, CardId, GameState, Handicap, Side } from '../../../src/rul
 
 // 4組で18枚すべてが1回は出る（どれもコスト10以内・同じ札なし）
 const DECKS: [CardId[], CardId[]][] = [
-  [['itetsuku', 'aiuchi', 'tsuranuki', 'hagane'], ['rakurai', 'omori', 'tenma']],
+  [['itetsuku', 'aiuchi', 'bangasa', 'hagane'], ['rakurai', 'omori', 'tenma']],
   [['oshikaeshi', 'irekae', 'idaten', 'hikijin'], ['kagami', 'narifuuji', 'shoryu', 'yobimodoshi']],
-  [['migawari', 'otoshiana', 'kakuotoshi'], ['hagane', 'idaten', 'itetsuku', 'oshikaeshi']],
-  [['tenma', 'rakurai', 'narifuuji', 'hikijin'], ['tsuranuki', 'aiuchi', 'irekae']],
+  [['migawari', 'otoshiana', 'narifuuji'], ['hagane', 'idaten', 'itetsuku', 'oshikaeshi']],
+  [['tenma', 'rakurai', 'kakuotoshi', 'hikijin'], ['bangasa', 'aiuchi', 'irekae']],
 ];
 const SNAP_PLIES = [6, 20, 40, 60];
 
@@ -48,8 +48,8 @@ function decorated(turn: Side, opts: { noFoeKing?: boolean; frozenKing?: boolean
   const s = createGame({ sente: [], gote: [] });
   s.turn = turn;
   const at = (c: number, r: number) => s.board[idx({ c, r })]!;
-  at(7, 7).equip = { cardId: 'tsuranuki' };              // 先手の飛車に貫きの槍
-  at(0, 8).equip = { cardId: 'tsuranuki' };              // 先手の香に貫きの槍
+  at(7, 7).equip = { cardId: 'bangasa' };              // 先手の飛車に番傘
+  at(0, 8).equip = { cardId: 'bangasa' };              // 先手の香に番傘
   at(1, 8).equip = { cardId: 'tenma' };                  // 先手の桂に天馬
   at(4, 6).equip = { cardId: 'hikijin' };                // 先手の歩に退き陣（成る前）
   at(6, 8).equip = { cardId: 'idaten' };                 // 先手の銀に韋駄天
@@ -61,7 +61,7 @@ function decorated(turn: Side, opts: { noFoeKing?: boolean; frozenKing?: boolean
   s.board[idx({ c: 4, r: 4 })] = { id: s.nextId++, kind: 'FU', side: 'sente', promoted: true, equip: { cardId: 'hikijin' } };
   // 後手の角を前に出し、先手の王の筋に利かせる
   s.board[idx({ c: 7, r: 1 })] = null;
-  s.board[idx({ c: 6, r: 4 })] = { id: s.nextId++, kind: 'KA', side: 'gote', promoted: false, equip: { cardId: 'tsuranuki' } };
+  s.board[idx({ c: 6, r: 4 })] = { id: s.nextId++, kind: 'KA', side: 'gote', promoted: false, equip: { cardId: 'bangasa' } };
   if (opts.frozenKing) at(4, 8).frozen = 1;
   if (opts.noFoeKing) s.board[idx({ c: 4, r: 0 })] = null;
   return viewFor(s, turn);

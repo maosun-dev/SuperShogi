@@ -1,4 +1,4 @@
-// 纏札6枚
+// 纏札6枚（2026-10：貫きの槍をなくし番傘を足した。退き陣の旗は陣替えの旗に）
 import type { CardId, GameState, Piece, Side, Square } from '../rules/types';
 import { idx, opponent, sqOf } from '../rules/board';
 import type { CardContext, CardDef } from './types';
@@ -34,7 +34,7 @@ export const tenma: CardDef = {
 };
 
 export const hagane: CardDef = {
-  id: 'hagane', name: '鋼の鎧', kind: 'equip', cost: 2, fx: 'hagane',
+  id: 'hagane', name: '鋼の鎧', kind: 'equip', cost: 3, fx: 'hagane',
   text: '付けた駒が取られそうになったとき、1回だけ守る。取ろうとした駒は元のマスに戻り、相手の手番は終わる。術札や忍札からは守らない。王には付けられない',
   prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: (s, side) => barePieces(s, side, p => p.kind !== 'OU'),
@@ -43,8 +43,8 @@ export const hagane: CardDef = {
 };
 
 export const hikijin: CardDef = {
-  id: 'hikijin', name: '退き陣の旗', kind: 'equip', cost: 1, fx: 'hikijin',
-  text: '自分のまだ成っていない歩・香車・桂馬・銀に付ける。付けた駒は、真後ろへ1マス下がれる',
+  id: 'hikijin', name: '陣替えの旗', kind: 'equip', cost: 2, fx: 'hikijin',
+  text: '自分のまだ成っていない歩・香車・桂馬・銀に付ける。付けた駒は、真後ろと左右へ1マス動ける',
   prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: (s, side) => barePieces(s, side, p =>
     !p.promoted && (p.kind === 'FU' || p.kind === 'KY' || p.kind === 'KE' || p.kind === 'GI')),
@@ -53,7 +53,7 @@ export const hikijin: CardDef = {
 };
 
 export const idaten: CardDef = {
-  id: 'idaten', name: '韋駄天', kind: 'equip', cost: 5, fx: 'idaten',
+  id: 'idaten', name: '韋駄天', kind: 'equip', cost: 4, fx: 'idaten',
   text: '飛車・角（竜・馬も）以外の自分の駒に付ける。付けた駒は、1手で2回動ける。2回目の移動はしなくてもよい。2回目の移動では駒を取れない',
   prompt: '纏札を付ける自分の駒を選んでください',
   targetSets: (s, side) => barePieces(s, side, p => p.kind !== 'HI' && p.kind !== 'KA'),
@@ -61,21 +61,20 @@ export const idaten: CardDef = {
   equip: { doubleMove: true },
 };
 
-export const tsuranuki: CardDef = {
-  id: 'tsuranuki', name: '貫きの槍', kind: 'equip', cost: 4, fx: 'tsuranuki',
-  text: '自分の飛車・角・香車（竜・馬も）に付ける。1回だけ、まっすぐ進む途中にある駒を1つ飛び越えて動ける。飛び越えた先にいる相手の駒は取れる。飛び越えると札は外れる',
+export const bangasa: CardDef = {
+  id: 'bangasa', name: '番傘', kind: 'equip', cost: 2, fx: 'bangasa',
+  text: '自分の王以外の駒に付ける。付けた駒には相手の忍札が効かない（落とし穴・凍てつく床・相討ち・成り封じ・身代わりは、その駒には発動せず伏せたまま残る）',
   prompt: '纏札を付ける自分の駒を選んでください',
-  targetSets: (s, side) => barePieces(s, side, p =>
-    p.kind === 'HI' || p.kind === 'KA' || (p.kind === 'KY' && !p.promoted)),
-  resolve: attach('tsuranuki'),
-  equip: { pierce: true },
+  targetSets: (s, side) => barePieces(s, side, p => p.kind !== 'OU'),
+  resolve: attach('bangasa'),
+  equip: { umbrella: true },
 };
 
 export const OMORI_TURNS = 3; // 重りの枷が付いている、付けられた側の手番の数
 
 export const omori: CardDef = {
-  id: 'omori', name: '重りの枷', kind: 'equip', cost: 3, fx: 'omori',
-  text: '相手の王以外の駒に付ける。その駒は、隣8マスのうち、もともと動けるマスにしか動けない。桂馬は動けなくなる。相手の3手番が終わると外れる',
+  id: 'omori', name: '重りの枷', kind: 'equip', cost: 2, fx: 'omori',
+  text: '相手の王以外の駒に付ける（纏札が付いた駒にも付けられる）。その駒は、隣8マスのうち、もともと動けるマスにしか動けない。桂馬は動けなくなる。相手の3手番が終わると外れる',
   prompt: '重りの枷を付ける相手の駒を選んでください',
   targetSets: (s, side) => barePieces(s, opponent(side), p => p.kind !== 'OU'),
   resolve(ctx, [sq]) {
@@ -86,4 +85,4 @@ export const omori: CardDef = {
   equip: { shackle: true },
 };
 
-export const EQUIP_CARDS: CardDef[] = [tenma, hagane, hikijin, tsuranuki, omori, idaten];
+export const EQUIP_CARDS: CardDef[] = [tenma, hagane, hikijin, bangasa, omori, idaten];
