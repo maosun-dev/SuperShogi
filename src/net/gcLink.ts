@@ -1,0 +1,95 @@
+// 友と対局（Game Center）：Game Center の部品（plugins/capacitor-gamecenter）を Link の形にする。
+// 決まりごと（session.ts）はそのまま使う。合言葉から番号を作り、同じ番号で誘う側と入れる側がそろえばつながる。
+// 近くの人を見つける仕組みはないので、入れる側は合言葉を入力する（enter）。
+// 一度切れた GKMatch には戻れないので、つなぎ直しは同じ合言葉で探し直す（browse で合言葉を出し直す）
+import type { PluginListenerHandle } from '@capacitor/core';
+import type { Link } from './link';
+import { emitter } from './emitter';
+import { gcGroup } from './gcCode';
+
+/** iPhone の部品（GameCenterMatch）の形 */
+export interface GcPlugin {
+  signIn(): Promise<{ signedIn: boolean }>;
+  /** 相手を探す。host＝誘う側。timeoutSec が 0 なら見切らない */
+  find(o: { group: number; host: boolean; timeoutSec: number }): Promise<void>;
+  send(o: { data: string }): Promise<void>;
+  stop(): Promise<void>;
+  addListener(name: 'connected' | 'failed' | 'disconnected' | 'message', fn: (e: Record<string, string>) => void): Promise<PluginListenerHandle>;
+}
+
+export interface GcLink extends Link {
+  /** Game Center にサインインする（していなければ Apple の画面が出る） */
+  signIn(): Promise<boolean>;
+  /** 入れる側：合言葉を入れた（found を出す。続けて Session.join(合言葉)） */
+  enter(code: string): void;
+}
+
+const JOIN_TIMEOUT_SEC = 60; // 入れる側はこれだけ探して見切る
+
+export function createGcLink(plugin: GcPlugin, version: string): GcLink {
+  const ev = emitter();
+  let code: string | null = null; // いまの合言葉（誘う・入れる・つなぎ直しで使う）
+  const peer = (): string => code ?? '';
+  void plugin.addListener('connected', () => ev.emit({ type: 'connected', peer: peer(), name: peer() }));
+  void plugin.addListener('failed', () => ev.emit({ type: 'failed', peer: peer() }));
+  void plugin.addListener('disconnected', () => ev.emit({ type: 'disconnected', peer: peer() }));
+  void plugin.addListener('message', (e) => ev.emit({ type: 'message', data: e.data ?? '' }));
+  // 版が違う人とは番号が違ってつながらないので、見つけた相手の版は自分と同じとしてよい
+  const found = (c: string): void => ev.emit({ type: 'found', peer: c, name: c, version });
+  return {
+    async signIn() { return (await plugin.signIn()).signedIn; },
+    enter(c) { code = c; found(c); },
+    async host(c) { code = c; await plugin.find({ group: gcGroup(c, version), host: true, timeoutSec: 0 }); },
+    async browse() { if (code) found(code); },
+    async join(c) { code = c; await plugin.find({ group: gcGroup(c, version), host: false, timeoutSec: JOIN_TIMEOUT_SEC }); },
+    send: (data) => plugin.send({ data }),
+    stop: () => plugin.stop(),
+    on: (fn) => ev.on(fn),
+  };
+}
+
+// ---- テスト用：Game Center の部品の偽物の対。同じ番号で誘う側と入れる側がそろえばつなぐ ----
+type Name = 'connected' | 'failed' | 'disconnected' | 'message';
+export function createFakeGcPlugins(opts: { signedIn?: boolean } = {}): { a: GcPlugin; b: GcPlugin; cut(): void; failFind(n: number): void } {
+  interface End { fns: Map<Name, ((e: Record<string, string>) => void)[]>; search: { group: number; host: boolean } | null; peer: End | null }
+  const mk = (): End => ({ fns: new Map(), search: null, peer: null });
+  const A = mk(), B = mk();
+  let fails = 0;
+  const later = (e: End, name: Name, data: Record<string, string> = {}): void => {
+    queueMicrotask(() => { for (const f of e.fns.get(name) ?? []) f(data); });
+  };
+  const other = (e: End): End => (e === A ? B : A);
+  const drop = (e: End): void => {
+    const o = e.peer;
+    if (!o) return;
+    e.peer = null; o.peer = null;
+    later(e, 'disconnected'); later(o, 'disconnected');
+  };
+  const plugin = (e: End): GcPlugin => ({
+    async signIn() { return { signedIn: opts.signedIn ?? true }; },
+    async find(o) {
+      drop(e);
+      if (!o.host && fails > 0) { fails--; e.search = null; later(e, 'failed', { reason: 'timeout' }); return; }
+      e.search = { group: o.group, host: o.host };
+      const x = other(e);
+      if (x.search && x.search.group === o.group && x.search.host !== o.host) {
+        e.search = null; x.search = null;
+        e.peer = x; x.peer = e;
+        later(e, 'connected'); later(x, 'connected');
+      }
+    },
+    async send(o) { if (e.peer) later(e.peer, 'message', { data: o.data }); },
+    async stop() { e.search = null; drop(e); },
+    async addListener(name, fn) {
+      const list = e.fns.get(name) ?? [];
+      list.push(fn);
+      e.fns.set(name, list);
+      return { remove: async () => { list.splice(list.indexOf(fn), 1); } };
+    },
+  });
+  return {
+    a: plugin(A), b: plugin(B),
+    cut() { drop(A); },
+    failFind(n) { fails = n; },
+  };
+}
