@@ -1,7 +1,7 @@
 // 纏札の演出の共通の流れ：札が飛ぶ → 前振り → 名前ドン（金の帯）→ 札の力が駒に宿る（見せ場）→ 余韻 → 戻る。
 // 札ごとの中身は src/fx/cards/<札の id>.ts（表は cards/index.ts）。付けたあとの印は pieces3d が札ごとの物で出し続ける。
 // 付けたあとの出番もここから札ごとへ渡す：鋼の鎧が守った（playArmor）・纏札が外れた（playEquipBreak）・
-// 韋駄天の2回目の移動（playSecond）・札の力を使う手（playEquipMove：退き陣・天馬・槍）
+// 韋駄天の2回目の移動（playSecond）・札の力を使う手（playEquipMove：陣替え・天馬）
 import { CARDS } from '../cards';
 import type { Cue } from './plan';
 import { atHome, cameraHome, cutIn, showNotice, startCardFly, type FxCtx } from './kit';
@@ -22,6 +22,11 @@ export async function playEquip(ctx: FxCtx, cue: EquipCue): Promise<void> {
     fly = (await startCardFly(ctx, cue.cardId, cue.side)).done;
     if (fx?.pre) await fx.pre(ctx, cue);
     await cutIn(ctx, def.name, `纏・コスト${def.cost}`, 'soubi', fx?.nameMs ?? NAME_MS);
+    if (cue.negated) {
+      // 鏡の結界に打ち消された：付けずに、鏡の結界の演出へ
+      await brighten(ctx, 300);
+      return;
+    }
     if (fx) {
       await fx.main(ctx, cue);
       if (fx.after) await fx.after(ctx, cue);

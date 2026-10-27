@@ -1,4 +1,4 @@
-// 纏札の小さな物：退き陣の旗・天馬の蹄の跡・鋼の鎧の板・重りの鎖と鉄球・貫きの槍・韋駄天の炎。
+// 纏札の小さな物：陣替えの旗・天馬の蹄の跡・鋼の鎧の板・重りの鎖と鉄球・番傘・韋駄天の炎。
 // 盤の上にずっと出る印（pieces3d の makeEquip）と、札の演出（src/fx/cards）の両方で使う。
 // 形は駒の組の中に置く前提で、駒の原点（足元の中心）から測る。駒の「後ろ」は +z（後手の駒は組ごと π 回る）。
 // 模様：own が false なら使い回しの模様（盤の印用。捨てない）、true なら新しく作る（演出用。片付けで捨ててよい）
@@ -20,7 +20,7 @@ function texture(key: string, own: boolean, w: number, h: number, draw: (g: Canv
   return t;
 }
 
-/** 退き陣の旗の模様：金の地に墨の下向きの山形2つ（札の絵と同じ） */
+/** 陣替えの旗の模様：金の地に墨の下向きの山形2つ（札の絵と同じ） */
 export function bannerTexture(own: boolean): THREE.CanvasTexture {
   return texture('banner', own, 64, 128, (g) => {
     g.fillStyle = PALS.soubi;

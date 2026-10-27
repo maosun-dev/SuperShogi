@@ -46,7 +46,7 @@ async function playCue(ctx: FxCtx, cue: Cue, step: Step, kingAt: Square | null):
     case 'move':
       // 王を取る手は、決着の演出（playGameOver）がゆっくり動かす
       if (kingAt && step.after.result && cue.to.c === kingAt.c && cue.to.r === kingAt.r) return;
-      // 纏札の力を使う手（退き陣で下がる・天馬で跳ぶ・槍で飛び越える）は、札の飾りを足す
+      // 纏札の力を使う手（陣替えで下がる・横へずれる・天馬で跳ぶ）は、札の飾りを足す
       await playEquipMove(ctx, cue);
       await playMove(ctx, cue);
       return;

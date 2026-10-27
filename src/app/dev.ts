@@ -105,6 +105,8 @@ function fxScene(): { scene: FxScene; card: CardId | null } | null {
   const isTrap = TRAP_SCENES.includes(name);
   if ((SCENES as string[]).includes(name) && !(isTrap && q.get('set'))) return { scene: name as FxScene, card: null };
   if (name in CARDS) return { scene: 'card', card: name as CardId };
+  // 落雷を飛車に落とす（壊さず3マスまで）
+  if (name === 'rakurai-hisha') return { scene: 'card', card: 'rakurai' };
   return null;
 }
 
@@ -156,7 +158,11 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       at(4, 6).sealed = true;
       at(6, 8).sealed = true;
       at(3, 0).shackle = { left: 3 };
+      at(3, 0).equip = { cardId: 'hagane' };   // 枷と纏札を両方
       at(5, 2).frozen = 2;
+      at(2, 2).numb = 1;                       // 痺れ
+      at(7, 7).reach = 3;                      // 落雷を受けた飛車（3マスまで）
+      at(1, 1).reach = 3;                      // 後手の飛車も
       s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'itetsuku', at: { c: 4, r: 4 } });
       s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'otoshiana', at: { c: 6, r: 4 } });
       break;
@@ -229,6 +235,21 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
 function pickCardAction(view: GameState, legal: Action[]): Action | undefined {
   const cards = legal.filter((a): a is Extract<Action, { type: 'card' }> => a.type === 'card');
   const kinds = (a: Extract<Action, { type: 'card' }>) => new Set(a.targets.map((t) => view.board[t.r * 9 + t.c]?.kind));
+  // 落雷：?fx=rakurai-hisha は飛車へ。ふだんは、まわりに駒がいちばん多い駒へ（痺れが見えるように）
+  const fx = new URLSearchParams(location.search).get('fx');
+  if (fx === 'rakurai-hisha') return cards.find((a) => view.board[a.targets[0].r * 9 + a.targets[0].c]?.kind === 'HI');
+  if (fx === 'rakurai') {
+    const around = (sq: Square) => {
+      let n = 0;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const c = sq.c + dc, r = sq.r + dr;
+        if ((dc || dr) && c >= 0 && c < 9 && r >= 0 && r < 9 && view.board[r * 9 + c]) n++;
+      }
+      return n;
+    };
+    const plain = cards.filter((a) => !['HI', 'KA'].includes(view.board[a.targets[0].r * 9 + a.targets[0].c]?.kind ?? ''));
+    return plain.sort((a, b) => around(b.targets[0]) - around(a.targets[0]))[0];
+  }
   return cards.find((a) => a.targets.length < 2 || kinds(a).size === a.targets.length) ?? cards[0];
 }
 
@@ -291,7 +312,7 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
 // 試し口の切り替え（画面の左下）：札や場面を選ぶと、その試し口で開き直す。アドレスを書き換えなくて済むように
 const PICKS: [string, string][] = [
   ['oshikaeshi', '術・押し返しの風'], ['irekae', '術・入れ替えの術'], ['shoryu', '術・成り上がり'],
-  ['yobimodoshi', '術・呼び戻し'], ['kakuotoshi', '術・格落とし'], ['rakurai', '術・落雷'],
+  ['yobimodoshi', '術・呼び戻し'], ['kakuotoshi', '術・格落とし'], ['rakurai', '術・落雷'], ['rakurai-hisha', '術・落雷（飛車）'],
   ['itetsuku', '忍・凍てつく床'], ['otoshiana', '忍・落とし穴'], ['narifuuji', '忍・成り封じ'],
   ['kagami', '忍・鏡の結界'], ['aiuchi', '忍・相討ち'], ['migawari', '忍・身代わり'],
   ['hikijin', '纏・陣替えの旗'], ['tenma', '纏・天馬の蹄'], ['hagane', '纏・鋼の鎧'],
@@ -311,7 +332,7 @@ const SOUND_PICKS = {
   shatter: '木が砕ける（落雷・身代わり）', ice: '凍てつく床（氷）', frost: '凍る瞬間（凍てつく床・水鏡）',
   trapdoor: '落とし穴（扉）', paper: '成り封じ（お札）', splash: '水鏡（ちゃぽん）', slash: '相討ち（一閃）',
   hoof: '天馬の蹄', inanaki: '天馬のいななき', armor: '鋼の鎧', chain: '重りの枷（鎖）', tekkyu: '重りの枷（鉄球）',
-  clang: '貫きの槍', flame: '韋駄天（炎）', drum: '大太鼓（王が取られる・引き分け）', fude: '筆（決着の一画ごと）',
+  clang: '金属の音', flame: '韋駄天（炎）', drum: '大太鼓（王が取られる・引き分け）', fude: '筆（決着の一画ごと）',
   cardOut: '札が大きく出る（シャッフル）', levelup: '成り上がり（レベルアップ）', anaThud: '落とし穴の底', fuuin: '成り封じ（封印）',
   kachi: '勝ちの決め音', make: '負けの決め音', suzu: 'りん（引き分けの書き終わり）',
   bakuhatsu: '爆発1（王取り）', bakuhatsu2: '爆発2（王取り）', iai: '居合抜き（王取り）', daiken: '大剣（王取り）',

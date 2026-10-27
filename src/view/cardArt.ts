@@ -167,7 +167,7 @@ export const CARD_ART: Record<CardId, string> = {
     <path d="M11 17 Q23 9 35 17" stroke="${S}" stroke-width="2" fill="none"/>
     ${plate(46, 34, 2, S)}${plate(39, 31, 1.6, S)}${plate(32, 28, 1.6, S)}${plate(25, 25, 1.6, S)}${plate(17, 23, 1.2, G)}
     <path d="M17 29 L17 33 M29 29 L29 33 M16 36 L16 40 M30 36 L30 40 M15 43 L15 47 M31 43 L31 47 M14 50 L14 54 M32 50 L32 54" stroke="${G}" stroke-width="1.6" stroke-linecap="round"/>`,
-  // 退き陣の旗（計画9）：金ののぼり旗に墨の下向きの山形2つ。横の駒の足元から、後ろへ下がる墨の矢
+  // 陣替えの旗（もと退き陣の旗。計画9）：金ののぼり旗に墨の下向きの山形2つ。横の駒の足元から、後ろへ下がる墨の矢
   hikijin: `<path d="M11 6 L11 59" stroke="${S}" stroke-width="3" stroke-linecap="round"/>
     <circle cx="11" cy="4" r="2.4" fill="${G}" stroke="${S}" stroke-width="1.2"/>
     <path d="M11 9 L31 9" stroke="${S}" stroke-width="2.4" stroke-linecap="round"/>

@@ -84,13 +84,13 @@ function pick(s: GameState, side: Side, cardId: CardId, acts: CardAction[]): Car
     case 'aiuchi':
       return acts.slice(0, 1);
     case 'hikijin':
-      // 退き陣の旗：前に出ている駒ほど下がり道が役に立つ
+      // 陣替えの旗：前に出ている駒ほど下がり道・横の逃げ道が役に立つ
       return topBy(acts, a => (side === 'sente' ? 8 - a.targets[0].r : a.targets[0].r), HINT_TOP);
     case 'hagane':
       // 守りの纏札：点数の大きい駒と、王の隣の駒
       return topBy(acts, a => targetValue(s, a) + (myKing && dist(a.targets[0], myKing) <= 1 ? 2000 : 0), HINT_TOP);
     default:
-      // 天馬の蹄・貫きの槍・韋駄天：点数の大きい自分の駒
+      // 天馬の蹄・番傘・韋駄天：点数の大きい自分の駒
       return topBy(acts, a => targetValue(s, a), HINT_TOP);
   }
 }

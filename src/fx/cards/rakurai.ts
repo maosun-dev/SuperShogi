@@ -2,6 +2,8 @@
 // 前振り：暗転＋カメラが引いて見上げる。雷雲が集まる
 // 見せ場：雲の中でゴロゴロ光ってから、枝分かれした太い稲妻。稲妻の光で盤が一瞬照らされる。駒が砕け、衝撃の輪が広がる
 // 余韻：小さな稲妻 → 雲が晴れて照明が戻る
+// 2026-10：駒を壊したときは、まわりの駒（痺れた駒）へ細い稲妻が跳ね、駒がびりびり震える。
+// 飛車・角に落としたときは壊さず、駒が藍に光って縮こまる（滑れるのが3マスまでになった印は sync が出す）
 // 見本（spike/card-fx-samples の freeRakurai）の作りを移したもの
 import * as THREE from 'three';
 import { PAL, PALS } from '../../view/palette';
@@ -9,6 +11,7 @@ import { ring, squarePos } from '../../view/board3d';
 import { easeOut, flash, later, lightCap, puff, shakeBy, shatter, transient, type FxCtx } from '../kit';
 import { brighten, cameraLookUp, darken, pointLight, pointOff, softTexture } from '../stagecraft';
 import { getSound } from '../sound';
+import { pieceMesh } from '../../view/pieces3d';
 import { effect, type CardFx, type MagicCue } from './types';
 
 const CLOUD_Y = 3.4;
@@ -67,7 +70,7 @@ function storm(ctx: FxCtx, at: THREE.Vector3): Storm {
 }
 
 function targetAt(cue: MagicCue): THREE.Vector3 | null {
-  const e = effect(cue, 'destroyed');
+  const e = effect(cue, 'destroyed') ?? effect(cue, 'reachLimited');
   if (e) return squarePos(e.at);
   return cue.targets[0] ? squarePos(cue.targets[0]) : null;
 }
@@ -86,7 +89,9 @@ export const rakurai: CardFx<MagicCue> = {
     await Promise.all([cam, dark]);
   },
   async main(ctx, cue) {
-    const e = effect(cue, 'destroyed');
+    const destroyed = effect(cue, 'destroyed');
+    const limited = effect(cue, 'reachLimited');
+    const e = destroyed ?? limited;
     const st = storms.get(cue);
     if (!e || !st) return;
     const at = squarePos(e.at);
@@ -119,8 +124,17 @@ export const rakurai: CardFx<MagicCue> = {
     pointLight(ctx, at.clone().setY(1.6), 140);
     flash(ctx, PALS.mahouFlash, 0.95, 320);
     getSound().play('rakurai');
-    getSound().play('shatter');
-    shatter(ctx, e.pieceId);
+    if (destroyed) {
+      getSound().play('shatter');
+      shatter(ctx, destroyed.pieceId);
+    } else if (limited) {
+      // 飛車・角：砕けずに、藍に光って縮こまる
+      const m = pieceMesh(limited.pieceId);
+      if (m) {
+        const s0 = m.scale.x;
+        void ctx.tween(520, (t) => { m.scale.setScalar(s0 * (1 - Math.sin(Math.PI * t) * 0.18)); });
+      }
+    }
     shakeBy(ctx, 0.9);
     // 衝撃の輪
     const r = ring(0.2, 0.42, PAL.mahouCore, 56);
@@ -136,6 +150,25 @@ export const rakurai: CardFx<MagicCue> = {
     await ctx.wait(230);
     st.glow = 0;
     pointOff();
+    // 痺れ：まわりの駒へ細い稲妻が跳ね、駒がびりびり震える
+    const numbed = cue.effects.filter((x): x is Extract<typeof x, { type: 'numbed' }> => x.type === 'numbed');
+    if (numbed.length > 0) {
+      getSound().play('thunder', { gain: 0.4 });
+      for (const n of numbed) {
+        const to = squarePos(n.at);
+        transient(ctx, bolt(at.clone().setY(0.25), to.clone().setY(0.25), 0.02, cap, 6, 0.35), 160);
+        const m = pieceMesh(n.pieceId);
+        if (m) {
+          const x0 = m.position.x, z0 = m.position.z;
+          void ctx.tween(480, (t) => {
+            const k = (1 - t) * 0.035;
+            m.position.x = x0 + Math.sin(t * 60) * k;
+            m.position.z = z0 + Math.cos(t * 47) * k;
+          }).then(() => { m.position.x = x0; m.position.z = z0; });
+        }
+      }
+      await ctx.wait(420);
+    }
   },
   async after(ctx, cue) {
     const st = storms.get(cue);

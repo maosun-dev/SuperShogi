@@ -10,7 +10,7 @@ export type Cue =
   | { kind: 'magic'; side: Side; cardId: CardId; targets: Square[]; effects: GameEvent[]; negated: boolean }
   | { kind: 'trapSet'; side: Side; cardId: CardId | null; at: Square | null }
   | { kind: 'trapFire'; owner: Side; cardId: CardId; at: Square | null; effects: GameEvent[] }
-  | { kind: 'equip'; side: Side; pieceId: number; cardId: CardId }
+  | { kind: 'equip'; side: Side; pieceId: number; cardId: CardId; negated?: boolean }
   | { kind: 'armor'; defenderId: number; attackerId: number; at: Square }
   | { kind: 'second'; pieceId: number; from: Square; to: Square; promoted: boolean }   // 韋駄天の2回目
   | { kind: 'equipBreak'; pieceId: number; at: Square; cardId: CardId }              // 纏札が外れた（槍・枷）
@@ -87,8 +87,9 @@ export function planFx(events: GameEvent[], actor: Side): Cue[] {
         cues.push(trap);
         break;
       case 'magicNegated':
-        // 直前の魔法を「無効」にして、鏡の発動の中で見せる
+        // 直前の術札・纏札を「無効」にして、鏡の発動の中で見せる
         if (magic) magic.negated = true;
+        if (equip && equip.pieceId < 0) { equip.negated = true; equip = null; }
         trap?.effects.push(e);
         break;
       case 'promotionBlocked':
@@ -96,6 +97,8 @@ export function planFx(events: GameEvent[], actor: Side): Cue[] {
         trap?.effects.push(e);
         break;
       case 'destroyed':
+      case 'numbed':
+      case 'reachLimited':
       case 'pushed':
       case 'swapped':
       case 'frozen':

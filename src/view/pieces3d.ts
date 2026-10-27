@@ -223,7 +223,8 @@ const KANSUJI = ['〇', '一', '二', '三', '四', '五'];
 const markMats = new Map<string, THREE.MeshBasicMaterial>();
 
 /** 印の材質（使い回す）。frozen（f+数）：藍の丸に胡粉の数字（残りの手番）。sealed：紅の角印に「封」。
- *  重りの枷（o+数）：金箔の丸に墨の数字（外れるまでの手番） */
+ *  重りの枷（o+数）：金箔の丸に墨の数字（外れるまでの手番）。痺れ（n+数）：墨の丸に金の稲妻のジグザグ。
+ *  3マスまで（reach）：胡粉の角に墨の点が三つ（滑れるのは3マスまで） */
 function markMat(key: string): THREE.MeshBasicMaterial {
   const hit = markMats.get(key);
   if (hit) return hit;
@@ -236,6 +237,17 @@ function markMat(key: string): THREE.MeshBasicMaterial {
     g.strokeStyle = PALS.gofun; g.lineWidth = 5; g.strokeRect(-40, -40, 80, 80);
     g.fillStyle = PALS.gofun; g.font = '800 64px "Shippori Mincho B1", serif'; g.fillText('封', 0, 4);
     g.restore();
+  } else if (key === 'reach') {
+    g.save(); g.translate(64, 64); g.rotate(0.08);
+    g.fillStyle = PALS.gofun; g.fillRect(-50, -50, 100, 100);
+    g.strokeStyle = PALS.mahou; g.lineWidth = 6; g.strokeRect(-42, -42, 84, 84);
+    g.fillStyle = PALS.sumi;
+    for (const x of [-26, 0, 26]) { g.beginPath(); g.arc(x, 0, 10, 0, Math.PI * 2); g.fill(); }
+    g.restore();
+  } else if (key.startsWith('n')) {
+    g.fillStyle = PALS.sumi; g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = PALS.soubi; g.lineWidth = 9; g.lineJoin = 'miter';
+    g.beginPath(); g.moveTo(74, 20); g.lineTo(46, 64); g.lineTo(76, 62); g.lineTo(52, 108); g.stroke();
   } else if (key.startsWith('o')) {
     const n = Number(key.slice(1));
     g.fillStyle = PALS.soubi; g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.fill();
@@ -474,7 +486,7 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
     const lb = labelOf(p);
     o.label.material = labelMat(lb.ch, lb.color);
 
-    // 凍った駒の青み
+    // 凍った駒の青み（痺れは印だけで見分ける）
     o.body.material = p.frozen ? frozenMat : pieceMat;
 
     // 装備の六角形
@@ -496,7 +508,10 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
 
     // 凍結（残りの手番）・重りの枷（外れるまでの手番）・成れないの印
     const left = p.shackle?.left;
-    const keys = [...(p.frozen ? [`f${p.frozen}`] : []), ...(left ? [`o${left}`] : []), ...(p.sealed ? ['sealed'] : [])];
+    const keys = [
+      ...(p.frozen ? [`f${p.frozen}`] : []), ...(p.numb ? [`n${p.numb}`] : []), ...(left ? [`o${left}`] : []),
+      ...(p.reach ? ['reach'] : []), ...(p.sealed ? ['sealed'] : []),
+    ];
     const mk = keys.join(',');
     if (o.marks && o.marks.key !== mk) removeMarks(o);
     if (keys.length > 0 && !o.marks) {
