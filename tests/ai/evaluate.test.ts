@@ -175,3 +175,13 @@ test('3マスまでの飛車は300低く、痺れた駒は凍った駒と同じ�
   const f = base(); f.board[4 * 9 + 4]!.frozen = 1;
   expect(material(n, 'sente')).toBeCloseTo(material(f, 'sente'));
 });
+
+test('札を取っておく値打ちを倍にすると、使っていない札の点も倍（鬼のため。2026-10）', () => {
+  const s = emptyState();
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  put(s, { c: 4, r: 0 }, 'OU', 'gote');
+  giveCard(s, 'sente', 'rakurai');
+  const one = material(s, 'sente');
+  expect(material(s, 'sente', 2)).toBe(one * 2);
+  expect(evaluate(s, 'sente', false, 2) - evaluate(s, 'sente')).toBe(one);
+});

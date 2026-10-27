@@ -35,7 +35,7 @@ function nonKingReach(s: GameState, by: Side): Set<number> {
   return out;
 }
 
-function sideScore(s: GameState, side: Side): number {
+function sideScore(s: GameState, side: Side, cardKeep: number): number {
   let total = 0;
   for (const p of s.board) {
     if (!p || p.side !== side) continue;
@@ -51,7 +51,7 @@ function sideScore(s: GameState, side: Side): number {
   }
   for (const k of HAND_KINDS) total += s.players[side].hand[k] * PIECE_VALUE[k] * HAND_FACTOR;
   for (const c of s.players[side].cards) {
-    if (!c.used) total += CARDS[c.cardId].cost * CARD_PER_COST;
+    if (!c.used) total += CARDS[c.cardId].cost * CARD_PER_COST * cardKeep;
   }
   let reach: Set<number> | null = null;
   for (const t of s.traps) {
@@ -66,9 +66,9 @@ function sideScore(s: GameState, side: Side): number {
   return total;
 }
 
-// 駒・持ち駒・札の点数だけ（side から見た 自分−相手）
-export function material(s: GameState, side: Side): number {
-  return sideScore(s, side) - sideScore(s, opponent(side));
+// 駒・持ち駒・札の点数だけ（side から見た 自分−相手）。cardKeep は使っていない札の値打ちの倍率（札を温存させる強さ用）
+export function material(s: GameState, side: Side, cardKeep = 1): number {
+  return sideScore(s, side, cardKeep) - sideScore(s, opponent(side), cardKeep);
 }
 
 function kingIndex(s: GameState, side: Side): number {
@@ -162,7 +162,7 @@ export function positional(s: GameState, side: Side): number {
   return positionalOne(s, side) - positionalOne(s, opponent(side));
 }
 
-export function evaluate(s: GameState, side: Side, smart = false): number {
-  const base = material(s, side) + kingSafety(s, side);
+export function evaluate(s: GameState, side: Side, smart = false, cardKeep = 1): number {
+  const base = material(s, side, cardKeep) + kingSafety(s, side);
   return smart ? base + positional(s, side) : base;
 }
