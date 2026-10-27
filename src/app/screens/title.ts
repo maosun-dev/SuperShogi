@@ -77,7 +77,7 @@ export function titleScreen(): Screen {
       // 遊ぶ札を左にまとめ、よく使う順に高く（対局・友と対局・札図鑑）。
       // 友と対局（近くの iPhone 2台）はアプリと開発中の ?link=fake でだけ出す
       nav.append(play);
-      if (linkAvailable()) nav.append(button('fuda midori', '友と対局', () => { void showScreen('link'); }));
+      if (linkAvailable()) nav.append(button('fuda midori', '友と対局', () => { void showScreen('friend'); }));
       nav.append(zukan);
 
       const seal = button('kakuin', '設', () => { void showScreen('settings'); });

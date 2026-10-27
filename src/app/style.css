@@ -1856,6 +1856,17 @@ input:focus-visible {
 .link-peer { padding: 4px; background: none; border: 0; }
 .link-peer:active .link-koma { transform: translateY(2px); }
 .link-peer:focus-visible { outline: 2px solid var(--gofun); outline-offset: 4px; }
+/* つなぎ方を選ぶ：千社札2枚、それぞれの下に向いている場面を和紙の切れ端で */
+.friend-ways { display: flex; gap: 18px; align-items: flex-start; justify-content: center; }
+.friend-way { flex: 1 1 0; max-width: 168px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.friend-way .fuda { height: 188px; font-size: 21px; }
+.friend-way .link-note { font-size: 12px; }
+/* ネットで：合言葉を入れる。駒の名前と漢数字は、選ぶと墨に胡粉の字（駒台の判と同じ白黒の反転） */
+.gc-preview { min-height: 90px; display: grid; place-items: center; }
+.gc-picks { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; max-width: 380px; }
+.gc-pick { min-width: 34px; height: 38px; padding: 0 5px; background: #f3eee2; color: var(--sumi); border: 1.5px solid var(--sumi); border-radius: 2px; font-family: var(--font-display); font-size: 16px; }
+.gc-pick[aria-pressed="true"] { background: var(--sumi); color: var(--gofun); }
+.gc-pick:focus-visible { outline: 2px solid var(--gofun); outline-offset: 2px; }
 
 /* 札見せ：くじで決まった先手・後手を朱の判で押す（駒落ちのときは出さない） */
 .reveal-row.me { position: relative; }

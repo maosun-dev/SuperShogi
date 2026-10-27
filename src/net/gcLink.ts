@@ -6,7 +6,8 @@ import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import type { Link } from './link';
 import { emitter } from './emitter';
 import { gcGroup } from './gcCode';
-import { APP_VERSION } from './link';
+import { APP_VERSION, linkAvailable } from './link';
+import { createDevGcPlugin } from './fakeGc';
 import { isNativeApp } from '../app/native';
 
 /** iPhone の部品（GameCenterMatch）の形 */
@@ -55,6 +56,7 @@ let shared: GcLink | null = null;
 export function pickGcLink(): GcLink {
   if (shared) return shared;
   if (isNativeApp()) shared = createGcLink(registerPlugin<GcPlugin>('GameCenterMatch'), APP_VERSION);
+  else if (linkAvailable()) shared = createGcLink(createDevGcPlugin(), APP_VERSION); // 開発中の ?link=fake：タブ同士
   else throw new Error('Game Center はアプリでだけ使えます');
   return shared;
 }

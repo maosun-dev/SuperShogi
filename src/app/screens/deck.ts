@@ -18,7 +18,8 @@ import { loadDeck, loadHandicap, loadKeiko, safeStore, saveDeck, saveHandicap, s
 import { LEVEL_NAME, costMarks } from '../outcome';
 import { keikoOf, type Keiko } from '../keiko';
 import { showScreen, type Screen } from '../screens';
-import { endSession, peekSession } from '../../net/current';
+import { endSession, peekSession, sessionKind } from '../../net/current';
+import { linkScreenOf } from './friend';
 import { button, el, kujiBacksHtml, pageHead } from './ui';
 
 const KINDS: CardKind[] = ['magic', 'trap', 'equip'];
@@ -270,11 +271,12 @@ export function deckScreen(params: unknown): Screen {
       root.append(box);
       const ph = session?.phase();
       if (friend && (!session || (ph !== 'deck' && ph !== 'over' && ph !== 'reconnecting'))) {
+        const to = linkScreenOf(sessionKind());
         endSession();
-        void showScreen('link', { notice: '相手が対局をやめました' });
+        void showScreen(to, { notice: '相手が対局をやめました' });
       } else if (session) {
         // そろったら札見せへ。相手がやめた・切れたら、つなぐ画面で知らせる
-        const leave = (notice: string): void => { endSession(); void showScreen('link', { notice }); };
+        const leave = (notice: string): void => { const to = linkScreenOf(sessionKind()); endSession(); void showScreen(to, { notice }); };
         off = session.on((e) => {
           if (e.type === 'start') void showScreen('reveal', { friend: true });
           // 札選びの途中で切れても、つなぎ直すあいだ札は選べる（つながったら送り直す）

@@ -21,6 +21,8 @@ import { deckScreen } from './screens/deck';
 import { revealScreen } from './screens/reveal';
 import { settingsScreen } from './screens/settings';
 import { linkScreen } from './screens/link';
+import { friendScreen } from './screens/friend';
+import { gcLinkScreen } from './screens/gclink';
 import { howtoScreen } from './screens/howto';
 import { armSoundUnlock, watchAppLife } from './unlock';
 import { appLife } from './appLife';
@@ -84,6 +86,8 @@ function start(): void {
   registerScreen('reveal', (p) => revealScreen(p));
   registerScreen('settings', () => settingsScreen());
   registerScreen('link', (p) => linkScreen(p));
+  registerScreen('friend', () => friendScreen());
+  registerScreen('gclink', (p) => gcLinkScreen(p));
   registerScreen('howto', () => howtoScreen());
   // 開発中に ?fx=<カード> が付いていれば演出の試し口として、?auto=<強さ> なら自動対局として、対局画面から始める
   const dev = fxMatchParams() ?? autoMatchParams();

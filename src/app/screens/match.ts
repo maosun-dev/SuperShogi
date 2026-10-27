@@ -7,7 +7,8 @@ import { drawFoeDeck, keikoOf, type Keiko } from '../keiko';
 import { makeRng } from '../../ai/random';
 import { createMatch, type Match, type Presenter } from '../match';
 import { createFriendMatch, type FriendMatch } from '../friendMatch';
-import { endSession, peekSession } from '../../net/current';
+import { endSession, peekSession, sessionKind } from '../../net/current';
+import { linkScreenOf } from './friend';
 import { fakeCut } from '../../net/fakeLink';
 import { isNativeApp } from '../native';
 import type { FoeLabel } from '../../view/hud';
@@ -101,7 +102,7 @@ export function matchScreen(params: unknown): Screen {
 
   return {
     mount(root) {
-      if (friend && !session?.setup()) { void showScreen('link', { notice: 'つながりが切れました' }); return; }
+      if (friend && !session?.setup()) { void showScreen(linkScreenOf(sessionKind()), { notice: 'つながりが切れました' }); return; }
       // 王を取る演出の案：友と対局は2台で同じ案（setup）、CPU 戦は札見せのくじ。開発中は ?king= で差し替えられる
       const devKing = import.meta.env.DEV ? new URLSearchParams(location.search).get('king') : null;
       setKingFx(isKingFx(devKing) ? devKing

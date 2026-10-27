@@ -13,7 +13,7 @@ const JOIN_MS = 25000; // つないでいる間は合言葉を押しても頼み
 const WIFI_NOTE = 'Wi-Fi をオンにしておくと、つながりやすくなります（どこの Wi-Fi にもつながっていなくて大丈夫です）';
 
 /** 合言葉を縦に書いた駒（五角形）。big は誘う側の大きな駒 */
-function komaOf(code: string, big: boolean): HTMLElement {
+export function komaOf(code: string, big: boolean): HTMLElement {
   const k = el('span', big ? 'link-koma big' : 'link-koma');
   k.append(el('span', 'ji', code));
   return k;
@@ -26,7 +26,7 @@ export function linkScreen(params: unknown): Screen {
   let joinTimer = 0;
   return {
     mount(root) {
-      const s = getSession();
+      const s = getSession('nearby');
       const box = el('div', 'page link');
       box.dataset.screen = 'link';
       const msg = el('p', 'link-msg');
@@ -115,7 +115,7 @@ export function linkScreen(params: unknown): Screen {
         }
       });
 
-      const head = pageHead('友と対局', () => { endSession(); void showScreen('title'); });
+      const head = pageHead('近くの人と', () => { endSession(); void showScreen('friend'); });
       box.append(head, msg, body);
       root.append(box);
       if (s.phase() === 'hosting') hosting();
