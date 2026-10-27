@@ -2,10 +2,12 @@
 // 決まりごと（session.ts）はそのまま使う。合言葉から番号を作り、同じ番号で誘う側と入れる側がそろえばつながる。
 // 近くの人を見つける仕組みはないので、入れる側は合言葉を入力する（enter）。
 // 一度切れた GKMatch には戻れないので、つなぎ直しは同じ合言葉で探し直す（browse で合言葉を出し直す）
-import type { PluginListenerHandle } from '@capacitor/core';
+import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import type { Link } from './link';
 import { emitter } from './emitter';
 import { gcGroup } from './gcCode';
+import { APP_VERSION } from './link';
+import { isNativeApp } from '../app/native';
 
 /** iPhone の部品（GameCenterMatch）の形 */
 export interface GcPlugin {
@@ -46,6 +48,15 @@ export function createGcLink(plugin: GcPlugin, version: string): GcLink {
     stop: () => plugin.stop(),
     on: (fn) => ev.on(fn),
   };
+}
+
+let shared: GcLink | null = null;
+/** Game Center の窓口は1つを使い回す（部品の知らせの受け口を何重にも付けないため） */
+export function pickGcLink(): GcLink {
+  if (shared) return shared;
+  if (isNativeApp()) shared = createGcLink(registerPlugin<GcPlugin>('GameCenterMatch'), APP_VERSION);
+  else throw new Error('Game Center はアプリでだけ使えます');
+  return shared;
 }
 
 // ---- テスト用：Game Center の部品の偽物の対。同じ番号で誘う側と入れる側がそろえばつなぐ ----
