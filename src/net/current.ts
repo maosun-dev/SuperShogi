@@ -18,7 +18,7 @@ export function getSession(want?: LinkKind): Session {
   if (!current || current.phase() === 'closed') {
     const kingFx = () => loadSettings(safeStore()).kingFx;
     current = k === 'gc'
-      ? createSession(pickGcLink(), { kingFx, makeCode: makeGcCode })
+      ? createSession(pickGcLink(), { kingFx, makeCode: makeGcCode, joinRetries: 0 })
       : createSession(pickLink(), { kingFx });
     kind = k;
   }

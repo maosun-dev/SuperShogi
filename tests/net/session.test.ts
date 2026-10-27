@@ -18,8 +18,8 @@ function seq(...xs: number[]): () => number {
 async function pair(opts: { hostVersion?: string; hostKingFx?: KingFxChoice } = {}) {
   const links = createPairLinks();
   const kingFx = opts.hostKingFx;
-  const host = createSession(links.a, { version: opts.hostVersion ?? '1', rng: seq(0.3, 0.6, 0.9), stopDelayMs: 0, kingFx: kingFx ? () => kingFx : undefined });
-  const guest = createSession(links.b, { version: '1', rng: seq(0.1), stopDelayMs: 0 });
+  const host = createSession(links.a, { version: opts.hostVersion ?? '1', rng: seq(0.3, 0.6, 0.9), stopDelayMs: 0, retryDelayMs: 0, kingFx: kingFx ? () => kingFx : undefined });
+  const guest = createSession(links.b, { version: '1', rng: seq(0.1), stopDelayMs: 0, retryDelayMs: 0 });
   const he: SessionEvent[] = [], ge: SessionEvent[] = [];
   host.on((e) => he.push(e)); guest.on((e) => ge.push(e));
   host.host();
@@ -232,6 +232,33 @@ test('つなぎ直しでつなぐのに失敗しても、もう一度頼んで�
   for (let i = 0; i < 6; i++) await flush();
   expect(p.ge).toContainEqual({ type: 'back' });
   expect(p.guest.phase()).toBe('match');
+});
+
+test('つなぎ直しで何度失敗しても、あきらめずに頼み直す（ネットが戻るまで）', async () => {
+  const p = await started();
+  p.cut();
+  await flush();
+  p.failJoin(6);
+  p.heal();
+  for (let i = 0; i < 20; i++) await flush();
+  expect(p.ge).toContainEqual({ type: 'back' });
+  expect(p.guest.phase()).toBe('match');
+});
+
+test('自動の頼み直しを 0 回にすると、1回目の失敗で知らせる（Game Center は1回で60秒待つ）', async () => {
+  const links = createPairLinks();
+  const host = createSession(links.a, { version: '1', rng: seq(0.3), stopDelayMs: 0 });
+  const guest = createSession(links.b, { version: '1', rng: seq(0.1), stopDelayMs: 0, joinRetries: 0 });
+  const ge: SessionEvent[] = [];
+  guest.on((e) => ge.push(e));
+  host.host();
+  guest.browse();
+  await flush();
+  links.failJoin(1);
+  guest.join(guest.peers()[0]!.peer);
+  for (let i = 0; i < 4; i++) await flush();
+  expect(ge).toContainEqual({ type: 'joinFailed' });
+  expect(ge).not.toContainEqual({ type: 'joinRetry' });
 });
 
 test('片方がやめると、相手の対局も消える', async () => {

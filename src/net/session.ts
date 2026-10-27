@@ -62,10 +62,13 @@ export function makeCode(rng: () => number): string {
 }
 
 /** kingFx は誘った側の設定（王を取る演出。おまかせならくじ）を読む。無ければくじ。makeCode は誘うときの合言葉の作り方（Game Center は漢数字2つ） */
-export function createSession(link: Link, opts: { version?: string; rng?: () => number; stopDelayMs?: number; kingFx?: () => KingFxChoice; makeCode?: (rng: () => number) => string } = {}): Session {
+export function createSession(link: Link, opts: { version?: string; rng?: () => number; stopDelayMs?: number; kingFx?: () => KingFxChoice; makeCode?: (rng: () => number) => string; joinRetries?: number; retryDelayMs?: number } = {}): Session {
   const version = opts.version ?? APP_VERSION;
   const rng = opts.rng ?? Math.random;
   const stopDelayMs = opts.stopDelayMs ?? 300; // 最後の知らせが届くのを待ってから切る
+  const joinRetries = opts.joinRetries ?? JOIN_RETRIES; // Game Center は1回で60秒待つので 0
+  const retryDelayMs = opts.retryDelayMs ?? 3000; // つなぎ直しで失敗したら、これだけ待って頼み直す（ネットが戻るのを待つ）
+  const later = (fn: () => void): void => { if (retryDelayMs > 0) setTimeout(fn, retryDelayMs); else fn(); };
   const fns = new Set<(e: SessionEvent) => void>();
   const emit = (e: SessionEvent): void => { for (const fn of [...fns]) fn(e); };
 
@@ -75,7 +78,6 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
   const peers = new Map<string, string>();
   const peerVersions = new Map<string, string | null>(); // 見つけた相手の版（つなぐ前に見比べる）
   let connected = false;
-  let retries = 0; // つなぎ直しで、つなぐのに失敗して頼み直した回数
   let joinTries = 0; // 最初のつなぐで、自動で頼み直した回数
   let resumeDeck = false; // 札選びの途中で切れた（つなぎ直したら札選びへ戻る）
   let myReady: { deck: CardId[]; handicap?: Handicap } | null = null;
@@ -216,7 +218,7 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
         peers.set(e.peer, e.name);
         peerVersions.set(e.peer, e.version);
         emit({ type: 'peers' });
-        if (phase === 'reconnecting' && e.name === code) { retries = 0; void link.join(e.peer); }
+        if (phase === 'reconnecting' && e.name === code) void link.join(e.peer);
         return;
       case 'lost':
         if (peers.delete(e.peer)) emit({ type: 'peers' });
@@ -229,10 +231,13 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
       case 'failed':
         if (role !== 'guest' || connected) return;
         if (phase === 'browsing') {
-          if (joinTries < JOIN_RETRIES) { joinTries++; emit({ type: 'joinRetry' }); void link.join(e.peer); }
+          if (joinTries < joinRetries) { joinTries++; emit({ type: 'joinRetry' }); void link.join(e.peer); }
           else emit({ type: 'joinFailed' });
         }
-        else if (phase === 'reconnecting' && peers.get(e.peer) === code && retries++ < 3) void link.join(e.peer);
+        // つなぎ直しは、あきらめずに少し待って頼み直す（ネットが一瞬切れたときなど、戻るまで）
+        else if (phase === 'reconnecting' && peers.get(e.peer) === code) {
+          later(() => { if (phase === 'reconnecting' && !connected) void link.join(e.peer); });
+        }
         return;
       case 'disconnected':
         if (!connected) return;

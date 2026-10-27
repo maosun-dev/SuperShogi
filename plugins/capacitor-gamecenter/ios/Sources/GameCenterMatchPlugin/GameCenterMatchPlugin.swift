@@ -21,6 +21,7 @@ public class GameCenterMatchPlugin: CAPPlugin, CAPBridgedPlugin, GKMatchDelegate
 
     private var pendingSignIn: [CAPPluginCall] = []
     private var handlerSet = false
+    private var signInDone = false       // Apple の答えが一度でも来たか（来たあとは待たずに今の状態を返す）
     private var match: GKMatch?
     private var searching = false
     private var searchId = 0             // 古い探しの返事を捨てるための番号
@@ -33,6 +34,8 @@ public class GameCenterMatchPlugin: CAPPlugin, CAPBridgedPlugin, GKMatchDelegate
         DispatchQueue.main.async {
             let player = GKLocalPlayer.local
             if player.isAuthenticated { call.resolve(["signedIn": true]); return }
+            // 一度断られたあとは、Apple はアプリが表に戻るまで答え直さないので、待たずに返す
+            if self.handlerSet && self.signInDone { call.resolve(["signedIn": false]); return }
             self.pendingSignIn.append(call)
             if self.handlerSet { return }
             self.handlerSet = true
@@ -43,6 +46,7 @@ public class GameCenterMatchPlugin: CAPPlugin, CAPBridgedPlugin, GKMatchDelegate
                     self.bridge?.viewController?.present(vc, animated: true)
                     return
                 }
+                self.signInDone = true
                 let signedIn = GKLocalPlayer.local.isAuthenticated
                 let calls = self.pendingSignIn
                 self.pendingSignIn = []
@@ -169,6 +173,8 @@ public class GameCenterMatchPlugin: CAPPlugin, CAPBridgedPlugin, GKMatchDelegate
         guard let text = String(data: data, encoding: .utf8) else { return }
         DispatchQueue.main.async {
             guard match === self.match else { return }
+            // 相手の connected より先に合図が届くことがある。つながったを先に知らせないと、JS が返事を捨てる
+            self.announceConnected()
             self.notifyListeners("message", data: ["data": text])
         }
     }
@@ -180,11 +186,14 @@ public class GameCenterMatchPlugin: CAPPlugin, CAPBridgedPlugin, GKMatchDelegate
         }
     }
 
+    /// 相手が切れた。つながったと知らせる前に終わったなら「失敗した」（誘う側は探し直し、入れる側は知らせる）
     private func dropMatch() {
+        let wasAnnounced = announced
         match?.delegate = nil
         match?.disconnect()
         match = nil
         announced = false
-        notifyListeners("disconnected", data: [:])
+        if wasAnnounced { notifyListeners("disconnected", data: [:]) }
+        else { notifyListeners("failed", data: ["reason": "noConnect"]) }
     }
 }

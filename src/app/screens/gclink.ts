@@ -12,6 +12,7 @@ export interface GcLinkParams { notice?: string } // 前の画面からの知ら
 
 const SIGN_IN_NOTE = 'iPhone の 設定 → Game Center でサインインしてください';
 const NOT_FOUND = '相手が見つかりませんでした。合言葉と、2台が同じ版かを確かめてください';
+const CANT_SEARCH = '相手を探せません。ネットにつながっているか確かめてください（つながれば自動で探し直します）';
 
 /** 1つ選ぶボタンの並び（駒の名前・漢数字） */
 function picker(label: string, items: readonly string[], onPick: (v: string) => void): { el: HTMLElement; value(): string | null } {
@@ -35,6 +36,7 @@ function picker(label: string, items: readonly string[], onPick: (v: string) => 
 export function gcLinkScreen(params: unknown): Screen {
   const notice = (params as GcLinkParams | undefined)?.notice ?? null;
   let off: (() => void) | null = null;
+  let offTrouble: (() => void) | null = null;
   let gone = false;
   return {
     mount(root) {
@@ -124,6 +126,12 @@ export function gcLinkScreen(params: unknown): Screen {
         }
       });
 
+      // 探しが失敗した理由（誘う側は自動で探し直すので、知らせだけ出す）
+      offTrouble = link?.onTrouble((r) => {
+        if (r === 'signedOut') msg.textContent = SIGN_IN_NOTE;
+        else if (r !== 'timeout' && s.phase() === 'hosting') msg.textContent = CANT_SEARCH;
+      }) ?? null;
+
       const head = pageHead('ネットで', () => { endSession(); void showScreen('friend'); });
       box.append(head, msg, body);
       root.append(box);
@@ -142,6 +150,8 @@ export function gcLinkScreen(params: unknown): Screen {
       gone = true;
       off?.();
       off = null;
+      offTrouble?.();
+      offTrouble = null;
     },
   };
 }
