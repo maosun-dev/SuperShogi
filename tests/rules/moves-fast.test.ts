@@ -122,7 +122,7 @@ describe('attacks', () => {
       }
     }
     expect(checked).toBeGreaterThan(50_000);
-  });
+  }, 30_000); // 全部の駒×81マスの総当たりで重い（機械が忙しいと5秒を超える）
   test('駒のないマスからは利かない', () => {
     const s = positions[0];
     const empty = s.board.findIndex(p => p === null);
