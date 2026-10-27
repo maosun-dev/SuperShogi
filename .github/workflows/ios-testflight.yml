@@ -81,7 +81,8 @@ jobs:
             find "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app/Frameworks" -maxdepth 1 -name '*.framework' \
               -exec codesign --force --sign - --timestamp=none {} \;
           fi
-          codesign --force --sign - --timestamp=none \
+          # アプリ本体にも仮の署名を付けて、Game Center を使う許可（entitlements）を入れておく（転落牌と同じ）
+          codesign --force --sign - --timestamp=none --entitlements ios/App/App/App.entitlements \
             "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
 
       - name: TestFlight に送る

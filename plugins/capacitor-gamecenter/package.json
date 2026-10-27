@@ -1,0 +1,25 @@
+{
+  "name": "capacitor-gamecenter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "傾将棋の友と対局：Game Center（GKMatchmaker・GKMatch）で離れた iPhone ともつなぐ小さな部品（iOS だけ）",
+  "main": "index.js",
+  "files": [
+    "ios/Sources",
+    "Package.swift",
+    "index.js"
+  ],
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native"
+  ],
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}

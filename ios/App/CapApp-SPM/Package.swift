@@ -15,6 +15,7 @@ let package = Package(
         .package(name: "CapacitorCommunityAdmob", path: "../../../node_modules/@capacitor-community/admob"),
         .package(name: "CapacitorApp", path: "../../../node_modules/@capacitor/app"),
         .package(name: "CapacitorPreferences", path: "../../../node_modules/@capacitor/preferences"),
+        .package(name: "CapacitorGamecenter", path: "../../../plugins/capacitor-gamecenter"),
         .package(name: "CapacitorNearby", path: "../../../plugins/capacitor-nearby")
     ],
     targets: [
@@ -26,6 +27,7 @@ let package = Package(
                 .product(name: "CapacitorCommunityAdmob", package: "CapacitorCommunityAdmob"),
                 .product(name: "CapacitorApp", package: "CapacitorApp"),
                 .product(name: "CapacitorPreferences", package: "CapacitorPreferences"),
+                .product(name: "CapacitorGamecenter", package: "CapacitorGamecenter"),
                 .product(name: "CapacitorNearby", package: "CapacitorNearby")
             ]
         )
