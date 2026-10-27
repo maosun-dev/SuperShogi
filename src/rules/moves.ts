@@ -41,7 +41,7 @@ const JINGAE: readonly Vec[] = [[0, -1], [-1, 0], [1, 0]];
 // pieceTargets と同じマスを同じ並び順で、マスの番号（r*9+c）で返す。CPU の読みで何度も呼ぶので、マスの物を作らない
 export function pieceTargetIdx(s: GameState, from: number): number[] {
   const p = s.board[from];
-  if (!p || p.frozen) return [];
+  if (!p || p.frozen || p.numb) return [];
   const f = forward(p.side);
   const fc = from % 9, fr = (from - fc) / 9;
   const { steps, slides } = vectors(p);
@@ -64,10 +64,12 @@ export function pieceTargetIdx(s: GameState, from: number): number[] {
   };
   for (const [dc, df] of steps) step(dc, df);
   for (const [dc, df] of extra) step(dc, df);
+  // 落雷を受けた飛車・角は、滑って進めるのが reach マスまで
+  const reach = p.reach ?? 8;
   for (const [dc, df] of slides) {
     const dr = df * f;
     let c = fc + dc, r = fr + dr;
-    while (c >= 0 && c <= 8 && r >= 0 && r <= 8) {
+    for (let n = 1; n <= reach && c >= 0 && c <= 8 && r >= 0 && r <= 8; n++) {
       const i = r * 9 + c;
       const q = s.board[i];
       if (q) {
@@ -125,7 +127,7 @@ export function dropTargets(s: GameState, side: Side, kind: HandKind): Square[] 
 export function attacks(s: GameState, from: number, to: number): boolean {
   if (from === to) return false;
   const p = s.board[from];
-  if (!p || p.frozen) return false;
+  if (!p || p.frozen || p.numb) return false;
   const q = s.board[to];
   if (q && q.side === p.side) return false;
   const fc = from % 9, fr = (from - fc) / 9;
@@ -144,7 +146,7 @@ export function attacks(s: GameState, from: number, to: number): boolean {
   for (const [vc, vf] of slides) {
     if ((vc === 0 && dc !== 0) || (vf === 0 && df !== 0)) continue;
     const k = vc !== 0 ? dc * vc : df * vf;
-    if (k < 1 || (vc !== 0 && vf !== 0 && dc * vc !== df * vf)) continue;
+    if (k < 1 || k > (p.reach ?? 8) || (vc !== 0 && vf !== 0 && dc * vc !== df * vf)) continue;
     const stepR = (tr - fr) / k, stepC = dc / k;
     let blockers = 0;
     for (let n = 1; n < k; n++) {

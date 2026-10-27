@@ -75,17 +75,39 @@ export const irekae: CardDef = {
   },
 };
 
+export const RAKURAI_REACH = 3; // 落雷を受けた飛車・角が滑って進めるマスの数
+
 export const rakurai: CardDef = {
   id: 'rakurai', name: '落雷', kind: 'magic', cost: 4, fx: 'rakurai',
-  text: '相手の駒1つを破壊する。王・飛車・角（竜・馬も）は選べない。壊れた駒は誰の持ち駒にもならない',
-  prompt: '壊す相手の駒を選んでください',
+  text: '相手の王以外の駒1つに雷を落とす。飛車・角（竜・馬も）でなければ壊し、まわり8マスの駒（自分の駒も）は、使った人の次の手番が終わるまで痺れて動けない。飛車・角なら壊さず、対局の終わりまで滑って進めるのは3マスまでになる',
+  prompt: '雷を落とす相手の駒を選んでください',
   targetSets(s, side) {
     return piecesOf(s, opponent(side))
-      .filter(({ sq, p }) => p.kind !== 'OU' && p.kind !== 'HI' && p.kind !== 'KA')
+      .filter(({ p }) => p.kind !== 'OU')
       .map(({ sq }) => [sq]);
   },
   resolve(ctx, [sq]) {
+    const s = ctx.state;
+    const p = s.board[idx(sq)]!;
+    if (p.kind === 'HI' || p.kind === 'KA') {
+      // 飛車・角（竜・馬も）：壊さず、滑るのを3マスまでに（成っても続く）
+      p.reach = RAKURAI_REACH;
+      ctx.emit({ type: 'reachLimited', pieceId: p.id, at: sq });
+      return;
+    }
     ctx.destroy(sq, 'rakurai');
+    // まわり8マスの駒が痺れる。使った側の駒は、この手番の終わりで1減るぶん1つ多く
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (!dc && !dr) continue;
+        const n = { c: sq.c + dc, r: sq.r + dr };
+        if (!onBoard(n)) continue;
+        const q = s.board[idx(n)];
+        if (!q) continue;
+        q.numb = Math.max(q.numb ?? 0, q.side === ctx.side ? 2 : 1);
+        ctx.emit({ type: 'numbed', pieceId: q.id, at: n });
+      }
+    }
   },
 };
 

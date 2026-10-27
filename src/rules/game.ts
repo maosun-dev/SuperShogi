@@ -392,6 +392,10 @@ function endTurn(s: GameState, events: GameEvent[], quiet = false): void {
       p.frozen--;
       if (p.frozen <= 0) delete p.frozen;
     }
+    if (p.numb) {
+      p.numb--;
+      if (p.numb <= 0) delete p.numb;
+    }
     if (p.shackle) {
       p.shackle.left--;
       if (p.shackle.left <= 0) {

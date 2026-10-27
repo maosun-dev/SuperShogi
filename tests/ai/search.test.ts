@@ -56,7 +56,10 @@ test('落雷で王を救う', () => {
   put(s, { c: 0, r: 0 }, 'OU', 'gote');
   const uid = giveCard(s, 'sente', 'rakurai');
   const r = search(s, 'sente', BASE);
-  expect(r.action).toEqual({ type: 'card', uid, targets: [{ c: 4, r: 7 }] });
+  // 落雷で王手を止める（金を壊す、または隣の銀を壊して金を痺れさせる）。どちらでも次の相手の手番で王を取られない
+  expect(r.action.type === 'card' && r.action.uid === uid).toBe(true);
+  const after = applyAction(s, r.action).state;
+  expect(legalActions(after).some(a => a.type === 'move' && a.to.c === 4 && a.to.r === 8)).toBe(false);
 });
 
 // 本当の局面で後手が罠を2枚伏せる（落とし穴・鏡の結界）

@@ -34,7 +34,7 @@ test('落雷で相手の銀が消え、誰の持ち駒にもならない。destr
   expect(state.ply).toBe(1);
 });
 
-test('落雷の対象に王・飛・角・竜・馬は入らない', () => {
+test('落雷の対象：王は入らず、飛・角・竜・馬は入る（2026-10）', () => {
   const s = base();
   put(s, { c: 1, r: 1 }, 'HI', 'gote');
   put(s, { c: 2, r: 1 }, 'KA', 'gote');
@@ -43,7 +43,7 @@ test('落雷の対象に王・飛・角・竜・馬は入らない', () => {
   put(s, { c: 5, r: 1 }, 'KI', 'gote');
   put(s, { c: 6, r: 6 }, 'GI', 'sente');
   const uid = giveCard(s, 'sente', 'rakurai');
-  expect(cardActs(s, uid).map(a => a.targets)).toEqual([[{ c: 5, r: 1 }]]);
+  expect(cardActs(s, uid).map(a => a.targets)).toEqual([[{ c: 1, r: 1 }], [{ c: 2, r: 1 }], [{ c: 3, r: 1 }], [{ c: 4, r: 1 }], [{ c: 5, r: 1 }]]);
   expect(() => applyAction(s, card(uid, [{ c: 0, r: 0 }]))).toThrow(IllegalActionError);
 });
 

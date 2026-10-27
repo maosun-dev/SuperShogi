@@ -182,7 +182,7 @@ describe('input', () => {
     const want: Record<string, string> = {
       oshikaeshi: '押し戻す相手の駒を選んでください',
       irekae: '入れ替える自分の駒を2つ選んでください',
-      rakurai: '壊す相手の駒を選んでください',
+      rakurai: '雷を落とす相手の駒を選んでください',
       yobimodoshi: '呼び戻す駒の種類を選んでください',
       otoshiana: '落とし穴を仕掛けるマスを選んでください',
       tenma: '纏札を付ける自分の駒を選んでください',

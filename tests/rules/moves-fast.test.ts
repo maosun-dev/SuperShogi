@@ -24,6 +24,9 @@ function openBoard(): GameState {
   put(s, { c: 4, r: 4 }, 'KE', 'gote', { equip: 'tenma', frozen: 1 });     // 凍った桂
   put(s, { c: 8, r: 0 }, 'KY', 'sente', { equip: 'bangasa', promoted: true });
   put(s, { c: 3, r: 5 }, 'KE', 'gote');                               // 王から3段離れた桂が王のまわりに利く
+  put(s, { c: 0, r: 0 }, 'HI', 'gote', { reach: 3 });                 // 落雷を受けた飛車（3マスまで）
+  put(s, { c: 7, r: 4 }, 'KA', 'gote', { promoted: true, reach: 3 }); // 落雷を受けた馬
+  put(s, { c: 2, r: 2 }, 'GI', 'sente', { numb: 1 });                 // 痺れた銀
   return s;
 }
 const positions = [...benchPositions(), openBoard()];
@@ -56,7 +59,7 @@ function vectorsRef(p: Piece): { steps: Vec[]; slides: Vec[] } {
 }
 export function pieceTargetsRef(s: GameState, from: Square): Square[] {
   const p = s.board[idx(from)];
-  if (!p || p.frozen) return [];
+  if (!p || p.frozen || p.numb) return []; // 2026-10：痺れも動けない
   const f = forward(p.side);
   const { steps, slides } = vectorsRef(p);
   const extra: Vec[] = p.equip?.cardId === 'tenma' ? KNIGHT
@@ -77,7 +80,8 @@ export function pieceTargetsRef(s: GameState, from: Square): Square[] {
   // 2026-10：貫きの槍はなくなった（写しも飛び越えない）
   for (const [dc, df] of slides) {
     let to = { c: from.c + dc, r: from.r + df * f };
-    while (onBoard(to)) {
+    let n = 0;
+    while (onBoard(to) && ++n <= (p.reach ?? 8)) { // 2026-10：落雷を受けた飛車・角は reach マスまで
       const q = s.board[idx(to)];
       if (q) {
         if (q.side !== p.side) add(to);

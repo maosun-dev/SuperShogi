@@ -122,6 +122,8 @@ export function positionKey(s: GameState): string {
     if (p.equip) key += '@' + p.equip.cardId;
     if (p.shackle) key += '#' + p.shackle.left;
     if (p.frozen) key += '~' + p.frozen;
+    if (p.numb) key += '^' + p.numb;
+    if (p.reach) key += '<' + p.reach;
     if (p.sealed) key += '!';
   }
   const sh = s.players.sente.hand, gh = s.players.gote.hand;

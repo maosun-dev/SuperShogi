@@ -91,7 +91,7 @@ function positionKeyRef(s: import('../../src/rules/types').GameState): string {
     if (!p) return '.';
     // 2026-10：枷は纏札と別の状態（#残り）
     return `${p.side[0]}${p.kind}${p.promoted ? '+' : ''}${p.equip ? '@' + p.equip.cardId : ''}${p.shackle ? '#' + p.shackle.left : ''}`
-      + `${p.frozen ? '~' + p.frozen : ''}${p.sealed ? '!' : ''}`;
+      + `${p.frozen ? '~' + p.frozen : ''}${p.numb ? '^' + p.numb : ''}${p.reach ? '<' + p.reach : ''}${p.sealed ? '!' : ''}`;
   });
   const hands = sides.map(side => (['HI', 'KA', 'KI', 'GI', 'KE', 'KY', 'FU'] as const).map(k => s.players[side].hand[k]).join(','));
   const used = sides.map(side =>

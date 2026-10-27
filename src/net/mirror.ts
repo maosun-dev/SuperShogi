@@ -56,6 +56,7 @@ function mirrorEvent(e: GameEvent): GameEvent {
     case 'trapSet': return { ...e, side: mirrorSide(e.side), at: sqOrNull(e.at) };
     case 'trapTriggered': return { ...e, owner: mirrorSide(e.owner), at: sqOrNull(e.at) };
     case 'destroyed': case 'armorBlocked': case 'frozen': case 'demoted': case 'promotedInPlace': case 'equipBroken':
+    case 'numbed': case 'reachLimited':
       return { ...e, at: mirrorSq(e.at) };
     case 'swapped': return { ...e, a: mirrorSq(e.a), b: mirrorSq(e.b) };
     case 'kingGuarded': return { ...e, at: mirrorSq(e.at), to: mirrorSq(e.to) };
