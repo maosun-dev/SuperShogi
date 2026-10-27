@@ -7,6 +7,7 @@ import { APP_VERSION } from './link';
 import { encodeMsg, parseMsg, type Msg } from './protocol';
 import { buildState, lastTurnStart, type Setup } from './record';
 import { drawKingFx, type KingFxChoice } from '../fx/kingfx/kinds';
+import { GC_DIGITS, GC_PIECES } from './gcCode';
 
 export type SessionPhase = 'idle' | 'hosting' | 'browsing' | 'deck' | 'match' | 'reconnecting' | 'over' | 'closed';
 
@@ -52,18 +53,16 @@ export interface Session {
   on(fn: (e: SessionEvent) => void): () => void;
 }
 
-const PIECE_NAMES = ['歩兵', '香車', '桂馬', '銀将', '金将', '角行', '飛車'];
-const KANSUJI = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const NO_HANDICAP: Handicap = { side: 'sente', kind: 'none' };
 const JOIN_RETRIES = 2; // つなぐのに失敗したとき、自動で頼み直す回数（Bluetooth は1回目で失敗しやすい）
 
 /** 合言葉：駒の名前＋「の」＋漢数字（例「桂馬の三」） */
 export function makeCode(rng: () => number): string {
-  return `${PIECE_NAMES[Math.floor(rng() * PIECE_NAMES.length)]}の${KANSUJI[Math.floor(rng() * KANSUJI.length)]}`;
+  return `${GC_PIECES[Math.floor(rng() * GC_PIECES.length)]}の${GC_DIGITS[Math.floor(rng() * GC_DIGITS.length)]}`;
 }
 
-/** kingFx は誘った側の設定（王を取る演出。おまかせならくじ）を読む。無ければくじ */
-export function createSession(link: Link, opts: { version?: string; rng?: () => number; stopDelayMs?: number; kingFx?: () => KingFxChoice } = {}): Session {
+/** kingFx は誘った側の設定（王を取る演出。おまかせならくじ）を読む。無ければくじ。makeCode は誘うときの合言葉の作り方（Game Center は漢数字2つ） */
+export function createSession(link: Link, opts: { version?: string; rng?: () => number; stopDelayMs?: number; kingFx?: () => KingFxChoice; makeCode?: (rng: () => number) => string } = {}): Session {
   const version = opts.version ?? APP_VERSION;
   const rng = opts.rng ?? Math.random;
   const stopDelayMs = opts.stopDelayMs ?? 300; // 最後の知らせが届くのを待ってから切る
@@ -274,7 +273,7 @@ export function createSession(link: Link, opts: { version?: string; rng?: () => 
     },
     host() {
       role = 'host'; phase = 'hosting';
-      code = makeCode(rng);
+      code = (opts.makeCode ?? makeCode)(rng);
       void link.host(code, version);
     },
     browse() {

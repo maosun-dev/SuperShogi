@@ -2,6 +2,7 @@
 import { test, expect } from 'vitest';
 import { createPairLinks } from '../../src/net/link';
 import { createSession, makeCode, type Session, type SessionEvent } from '../../src/net/session';
+import { makeGcCode } from '../../src/net/gcCode';
 import { buildState } from '../../src/net/record';
 import { fingerprint } from '../../src/net/fingerprint';
 import { applyAction, legalActions } from '../../src/rules/game';
@@ -46,6 +47,12 @@ function play(s: Session): Action {
 }
 const mover = (p: { host: Session; guest: Session }): Session =>
   buildState(p.host.setup()!, p.host.log()).turn === 'sente' ? p.host : p.guest;
+
+test('誘うときの合言葉の作り方を差し替えられる（Game Center は漢数字2つ）', () => {
+  const s = createSession(createPairLinks().a, { version: '1', rng: seq(0.3, 0.2, 0.9), makeCode: makeGcCode });
+  s.host();
+  expect(s.code()).toMatch(/^.+の[一二三四五六七八九]{2}$/);
+});
 
 test('合言葉は駒の名前＋の＋漢数字', () => {
   expect(makeCode(seq(0.3, 0.2))).toBe('桂馬の二');
