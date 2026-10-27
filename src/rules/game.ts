@@ -392,10 +392,10 @@ function endTurn(s: GameState, events: GameEvent[], quiet = false): void {
       p.frozen--;
       if (p.frozen <= 0) delete p.frozen;
     }
-    if (p.equip?.cardId === 'omori' && p.equip.left !== undefined) {
-      p.equip.left--;
-      if (p.equip.left <= 0) {
-        p.equip = null;
+    if (p.shackle) {
+      p.shackle.left--;
+      if (p.shackle.left <= 0) {
+        delete p.shackle;
         events.push({ type: 'equipBroken', pieceId: p.id, at: sqOf(i), cardId: 'omori' });
       }
     }

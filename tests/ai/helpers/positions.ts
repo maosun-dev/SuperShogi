@@ -53,7 +53,7 @@ function decorated(turn: Side, opts: { noFoeKing?: boolean; frozenKing?: boolean
   at(1, 8).equip = { cardId: 'tenma' };                  // 先手の桂に天馬
   at(4, 6).equip = { cardId: 'hikijin' };                // 先手の歩に退き陣（成る前）
   at(6, 8).equip = { cardId: 'idaten' };                 // 先手の銀に韋駄天
-  at(2, 0).equip = { cardId: 'omori', left: 2 };         // 後手の銀に重りの枷
+  at(2, 0).shackle = { left: 2 };                        // 後手の銀に重りの枷
   at(5, 0).equip = { cardId: 'hagane' };                 // 後手の金に鋼の鎧
   at(3, 0).frozen = 2;                                   // 後手の金が凍っている
   at(2, 6).sealed = true;                                // 先手の歩は成れない

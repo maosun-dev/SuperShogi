@@ -43,8 +43,8 @@ function sideScore(s: GameState, side: Side): number {
     if (p.frozen) total -= v * FROZEN_RATE * p.frozen;
     if (p.sealed) total -= p.kind === 'HI' || p.kind === 'KA' ? SEALED_BIG : SEALED_SMALL;
     // 重りの枷：残りの手番が少ないほど損は小さい
-    if (p.equip?.cardId === 'omori') total -= Math.max(OMORI_MIN, v * OMORI_RATE) * (p.equip.left ?? OMORI_TURNS) / OMORI_TURNS;
-    else if (p.equip) total += EQUIP_VALUE[p.equip.cardId] ?? 0;
+    if (p.shackle) total -= Math.max(OMORI_MIN, v * OMORI_RATE) * p.shackle.left / OMORI_TURNS;
+    if (p.equip) total += EQUIP_VALUE[p.equip.cardId] ?? 0;
   }
   for (const k of HAND_KINDS) total += s.players[side].hand[k] * PIECE_VALUE[k] * HAND_FACTOR;
   for (const c of s.players[side].cards) {

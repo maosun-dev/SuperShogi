@@ -11,11 +11,13 @@ export type CardId =
 
 // c は先手から見て左が0・右が8、r は上（後手側）が0・下（先手側）が8
 export interface Square { c: number; r: number }
-export interface Equip { cardId: CardId; left?: number }  // left：重りの枷の残りの手番（付けられた側の手番が終わるたびに1減る）
-// frozen：凍って動けない残りの手番（無いときは凍っていない）。sealed：成り封じを受け、対局の終わりまで成れない
+export interface Equip { cardId: CardId }
+// frozen：凍って動けない残りの手番（無いときは凍っていない）。sealed：成り封じを受け、対局の終わりまで成れない。
+// shackle：重りの枷（纏札とは別に持てる）。left は残りの手番（付けられた側の手番が終わるたびに1減る）。
+// numb：落雷で痺れて動けない残りの手番（凍結と同じ数え方）。reach：滑って進めるマスの上限（落雷を受けた飛車・角。成っても続く）
 export interface Piece {
   id: number; kind: PieceKind; side: Side; promoted: boolean; equip: Equip | null;
-  frozen?: number; sealed?: true;
+  frozen?: number; sealed?: true; shackle?: { left: number }; numb?: number; reach?: number;
 }
 export interface CardInstance { uid: number; cardId: CardId; used: boolean }
 // 伏せた罠。cardId / at が null なのは「相手から見て隠されている」状態

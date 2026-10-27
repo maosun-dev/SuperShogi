@@ -22,7 +22,7 @@ export function emptyState(turn: Side = 'sente'): GameState {
 
 export function put(
   s: GameState, sq: Square, kind: PieceKind, side: Side,
-  opts: { promoted?: boolean; equip?: CardId; frozen?: number; sealed?: true } = {},
+  opts: { promoted?: boolean; equip?: CardId; frozen?: number; sealed?: true; shackle?: number; numb?: number; reach?: number } = {},
 ): Piece {
   const p: Piece = {
     id: s.nextId++, kind, side,
@@ -31,6 +31,9 @@ export function put(
   };
   if (opts.frozen) p.frozen = opts.frozen;
   if (opts.sealed) p.sealed = true;
+  if (opts.shackle) p.shackle = { left: opts.shackle };
+  if (opts.numb) p.numb = opts.numb;
+  if (opts.reach) p.reach = opts.reach;
   s.board[idx(sq)] = p;
   return p;
 }

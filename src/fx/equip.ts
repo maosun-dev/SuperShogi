@@ -55,14 +55,14 @@ export async function playArmor(ctx: FxCtx, cue: ArmorCue): Promise<void> {
   }
 }
 
-/** 纏札が外れた（貫きの槍を使い切った・重りの枷の手番が尽きた）：札ごとの壊れ方のあと、名前で知らせる */
+/** 纏札が外れた（重りの枷の手番が尽きた）：札ごとの壊れ方のあと、名前で知らせる */
 export async function playEquipBreak(ctx: FxCtx, cue: BreakCue): Promise<void> {
   // 付けていた印を隠すのは札ごとの演出に任せる（寄ってから隠す、など）。片付けは sync（外れた局面で消える）
   const fx = EQUIP_FX[cue.cardId];
   if (fx?.onBreak) {
     await fx.onBreak(ctx, cue);
   } else {
-    hideEquipMark(cue.pieceId);
+    hideEquipMark(cue.pieceId, cue.cardId === 'omori' ? 'shackle' : 'equip');
     await ctx.wait(300);
   }
   ctx.sync();

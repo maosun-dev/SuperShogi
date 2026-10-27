@@ -237,23 +237,23 @@ const kingShuffle = (s: GameState): GameState => {
 
 test('重りの枷：付けたときは残り3。先手の手番の終わりでは減らない', () => {
   const s = shackled();
-  expect(s.board[idx({ c: 8, r: 6 })]?.equip).toEqual({ cardId: 'omori', left: 3 });
+  expect(s.board[idx({ c: 8, r: 6 })]?.shackle).toEqual({ left: 3 });
 });
 
 test('重りの枷：付けられた側の手番が3回終わると外れ、equipBroken が出る', () => {
   let s = shackled();               // 後手の番
   s = kingShuffle(s);               // 後手1回目の終わり → 2
-  expect(s.board[idx({ c: 8, r: 6 })]?.equip).toEqual({ cardId: 'omori', left: 2 });
+  expect(s.board[idx({ c: 8, r: 6 })]?.shackle).toEqual({ left: 2 });
   s = kingShuffle(s);               // 先手
   s = kingShuffle(s);               // 後手2回目 → 1
-  expect(s.board[idx({ c: 8, r: 6 })]?.equip).toEqual({ cardId: 'omori', left: 1 });
+  expect(s.board[idx({ c: 8, r: 6 })]?.shackle).toEqual({ left: 1 });
   s = kingShuffle(s);               // 先手
   const gi = s.board[idx({ c: 8, r: 6 })]!;
   const side = s.turn;
   const from = s.board.findIndex(p => p?.kind === 'OU' && p.side === side);
   const act = legalActions(s).find(a => a.type === 'move' && a.from.c === from % 9 && a.from.r === Math.floor(from / 9))!;
   const r = applyAction(s, act);    // 後手3回目 → 外れる
-  expect(r.state.board[idx({ c: 8, r: 6 })]?.equip).toBeNull();
+  expect(r.state.board[idx({ c: 8, r: 6 })]?.shackle).toBeUndefined();
   expect(r.events).toContainEqual({ type: 'equipBroken', pieceId: gi.id, at: { c: 8, r: 6 }, cardId: 'omori' });
 });
 
@@ -261,7 +261,7 @@ test('重りの枷：凍っていても手番の終わりで減る', () => {
   const s = shackled();
   s.board[idx({ c: 8, r: 6 })]!.frozen = 2;
   const t = kingShuffle(s);
-  expect(t.board[idx({ c: 8, r: 6 })]?.equip).toEqual({ cardId: 'omori', left: 2 });
+  expect(t.board[idx({ c: 8, r: 6 })]?.shackle).toEqual({ left: 2 });
 });
 
 test('重りの枷：付いた駒が取られても例外にならず、取った側の持ち駒になる', () => {

@@ -117,6 +117,7 @@ interface PieceObj {
   kind: PieceKind;
   side: Side;
   equip: { id: CardId; obj: THREE.Group; stop: () => void } | null;
+  shackle: { obj: THREE.Group; stop: () => void } | null;   // 重りの枷（纏札とは別に付く）
   check: { obj: THREE.Mesh; stop: () => void } | null;
   marks: { key: string; obj: THREE.Group } | null;   // 凍結・成れないの印（key が変わったら作り直す）
 }
@@ -135,7 +136,7 @@ function makePiece(p: Piece): PieceObj {
   label.rotation.x = -Math.PI / 2; label.position.set(0, 0.16 * s + 0.026, 0.03 * s);
   grp.add(label);
   grp.userData = { pieceId: p.id, s };
-  const o: PieceObj = { grp, body, label, back: null, kind: p.kind, side: p.side, equip: null, check: null, marks: null };
+  const o: PieceObj = { grp, body, label, back: null, kind: p.kind, side: p.side, equip: null, shackle: null, check: null, marks: null };
   syncBack(o, p);
   return o;
 }
@@ -365,17 +366,27 @@ function makeEquip(id: CardId, side: Side, s: number): { obj: THREE.Group; stop:
 
 function removeEquip(o: PieceObj): void {
   if (!o.equip) return;
-  o.equip.stop();
-  o.grp.remove(o.equip.obj);
+  disposeProp(o, o.equip);
+  o.equip = null;
+}
+
+function removeShackle(o: PieceObj): void {
+  if (!o.shackle) return;
+  disposeProp(o, o.shackle);
+  o.shackle = null;
+}
+
+function disposeProp(o: PieceObj, prop: { obj: THREE.Group; stop: () => void }): void {
+  prop.stop();
+  o.grp.remove(prop.obj);
   // 札の絵の模様は使い回すので捨てない
-  o.equip.obj.traverse((x) => {
+  prop.obj.traverse((x) => {
     const m = x as THREE.Mesh;
     if ((x as THREE.Sprite).isSprite) { (m.material as THREE.Material).dispose(); return; } // 板の形は three の中で共有
     if (!m.isMesh) return;
     m.geometry.dispose();
     (m.material as THREE.Material).dispose();
   });
-  o.equip = null;
 }
 
 function removeCheck(o: PieceObj): void {
@@ -388,6 +399,7 @@ function removeCheck(o: PieceObj): void {
 
 function removePiece(stage: Stage, id: number, o: PieceObj): void {
   removeEquip(o);
+  removeShackle(o);
   removeMarks(o);
   removeCheck(o);
   stage.scene.remove(o.grp);
@@ -470,12 +482,20 @@ export function sync(stage: Stage, view: GameState, me: Side): void {
     if (o.equip && o.equip.id !== eq) removeEquip(o);
     if (eq && !o.equip) {
       const e = makeEquip(eq, p.side, SIZE[p.kind]);
+      e.obj.name = 'equip';
       o.grp.add(e.obj);
       o.equip = { id: eq, ...e };
     }
 
+    // 重りの枷：纏札とは別に、足元の鎖と鉄球
+    if (p.shackle && !o.shackle) {
+      o.shackle = makeEquip('omori', p.side, SIZE[p.kind]);
+      o.shackle.obj.name = 'shackle';
+      o.grp.add(o.shackle.obj);
+    } else if (!p.shackle) removeShackle(o);
+
     // 凍結（残りの手番）・重りの枷（外れるまでの手番）・成れないの印
-    const left = p.equip?.cardId === 'omori' ? p.equip.left : undefined;
+    const left = p.shackle?.left;
     const keys = [...(p.frozen ? [`f${p.frozen}`] : []), ...(left ? [`o${left}`] : []), ...(p.sealed ? ['sealed'] : [])];
     const mk = keys.join(',');
     if (o.marks && o.marks.key !== mk) removeMarks(o);

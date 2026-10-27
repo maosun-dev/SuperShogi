@@ -95,3 +95,42 @@ describe('陣替えの旗', () => {
     expect(t).toEqual(['33', '34', '43', '45', '53', '54'].sort());
   });
 });
+
+describe('重りの枷（纏札と別の状態）', () => {
+  test('纏札が付いた相手の駒にも付けられ、両方持つ。枷の間は隣8マスだけ', () => {
+    const s = base();
+    put(s, { c: 4, r: 1 }, 'HI', 'gote', { equip: 'hagane' });
+    const uid = giveCard(s, 'sente', 'omori');
+    expect(cardActs(s, uid).map(a => a.targets)).toContainEqual([{ c: 4, r: 1 }]);
+    const { state } = applyAction(s, card(uid, [{ c: 4, r: 1 }]));
+    const p = at(state, 4, 1)!;
+    expect(p.equip).toEqual({ cardId: 'hagane' });
+    expect(p.shackle).toEqual({ left: 3 });
+    expect(pieceTargets(state, { c: 4, r: 1 }).every(q => Math.abs(q.c - 4) <= 1 && Math.abs(q.r - 1) <= 1)).toBe(true);
+  });
+  test('枷の付いた駒には、もう一つ枷は付けられない', () => {
+    const s = base();
+    put(s, { c: 4, r: 1 }, 'HI', 'gote', { shackle: 3 });
+    const uid = giveCard(s, 'sente', 'omori');
+    expect(cardActs(s, uid).map(a => a.targets)).not.toContainEqual([{ c: 4, r: 1 }]);
+  });
+  test('相手の3手番で外れ、元の纏札（鎧）は残って守る', () => {
+    let s = base();
+    put(s, { c: 4, r: 1 }, 'KI', 'gote', { equip: 'hagane' });
+    const uid = giveCard(s, 'sente', 'omori');
+    s = applyAction(s, card(uid, [{ c: 4, r: 1 }])).state;
+    // 後手と先手が王を行き来させて、後手の手番を3つ終える
+    const moves: [Square, Square][] = [
+      [{ c: 0, r: 0 }, { c: 0, r: 1 }], [{ c: 8, r: 8 }, { c: 8, r: 7 }],
+      [{ c: 0, r: 1 }, { c: 0, r: 0 }], [{ c: 8, r: 7 }, { c: 8, r: 8 }],
+      [{ c: 0, r: 0 }, { c: 0, r: 1 }],
+    ];
+    let events: import('../../src/rules/types').GameEvent[] = [];
+    for (const [f, t] of moves) ({ state: s, events } = applyAction(s, mv(f, t)));
+    const p = at(s, 4, 1)!;
+    expect(p.shackle).toBeUndefined();
+    expect(p.equip).toEqual({ cardId: 'hagane' });
+    expect(events).toContainEqual({ type: 'equipBroken', pieceId: p.id, at: { c: 4, r: 1 }, cardId: 'omori' });
+    expect(pieceTargets(s, { c: 4, r: 1 }).length).toBeGreaterThan(0);
+  });
+});

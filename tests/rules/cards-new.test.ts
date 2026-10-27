@@ -374,7 +374,7 @@ test('重りの枷：付けた駒は隣8マスだけ。桂は動けない。王�
   expect(t.every(q => Math.abs(q.c - 4) <= 1 && Math.abs(q.r - 1) <= 1)).toBe(true);
   expect(has(t, 4, 2)).toBe(true);
   const s2 = base();
-  put(s2, { c: 6, r: 1 }, 'KE', 'gote', { equip: 'omori' });
+  put(s2, { c: 6, r: 1 }, 'KE', 'gote', { shackle: 3 });
   expect(pieceTargets(s2, { c: 6, r: 1 })).toEqual([]);
 });
 

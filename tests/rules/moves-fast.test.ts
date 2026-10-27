@@ -20,7 +20,7 @@ function openBoard(): GameState {
   put(s, { c: 0, r: 4 }, 'HI', 'sente', { equip: 'bangasa' });        // 飛に番傘（動きは変わらない）、筋に駒が2つ
   put(s, { c: 3, r: 4 }, 'FU', 'gote');
   put(s, { c: 5, r: 4 }, 'FU', 'gote');
-  put(s, { c: 8, r: 8 }, 'KA', 'gote', { promoted: true, equip: 'omori' }); // 馬に枷
+  put(s, { c: 8, r: 8 }, 'KA', 'gote', { promoted: true, equip: 'hagane', shackle: 2 }); // 馬に鎧と枷
   put(s, { c: 4, r: 4 }, 'KE', 'gote', { equip: 'tenma', frozen: 1 });     // 凍った桂
   put(s, { c: 8, r: 0 }, 'KY', 'sente', { equip: 'bangasa', promoted: true });
   put(s, { c: 3, r: 5 }, 'KE', 'gote');                               // 王から3段離れた桂が王のまわりに利く
@@ -87,7 +87,7 @@ export function pieceTargetsRef(s: GameState, from: Square): Square[] {
       to = { c: to.c + dc, r: to.r + df * f };
     }
   }
-  if (p.equip?.cardId === 'omori') {
+  if (p.shackle) {
     return out.filter(t => Math.abs(t.c - from.c) <= 1 && Math.abs(t.r - from.r) <= 1);
   }
   return out;

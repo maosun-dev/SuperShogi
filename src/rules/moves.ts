@@ -78,7 +78,7 @@ export function pieceTargetIdx(s: GameState, from: number): number[] {
       c += dc; r += dr;
     }
   }
-  if (equip === 'omori') {
+  if (p.shackle) {
     return out.filter(t => Math.abs((t % 9) - fc) <= 1 && Math.abs(Math.floor(t / 9) - fr) <= 1);
   }
   return out;
@@ -133,7 +133,7 @@ export function attacks(s: GameState, from: number, to: number): boolean {
   const dc = tc - fc;
   const df = (tr - fr) * forward(p.side); // 持ち主から見て前へ何マスか
   const equip = p.equip?.cardId;
-  if (equip === 'omori' && (Math.abs(dc) > 1 || Math.abs(df) > 1)) return false;
+  if (p.shackle && (Math.abs(dc) > 1 || Math.abs(df) > 1)) return false;
   const { steps, slides } = vectors(p);
   // 滑らない駒（1マスの動き・桂の跳び）は2マスより遠くへは届かない
   if (slides.length === 0 && (dc > 2 || dc < -2 || df > 2 || df < -2)) return false;

@@ -77,7 +77,7 @@ export const omori: EquipFx = {
     // まず枷の付いた駒へ寄る（盤の印の鎖が見えているうちに）
     await cameraTo(ctx, at, 450);
     await ctx.wait(150);
-    hideEquipMark(cue.pieceId);
+    hideEquipMark(cue.pieceId, 'shackle');
     // 錆びる：鎖の色が錆の色へ変わり、輪がばらばらに崩れ落ちる
     const ring = chainRing(R, 14);
     ring.position.set(at.x, 0.05, at.z);

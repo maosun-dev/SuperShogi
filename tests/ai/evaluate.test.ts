@@ -104,7 +104,7 @@ test('凍った駒・成れない飛車・重りの枷は、その駒の持ち�
   expect(material(f, 'sente')).toBeCloseTo(plain - 1000 * 0.15 * 2);
   const g = base(); g.board[4 * 9 + 4]!.sealed = true;
   expect(material(g, 'sente')).toBe(plain - 150);
-  const h = base(); h.board[4 * 9 + 4]!.equip = { cardId: 'omori' };
+  const h = base(); h.board[4 * 9 + 4]!.shackle = { left: 3 };
   expect(material(h, 'sente')).toBe(plain - 400);
 });
 
@@ -114,7 +114,7 @@ test('重りの枷：残りの手番が少ないほど持ち主の損が小さ�
     put(s, { c: 4, r: 8 }, 'OU', 'sente');
     put(s, { c: 4, r: 0 }, 'OU', 'gote');
     const p = put(s, { c: 4, r: 2 }, 'HI', 'gote');
-    p.equip = { cardId: 'omori', left };
+    p.shackle = { left };
     return evaluate(s, 'gote');
   };
   expect(mk(1)).toBeGreaterThan(mk(3));

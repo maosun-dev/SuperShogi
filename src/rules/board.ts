@@ -82,6 +82,9 @@ function clonePiece(p: Piece): Piece {
   const q: Piece = { id: p.id, kind: p.kind, side: p.side, promoted: p.promoted, equip: p.equip ? { ...p.equip } : null };
   if (p.frozen) q.frozen = p.frozen;
   if (p.sealed) q.sealed = true;
+  if (p.shackle) q.shackle = { left: p.shackle.left };
+  if (p.numb) q.numb = p.numb;
+  if (p.reach) q.reach = p.reach;
   return q;
 }
 
@@ -116,7 +119,8 @@ export function positionKey(s: GameState): string {
     if (!p) { key += '.'; continue; }
     key += (p.side === 'sente' ? 's' : 'g') + p.kind;
     if (p.promoted) key += '+';
-    if (p.equip) key += '@' + p.equip.cardId + (p.equip.left ?? '');
+    if (p.equip) key += '@' + p.equip.cardId;
+    if (p.shackle) key += '#' + p.shackle.left;
     if (p.frozen) key += '~' + p.frozen;
     if (p.sealed) key += '!';
   }

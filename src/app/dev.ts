@@ -45,7 +45,7 @@ export function sampleView(): GameState {
   const sgi = s.board[at(6, 8)]!;
   s.board[at(6, 8)] = { ...sgi, sealed: true };
   const gki = s.board[at(3, 0)]!;
-  s.board[at(3, 0)] = { ...gki, equip: { cardId: 'omori' } };
+  s.board[at(3, 0)] = { ...gki, shackle: { left: 3 } };
   s.traps.push({ uid: 902, owner: 'sente', cardId: 'itetsuku', at: { c: 2, r: 4 } });
   return viewFor(s, 'sente');
 }
@@ -155,7 +155,7 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       at(4, 6).frozen = 1;
       at(4, 6).sealed = true;
       at(6, 8).sealed = true;
-      at(3, 0).equip = { cardId: 'omori', left: 3 };
+      at(3, 0).shackle = { left: 3 };
       at(5, 2).frozen = 2;
       s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'itetsuku', at: { c: 4, r: 4 } });
       s.traps.push({ uid: s.nextId++, owner: 'sente', cardId: 'otoshiana', at: { c: 6, r: 4 } });
@@ -168,7 +168,7 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       at(2, 8).equip = { cardId: 'hagane' };
       at(7, 7).equip = { cardId: 'bangasa' };
       at(5, 8).equip = { cardId: 'idaten' };
-      at(6, 6).equip = { cardId: 'omori', left: 3 };
+      at(6, 6).shackle = { left: 3 };
       // 後手の駒（向きが合っているか）
       at(6, 2).equip = { cardId: 'hikijin' };
       at(6, 0).equip = { cardId: 'hagane' };
@@ -205,7 +205,7 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       s.ply = 300;
       break;
     case 'omori-break':
-      s.board[0 * 9 + 6]!.equip = { cardId: 'omori', left: 1 };
+      s.board[0 * 9 + 6]!.shackle = { left: 1 };
       break;
     case 'move':
       break;

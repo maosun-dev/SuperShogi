@@ -76,10 +76,17 @@ export const omori: CardDef = {
   id: 'omori', name: '重りの枷', kind: 'equip', cost: 2, fx: 'omori',
   text: '相手の王以外の駒に付ける（纏札が付いた駒にも付けられる）。その駒は、隣8マスのうち、もともと動けるマスにしか動けない。桂馬は動けなくなる。相手の3手番が終わると外れる',
   prompt: '重りの枷を付ける相手の駒を選んでください',
-  targetSets: (s, side) => barePieces(s, opponent(side), p => p.kind !== 'OU'),
+  // 纏札が付いていても付けられる（枷は纏札とは別に持つ）。同じ駒に枷を2つは付けない
+  targetSets: (s, side) => {
+    const out: Square[][] = [];
+    s.board.forEach((p, i) => {
+      if (p && p.side === opponent(side) && p.kind !== 'OU' && !p.shackle) out.push([sqOf(i)]);
+    });
+    return out;
+  },
   resolve(ctx, [sq]) {
     const p = ctx.state.board[idx(sq)]!;
-    p.equip = { cardId: 'omori', left: OMORI_TURNS };
+    p.shackle = { left: OMORI_TURNS };
     ctx.emit({ type: 'equipped', pieceId: p.id, cardId: 'omori' });
   },
   equip: { shackle: true },
