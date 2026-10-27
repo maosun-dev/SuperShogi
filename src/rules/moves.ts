@@ -35,7 +35,8 @@ export function pieceTargets(s: GameState, from: Square): Square[] {
   return pieceTargetIdx(s, idx(from)).map(sqOf);
 }
 
-const BACK: readonly Vec[] = [[0, -1]];
+// 陣替えの旗：真後ろと左右へ1マス
+const JINGAE: readonly Vec[] = [[0, -1], [-1, 0], [1, 0]];
 
 // pieceTargets と同じマスを同じ並び順で、マスの番号（r*9+c）で返す。CPU の読みで何度も呼ぶので、マスの物を作らない
 export function pieceTargetIdx(s: GameState, from: number): number[] {
@@ -44,9 +45,9 @@ export function pieceTargetIdx(s: GameState, from: number): number[] {
   const f = forward(p.side);
   const fc = from % 9, fr = (from - fc) / 9;
   const { steps, slides } = vectors(p);
-  // 天馬の蹄は桂馬の動きを足す。退き陣の旗は成っていない駒に真後ろ1マスを足す
+  // 天馬の蹄は桂馬の動きを足す。陣替えの旗は成っていない駒に真後ろと左右の1マスを足す
   const equip = p.equip?.cardId;
-  const extra: readonly Vec[] = equip === 'tenma' ? KNIGHT : equip === 'hikijin' && !p.promoted ? BACK : [];
+  const extra: readonly Vec[] = equip === 'tenma' ? KNIGHT : equip === 'hikijin' && !p.promoted ? JINGAE : [];
   const out: number[] = [];
   // 重なりが起こりうるのは足す動きがあるときだけ（桂に天馬など）
   const dedupe = extra.length > 0;
@@ -138,7 +139,7 @@ export function attacks(s: GameState, from: number, to: number): boolean {
   if (slides.length === 0 && (dc > 2 || dc < -2 || df > 2 || df < -2)) return false;
   for (const [vc, vf] of steps) if (vc === dc && vf === df) return true;
   if (equip === 'tenma' && (dc === -1 || dc === 1) && df === 2) return true;
-  if (equip === 'hikijin' && !p.promoted && dc === 0 && df === -1) return true;
+  if (equip === 'hikijin' && !p.promoted && ((dc === 0 && df === -1) || (df === 0 && (dc === 1 || dc === -1)))) return true;
   // 滑る動き：to がその筋の上にあり、間に駒が無い
   for (const [vc, vf] of slides) {
     if ((vc === 0 && dc !== 0) || (vf === 0 && df !== 0)) continue;

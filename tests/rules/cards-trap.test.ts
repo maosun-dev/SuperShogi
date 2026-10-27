@@ -203,14 +203,14 @@ test('鏡の結界：2枚あっても発動するのは uid が小さい1枚だ�
   expect(state.players.sente.hand.FU).toBe(0);
 });
 
-test('鏡の結界は装備カードには発動しない', () => {
+test('鏡の結界は纏札にも発動する（2026-10）', () => {
   const s = base();
   setTrap(s, 'gote', 'kagami');
   put(s, { c: 5, r: 5 }, 'GI', 'sente');
   const uid = giveCard(s, 'sente', 'hagane');
   const { state } = applyAction(s, card(uid, [{ c: 5, r: 5 }]));
-  expect(state.board[idx({ c: 5, r: 5 })]!.equip).toEqual({ cardId: 'hagane' });
-  expect(state.traps).toHaveLength(1);
+  expect(state.board[idx({ c: 5, r: 5 })]!.equip).toBeNull();
+  expect(state.traps).toHaveLength(0);
 });
 
 test('成り封じ：相手が成ろうとすると成らずに動く', () => {

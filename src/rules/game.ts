@@ -83,6 +83,8 @@ export function moveActions(s: GameState): Action[] {
   if (s.result) return [];
   const side = s.turn;
   const out: Action[] = [];
+  // 押し返しの風の続きの手では、王を取れない
+  const noKingTake = s.pushFollowUp;
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
     if (!p || p.side !== side) continue;
@@ -91,6 +93,7 @@ export function moveActions(s: GameState): Action[] {
     for (const t of pieceTargetIdx(s, i)) {
       const to = sqOf(t);
       const target = s.board[t];
+      if (noKingTake && target?.kind === 'OU') continue;
       for (const promote of promoteOptions(p, from, to)) {
         out.push({ type: 'move', from, to, promote });
         // 韋駄天：取らない2回目。1手目で王を取るなら2回目はない
@@ -362,8 +365,8 @@ function useCard(
     return;
   }
   events.push({ type: 'cardUsed', side, cardId: inst.cardId, targets });
-  if (def.kind === 'magic' && def.cost >= 2) {
-    // 鏡の結界：コスト2以上の術札を、効果の前に打ち消す。使った側の手番はそのまま終わる
+  if ((def.kind === 'magic' || def.kind === 'equip') && def.cost >= 2) {
+    // 鏡の結界：コスト2以上の術札・纏札を、効果の前に打ち消す。使った側の手番はそのまま終わる
     const t = findTrap(s, opponent(side), 'magic');
     if (t) {
       fireTrap(s, events, t);
@@ -422,6 +425,8 @@ function endTurn(s: GameState, events: GameEvent[], quiet = false): void {
 
 // 行動が1つでもあるか（駒の移動はすぐ見つかることが多いので先に調べる）
 function hasAnyAction(s: GameState): boolean {
+  // 押し返しの続きは王を取る手が無くなるので、行動の一覧で確かめる
+  if (s.pushFollowUp) return legalActions(s).length > 0;
   for (let i = 0; i < 81; i++) {
     const p = s.board[i];
     if (!p || p.side !== s.turn) continue;

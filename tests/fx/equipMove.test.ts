@@ -23,6 +23,12 @@ describe('纏札の出番の手 equipMoveKind', () => {
     const s = withEquip(4, 2, 'hikijin');
     expect(equipMoveKind(s, sq(4, 2), sq(4, 1))).toBe('hikijin');
   });
+  it('陣替えの旗：左右へ1マスずれる手も出番（2026-10）', () => {
+    const s = withEquip(4, 6, 'hikijin');
+    s.board[6 * 9 + 3] = null; // 左の歩をどけておく
+    expect(equipMoveKind(s, sq(4, 6), sq(3, 6))).toBe('hikijin');
+    expect(equipMoveKind(s, sq(4, 6), sq(4, 5))).toBeNull();
+  });
   it('天馬の蹄：桂馬の跳び方の手', () => {
     const s = withEquip(4, 6, 'tenma');
     expect(equipMoveKind(s, sq(4, 6), sq(3, 4))).toBe('tenma');

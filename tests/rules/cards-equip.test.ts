@@ -106,24 +106,27 @@ test('王の盾がなくなり、落雷・押し返しはどの相手の駒に�
   }
 });
 
-test('退き陣の旗：先手の歩が真後ろへ1マス下がれる', () => {
+test('陣替えの旗：先手の歩が真後ろと左右へ1マス動ける', () => {
   const s = base();
   put(s, { c: 4, r: 4 }, 'FU', 'sente', { equip: 'hikijin' });
   const t = pieceTargets(s, { c: 4, r: 4 });
   expect(t).toContainEqual({ c: 4, r: 3 });
   expect(t).toContainEqual({ c: 4, r: 5 });
-  expect(t).toHaveLength(2);
+  expect(t).toContainEqual({ c: 3, r: 4 });
+  expect(t).toContainEqual({ c: 5, r: 4 });
+  expect(t).toHaveLength(4);
 });
 
-test('退き陣の旗：後手の銀は後手から見た真後ろ（r が1小さいマス）が増える', () => {
+test('陣替えの旗：後手の銀は後手から見た真後ろ（r が1小さいマス）と左右が増える', () => {
   const s = base();
   put(s, { c: 4, r: 3 }, 'GI', 'gote', { equip: 'hikijin' });
   const t = pieceTargets(s, { c: 4, r: 3 });
   expect(t).toContainEqual({ c: 4, r: 2 });
-  expect(t).toHaveLength(6);
+  expect(t).toContainEqual({ c: 3, r: 3 });
+  expect(t).toHaveLength(8);
 });
 
-test('退き陣の旗：成った駒では効き目がない（金と同じ動きのまま）', () => {
+test('陣替えの旗：成った駒では効き目がない（金と同じ動きのまま）', () => {
   const s = base();
   put(s, { c: 4, r: 4 }, 'FU', 'sente', { promoted: true, equip: 'hikijin' });
   expect(pieceTargets(s, { c: 4, r: 4 })).toHaveLength(6);

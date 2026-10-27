@@ -60,7 +60,7 @@ export function pieceTargetsRef(s: GameState, from: Square): Square[] {
   const f = forward(p.side);
   const { steps, slides } = vectorsRef(p);
   const extra: Vec[] = p.equip?.cardId === 'tenma' ? KNIGHT
-    : p.equip?.cardId === 'hikijin' && !p.promoted ? [[0, -1]] : [];
+    : p.equip?.cardId === 'hikijin' && !p.promoted ? [[0, -1], [-1, 0], [1, 0]] : []; // 2026-10：陣替えの旗は左右にも
   const out: Square[] = [];
   const seen = new Set<number>();
   const add = (sq: Square) => {
