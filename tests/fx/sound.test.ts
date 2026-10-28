@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { afterEach, vi } from 'vitest';
-import { createSound, getSound, musicResponseUsable, volumeToGain } from '../../src/fx/sound';
+import { createSound, getSound, musicPosition, musicResponseUsable, volumeToGain } from '../../src/fx/sound';
 
 describe('musicResponseUsable（曲のファイルの返事を使ってよいか）', () => {
   it('200 と 206（範囲を指定した返事）は使う', () => {
@@ -13,6 +13,25 @@ describe('musicResponseUsable（曲のファイルの返事を使ってよいか
   it('中身が空・404 などは使わない', () => {
     expect(musicResponseUsable(0, 0)).toBe(false);
     expect(musicResponseUsable(404, 1000)).toBe(false);
+  });
+});
+
+describe('musicPosition（裏に回ったとき、曲のどこまで流れたか）', () => {
+  it('くり返しの終わりまでは、始めた位置＋流れた時間', () => {
+    expect(musicPosition(0, 10, 20, 50)).toBe(10);
+    expect(musicPosition(5, 12, 20, 50)).toBe(17);
+  });
+  it('くり返しの終わりを過ぎたら、くり返しの頭へ戻って数える', () => {
+    expect(musicPosition(0, 50, 20, 50)).toBe(20);
+    expect(musicPosition(0, 65, 20, 50)).toBe(35);
+    expect(musicPosition(0, 50 + 30 * 3 + 7, 20, 50)).toBe(27);
+  });
+  it('続きから始めた曲も同じように数える', () => {
+    expect(musicPosition(40, 15, 20, 50)).toBe(25);
+  });
+  it('くり返しの幅がない・数でない値なら頭から', () => {
+    expect(musicPosition(0, 99, 20, 20)).toBe(0);
+    expect(musicPosition(0, Number.NaN, 20, 50)).toBe(0);
   });
 });
 

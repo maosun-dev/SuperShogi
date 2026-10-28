@@ -118,6 +118,14 @@ export function musicResponseUsable(status: number, bytes: number): boolean {
   return status === 0 || (status >= 200 && status < 300);
 }
 
+/** 曲のいまの位置（秒）。offset から始めて elapsed 秒流れた。くり返しの終わりを過ぎたら、くり返しの頭へ戻って数える */
+export function musicPosition(offset: number, elapsed: number, loopStart: number, loopEnd: number): number {
+  const p = offset + elapsed;
+  const len = loopEnd - loopStart;
+  if (!Number.isFinite(p) || p < 0 || !(len > 0)) return 0;
+  return p < loopEnd ? p : loopStart + ((p - loopStart) % len);
+}
+
 export interface Sound {
   unlock(): void;
   play(name: SoundName, opts?: { gain?: number }): void;
@@ -419,7 +427,9 @@ export function createSound(): Sound {
 
   // 曲：wanted＝流したい曲、playing＝いま鳴らしている曲。読み込みは1曲1回だけ
   let wanted: MusicName | null = null;
-  let playing: { name: MusicName; src: AudioBufferSourceNode; gain: GainNode } | null = null;
+  let playing: { name: MusicName; src: AudioBufferSourceNode; gain: GainNode; startedAt: number; offset: number } | null = null;
+  // 裏に回って止めたときの曲と位置。戻って同じ曲を流すときは、そこから続ける
+  let resumeAt: { name: MusicName; pos: number } | null = null;
   const buffers = new Map<MusicName, Promise<AudioBuffer | null>>();
 
   /** 音のファイルを読んで AudioBuffer にする。読めなければ null */
@@ -513,9 +523,11 @@ export function createSound(): Sound {
           gain.gain.setValueAtTime(0.0001, now);
           gain.gain.linearRampToValueAtTime(t.gain, now + MUSIC_FADE_IN);
           src.connect(gain).connect(out);
-          src.start(now);
-          soundLog(`曲 ${name}`);
-          playing = { name, src, gain };
+          const offset = resumeAt?.name === name && resumeAt.pos < buf.duration ? resumeAt.pos : 0;
+          resumeAt = null;
+          src.start(now, offset);
+          soundLog(`曲 ${name} ${offset.toFixed(1)}秒から`);
+          playing = { name, src, gain, startedAt: now, offset };
         } catch (e) {
           console.error(`曲を流せませんでした（${name}）`, e);
         }
@@ -540,10 +552,15 @@ export function createSound(): Sound {
     },
     sleep() {
       // iPhone のアプリは裏から戻ると AudioContext が固まり、触っても音が戻らないことがある（2026-10-26）。
-      // 止めるだけでなく閉じて捨て、戻ったら unlock で作り直す。読んだ音は使い回す。曲は戻ったら頭から流し直す
+      // 止めるだけでなく閉じて捨て、戻ったら unlock で作り直す。読んだ音は使い回す。
+      // 曲は止めた位置を覚えておき、戻ったら続きから流す
       const c = ctx;
       soundLog(`止める ${c ? c.state : '仕組みなし'}`);
       if (!c) return;
+      if (playing) {
+        const { name, src, startedAt, offset } = playing;
+        resumeAt = { name, pos: musicPosition(offset, c.currentTime - startedAt, src.loopStart, src.loopEnd) };
+      }
       ctx = null; kit = null; master = null; playing = null;
       try { void c.close().catch(() => {}); } catch { /* 閉じられなくても進める */ }
     },
