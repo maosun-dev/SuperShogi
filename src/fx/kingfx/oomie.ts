@@ -20,6 +20,30 @@ const MIE_TILT = 0.14; // 見得の傾き（ラジアン）
 const MIE_MS = 260;    // 傾いて止まるまで
 const HOLD_MS = 900;   // 見得を見せてから柝の刻みに入るまで（桜が舞う）
 const KIZAMI_MS = 6400; // 柝の刻み（拍子木3）の長さ
+const CLOSE_FROM = 0.45; // 刻みのこの割合から幕が閉まり始める
+
+/**
+ * 定式幕（黒・柿・萌葱の縦縞）を左右から閉める層。戻り値の関数に 0〜1 を渡すと、その分だけ閉まる。
+ * 1 で閉まりきる。演出の後片付け（clearLayers）では消さず、画面ごと片付くまで残す
+ * （消すと、エンディングへ切り替わる前に一瞬盤が見えてちらつく。2026-10-28）。このあとエンディングの幕が閉まった姿から開く
+ */
+function closingCurtain(ctx: FxCtx): (k: number) => void {
+  const stripes = `repeating-linear-gradient(90deg, ${PALS.joshikiKuro} 0 9%, ${PALS.joshikiKaki} 9% 18%, ${PALS.joshikiMoegi} 18% 27%)`;
+  const side = (left: boolean): HTMLElement => {
+    const e = document.createElement('div');
+    e.style.cssText = `position:absolute;top:0;bottom:0;width:51%;${left ? 'left:0' : 'right:0'};background:${stripes};`
+      + `transform:translateX(${left ? '-100%' : '100%'});pointer-events:none;z-index:50`;
+    ctx.hud.root.append(e);
+    return e;
+  };
+  const l = side(true), r = side(false);
+  return (k) => {
+    const t = Math.min(1, Math.max(0, k));
+    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    l.style.transform = `translateX(${(-100 * (1 - e)).toFixed(2)}%)`;
+    r.style.transform = `translateX(${(100 * (1 - e)).toFixed(2)}%)`;
+  };
+}
 
 /** 迫り方：ほとんどの間ゆっくり進み、最後の一瞬で一気に入る */
 function lastStep(t: number): number {
@@ -103,10 +127,14 @@ export async function oomie(ctx: FxCtx, k: KingCapture): Promise<void> {
   getSound().play('kizami');
   const c2 = k.at.clone().setY(0.3);
   const off2 = cam.pos.clone().sub(c2);
+  // 刻みの後半で、対局の画面の上に定式幕が閉まる（閉まりきったらエンディングの幕が開く。2026-10-28 ユーザー）
+  const maku = closingCurtain(ctx);
   await ctx.tween(KIZAMI_MS, (t) => {
     cam.pos.copy(c2).add(off2.clone().applyAxisAngle(up, dir * 0.6 * t));
     cam.look.copy(c2);
+    maku((t - CLOSE_FROM) / (1 - CLOSE_FROM));
   });
+  maku(1);
   // 取った駒は傾いたまま見せて終わる（KingFxPlay の約束どおり、王のマスにいる）
   if (taker) taker.position.set(k.at.x, k.takerY, k.at.z);
 }

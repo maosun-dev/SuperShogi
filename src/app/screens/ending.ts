@@ -158,6 +158,12 @@ export function endingScreen(params: unknown): Screen {
       const camLook = new THREE.Vector3(0, FLOOR + 1.2, CAST_R - 5);
       stage.cam.pos.copy(camPos);
       stage.cam.look.copy(camLook);
+      // 最初の1コマから、幕が閉まった姿で映るように：カメラと幕をいまの位置に置いておく
+      stage.camera.position.copy(camPos);
+      stage.camera.lookAt(camLook);
+      curtain.root.position.copy(camPos).addScaledVector(camLook.clone().sub(camPos).normalize(), DIST);
+      curtain.root.quaternion.copy(stage.camera.quaternion);
+      curtain.setOpen(0);
 
       // ---- 時計と台本 ----
       // 幕が開く柝は、画面の切り替えの音（main.ts の setClapper）が鳴らす

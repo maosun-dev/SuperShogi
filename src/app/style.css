@@ -2219,8 +2219,9 @@ input:focus-visible {
   pointer-events: none;
 }
 .ending-cast.on { opacity: 1; }
-.ending-cast .name { font-family: var(--font-display); font-size: 30px; letter-spacing: .12em; }
-.ending-cast .role { font-family: var(--font-body); font-size: 14px; letter-spacing: .2em; color: color-mix(in srgb, var(--gofun) 75%, var(--soubi)); margin-top: 3.2em; }
+.ending-cast .name { font-family: var(--font-display); font-size: 30px; letter-spacing: .12em; white-space: nowrap; }
+/* 二つ名（〜の役）は札の名の左に、1行の縦書き（折り返さない） */
+.ending-cast .role { font-family: var(--font-body); font-size: 15px; letter-spacing: .14em; color: color-mix(in srgb, var(--gofun) 75%, var(--soubi)); white-space: nowrap; padding-top: .6em; }
 .ending-kojo {
   position: absolute; left: 50%; top: 50%; width: min(78vw, 340px); aspect-ratio: 3 / 4;
   transform: translate(-50%, -46%); opacity: 0; transition: opacity 1.4s, transform 1.4s;

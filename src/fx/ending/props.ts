@@ -165,7 +165,8 @@ export function makeCurtain(width: number, height: number): Curtain {
   const SEG = 48;
   const panels = [-1, 1].map((side) => {
     const geo = new THREE.PlaneGeometry(half, height, SEG, 1);
-    const mat = new THREE.MeshStandardMaterial({ map: curtainTexture(9), roughness: 0.92, side: THREE.DoubleSide });
+    // 光を受けない材質：大見得の終わりに閉めた幕（画面の層の縞）と同じ色に見せる
+    const mat = new THREE.MeshBasicMaterial({ map: curtainTexture(7), side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(geo, mat);
     root.add(mesh);
     return { side, mesh, base: Float32Array.from(geo.attributes.position.array as Float32Array) };
