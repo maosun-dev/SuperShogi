@@ -31,7 +31,8 @@ export interface FxCtx {
   /** 打ち切られていなければ true（投了・画面の片付けで false になる） */
   alive(): boolean;
   /** 盤を後の局面に揃える。打ち切り後は何もしない（次の画面の盤を上書きしない） */
-  sync(): void;
+  /** 盤を局面どおりに揃える（ふつうは後の局面。view を渡すとその局面で） */
+  sync(view?: GameState): void;
   before: GameState;                        // この行動の前の局面（画面側から見た形）
   after: GameState;                         // この行動の後の局面
 }
@@ -63,7 +64,7 @@ export function makeCtx(
   };
   return {
     stage, hud, timing, me, before, after, alive,
-    sync: () => { if (alive()) sync(stage, after, me); },
+    sync: (view?: GameState) => { if (alive()) sync(stage, view ?? after, me); },
     // 待ちも描画の時計（tween）で数える。タブが裏に回って描画が止まっても、ほかの動きと順番がずれない
     wait: (ms) => run(scaled(ms), () => {}),
     tween: (ms, fn, ease) => run(scaled(ms), fn, ease),

@@ -82,14 +82,15 @@ export function titleView(): GameState {
 // ?fx=capture     相手の歩が 7五、自分の歩が 7六。Space で取る（CPU が取り返すと、相手の手の光りも見られる）
 // ?fx=promote     自分の歩が 5四、相手の 5三 は空き。Space で 5三 へ成る
 // ?fx=drop        自分に持ち駒の歩（7七 の歩は外す）。Space で 7五 に打つ
+// ?fx=otoshiana-drop 相手が 7五 に落とし穴。Space で持ち駒の歩を 7五 に打ち、穴に落ちる
 // &cpu=normal などで相手の持ち込みと強さを変える
 
 type FxScene = 'card' | 'otoshiana' | 'kagami' | 'narifuuji' | 'hagane-block' | 'check' | 'win' | 'lose' | 'draw'
   | 'itetsuku' | 'aiuchi' | 'migawari' | 'marks' | 'equips' | 'omori-break' | 'bangasa-ward'
-  | 'move' | 'capture' | 'promote' | 'drop' | 'resign';
+  | 'move' | 'capture' | 'promote' | 'drop' | 'otoshiana-drop' | 'resign';
 const SCENES: FxScene[] = [
   'otoshiana', 'kagami', 'narifuuji', 'hagane-block', 'check', 'win', 'lose', 'draw', 'itetsuku', 'aiuchi', 'migawari', 'marks', 'equips', 'omori-break', 'bangasa-ward',
-  'move', 'capture', 'promote', 'drop', 'resign',
+  'move', 'capture', 'promote', 'drop', 'otoshiana-drop', 'resign',
 ];
 const TRAP_SCENES = ['otoshiana', 'kagami', 'narifuuji', 'itetsuku', 'aiuchi', 'migawari'];
 const PIT: Square = { c: 2, r: 5 };   // 落とし穴を伏せるマス（7六）
@@ -232,6 +233,12 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       s.board[6 * 9 + 2] = null;
       s.players.sente.hand.FU = 1;
       break;
+    case 'otoshiana-drop':
+      // 相手が 7五 に落とし穴。自分は持ち駒の歩（7七 の歩は外す）。Space でその歩を 7五 に打ち、落ちる
+      trap('otoshiana', MEET);
+      s.board[6 * 9 + 2] = null;
+      s.players.sente.hand.FU = 1;
+      break;
   }
   return { level, deck, initial: s, fxKey: true };
 }
@@ -304,6 +311,7 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
     case 'promote':
       return legal.filter(isMove).find((a) => same(a.to, PROMO) && a.promote);
     case 'drop':
+    case 'otoshiana-drop':
       return legal.find((a) => a.type === 'drop' && a.kind === 'FU' && same(a.to, MEET));
     case 'resign':
       return undefined; // Space で投了する（installFxKey）

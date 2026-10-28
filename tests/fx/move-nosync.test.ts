@@ -12,3 +12,18 @@ describe('playMove', () => {
     expect(src.slice(start, end)).not.toMatch(/ctx\.sync\(/);
   });
 });
+
+describe('withDropped（打った直後・罠が働く前の局面）', () => {
+  it('打った駒を置き、持ち駒を1つ減らす。もとの局面は変えない', async () => {
+    const { withDropped } = await import('../../src/fx/move');
+    const { createGame } = await import('../../src/rules/game');
+    const s = createGame({ sente: [], gote: [] });
+    s.board[4 * 9 + 2] = null;
+    s.players.sente.hand.FU = 1;
+    const r = withDropped(s, { kind: 'drop', side: 'sente', pieceId: 777, piece: 'FU', to: { c: 2, r: 4 } });
+    expect(r.board[4 * 9 + 2]).toMatchObject({ id: 777, kind: 'FU', side: 'sente', promoted: false });
+    expect(r.players.sente.hand.FU).toBe(0);
+    expect(s.board[4 * 9 + 2]).toBeNull();
+    expect(s.players.sente.hand.FU).toBe(1);
+  });
+});

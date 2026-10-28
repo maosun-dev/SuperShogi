@@ -2,7 +2,8 @@
 // 相手の手は、動く前に元の駒を一瞬光らせて、どこから動いたかを見せる。
 // 長さは moveTiming.ts（長め／短め・動きを減らす）。決まりは kit.ts と同じ：舞台は kit の道具を通してさわる
 import * as THREE from 'three';
-import type { Square } from '../rules/types';
+import type { GameState, Square } from '../rules/types';
+import { cloneState } from '../rules/board';
 import type { Cue } from './plan';
 import { BD, ring, screenToBoard, squarePos } from '../view/board3d';
 import { PIECE_Y, pieceMesh, settleFlipped } from '../view/pieces3d';
@@ -184,9 +185,21 @@ export async function playMove(ctx: FxCtx, cue: MoveCue): Promise<void> {
   }
 }
 
+/** 打った直後・罠が働く前の局面（before に打った駒を置き、持ち駒を1つ減らす。before は変えない） */
+export function withDropped(before: GameState, cue: DropCue): GameState {
+  const s = cloneState(before);
+  s.board[cue.to.r * 9 + cue.to.c] = { id: cue.pieceId, kind: cue.piece, side: cue.side, promoted: false, equip: null };
+  const hand = s.players[cue.side].hand;
+  hand[cue.piece] = Math.max(0, hand[cue.piece] - 1);
+  return s;
+}
+
 export async function playDrop(ctx: FxCtx, cue: DropCue): Promise<void> {
-  // 打った駒は局面を揃えてから、上から降ろす
-  ctx.sync();
+  // 打った駒は局面を揃えてから、上から降ろす。
+  // 打った駒が罠（落とし穴など）で消える手は、後の局面に駒が無い。そのときは打った直後の局面で揃え、
+  // 駒を見せてから罠の演出へ渡す（揃えないと、空のマスで穴が開いて閉まるだけになる。2026-10-28）
+  if (ctx.after.board[cue.to.r * 9 + cue.to.c]?.id === cue.pieceId) ctx.sync();
+  else ctx.sync(withDropped(ctx.before, cue));
   const m = pieceMesh(cue.pieceId);
   if (!m) return;
   const T = moveTimings(ctx.timing);
