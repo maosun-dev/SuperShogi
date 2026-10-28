@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../../src/cards';
 import {
-  CAST_ORDER, ENDING_LEN, ENDING_TRACK, MUSIC_STOP_AT, ROLES, SCENES, STAFF, castAt, sceneAt,
+  CAST_ORDER, ENDING_LEN, ENDING_TRACK, ROLES, SCENES, STAFF, castAt, sceneAt,
 } from '../../src/app/ending/script';
 
 describe('sceneAt（何秒にどの場面か）', () => {
@@ -23,7 +23,6 @@ describe('sceneAt（何秒にどの場面か）', () => {
     for (let i = 1; i < SCENES.length; i++) expect(SCENES[i].at).toBeGreaterThan(SCENES[i - 1].at);
     expect(SCENES[SCENES.length - 1]).toEqual({ scene: 'done', at: ENDING_LEN });
     expect(ENDING_LEN).toBe(110);
-    expect(MUSIC_STOP_AT).toBe(105);
     expect(ENDING_TRACK).toBe('sakura');
   });
 });

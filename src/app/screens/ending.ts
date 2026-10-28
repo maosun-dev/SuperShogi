@@ -12,7 +12,7 @@ import { BH } from '../../view/board3d';
 import { allPieceMeshes } from '../../view/pieces3d';
 import { getSound } from '../../fx/sound';
 import { closedMakuEl, makeCurtain, makePetals, makeStandee, makeTurntable, type Standee } from '../../fx/ending/props';
-import { CAST_ORDER, ENDING_LEN, ENDING_TRACK, MUSIC_STOP_AT, ROLES, STAFF, castAt, sceneAt } from '../ending/script';
+import { CAST_ORDER, ENDING_LEN, ENDING_TRACK, ROLES, STAFF, castAt, sceneAt } from '../ending/script';
 import { createEndingClock } from '../ending/clock';
 import { canSkip } from '../ending/rules';
 import { loadEndingSeen, markEndingSeen, safeStore } from '../storage';
@@ -245,7 +245,6 @@ export function endingScreen(params: unknown): Screen {
         kojo.classList.toggle('on', t >= 95);
         ooiri.classList.toggle('on', t >= 105);
         at('close', t, TURN_TO + 4.5, () => sound.play('maku'));
-        at('stop', t, MUSIC_STOP_AT, () => sound.music(null));
         at('don', t, 105.4, () => sound.play('drum', { gain: 1 })); // 打ち出しの太鼓は1回（2026-10-28 ユーザー）
         if (t >= ENDING_LEN) leave(true);
       });

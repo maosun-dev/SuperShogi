@@ -6,8 +6,7 @@ import type { MusicName } from '../../fx/sound';
 import { CARDS } from '../../cards';
 
 export const ENDING_TRACK: MusicName = 'sakura'; // サクラドリフト
-export const ENDING_LEN = 110;     // 曲の 0:00〜1:50
-export const MUSIC_STOP_AT = 105;  // ここで曲を止め始める（約1秒で消える）
+export const ENDING_LEN = 110;     // 曲の 0:00〜1:50。曲は止めずに流したまま、結果画面へ移るときに消える（2026-10-28 ユーザー）
 
 /** open＝幕が開く／turn＝回り舞台／bloom＝桜が一気に舞い幕が閉まる／kojo＝口上の紙／ooiri＝大入と打ち出し／done＝終わり */
 export type EndingScene = 'open' | 'turn' | 'bloom' | 'kojo' | 'ooiri' | 'done';
