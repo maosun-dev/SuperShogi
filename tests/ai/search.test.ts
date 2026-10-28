@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import { actionKey, cardCandidates, search, WIN, type SearchOptions } from '../../src/ai/search';
 import { applyAction, createGame, legalActions } from '../../src/rules/game';
 import { viewFor } from '../../src/rules/view';
@@ -251,4 +251,32 @@ test('勧める手でも、駒をただで取られる手なら選ばない', ()
   const bad = 'm2624';
   const r = search(s, 'sente', { ...BASE, maxDepth: 2, prefer: bad, preferBonus: 80 });
   expect(actionKey(r.action)).not.toBe(bad);
+});
+
+describe('伏せ札への用心（trapCaution）', () => {
+  // 先手の飛車が、ただの歩を取れる。後手は相討ちを持ち込んでいて、1枚伏せてある（中身は見えない）
+  function setup(withAiuchi: boolean): GameState {
+    const s = emptyState('sente');
+    put(s, { c: 0, r: 8 }, 'OU', 'sente');
+    put(s, { c: 8, r: 0 }, 'OU', 'gote');
+    put(s, { c: 4, r: 7 }, 'HI', 'sente');
+    put(s, { c: 4, r: 3 }, 'FU', 'gote');
+    const uid = giveCard(s, 'gote', withAiuchi ? 'aiuchi' : 'kagami');
+    s.traps.push({ uid: 900, owner: 'gote', cardId: null, at: null }); // 伏せてある（見えている側から見て中身は分からない）
+    void uid;
+    return s;
+  }
+  const takesPawn = (a: Action) => a.type === 'move' && a.to.c === 4 && a.to.r === 3;
+  test('用心しなければ、飛車で歩を取る', () => {
+    const r = search(setup(true), 'sente', { ...BASE, maxDepth: 2 });
+    expect(takesPawn(r.action)).toBe(true);
+  });
+  test('相討ちが伏せてあるかもしれないとき、用心すると飛車で歩を取らない', () => {
+    const r = search(setup(true), 'sente', { ...BASE, maxDepth: 2, trapCaution: true });
+    expect(takesPawn(r.action)).toBe(false);
+  });
+  test('相手が相討ちを持ち込んでいなければ、用心していても取る', () => {
+    const r = search(setup(false), 'sente', { ...BASE, maxDepth: 2, trapCaution: true });
+    expect(takesPawn(r.action)).toBe(true);
+  });
 });

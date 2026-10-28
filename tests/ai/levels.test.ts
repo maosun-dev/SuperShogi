@@ -196,3 +196,9 @@ test('鬼と傾奇者は札を温存する（使っていない札の値打ち2�
   expect(LEVELS.kabuki.cardKeep).toBe(2);
   for (const l of ['weak', 'normal', 'strong', 'shihan'] as const) expect(LEVELS[l].cardKeep ?? 1).toBe(1);
 });
+
+test('鬼と傾奇者は伏せ札（相討ち）に用心する。ほかはしない', () => {
+  expect(LEVELS.oni.trapCaution).toBe(true);
+  expect(LEVELS.kabuki.trapCaution).toBe(true);
+  for (const l of ['weak', 'normal', 'strong', 'shihan'] as const) expect(LEVELS[l].trapCaution).toBeFalsy();
+});
