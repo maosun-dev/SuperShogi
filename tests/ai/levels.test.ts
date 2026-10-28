@@ -190,3 +190,9 @@ describe('定跡（師範・傾奇者）', () => {
     }
   }, 30_000);
 });
+
+test('鬼と傾奇者は札を温存する（使っていない札の値打ち2倍）。ほかは1倍', () => {
+  expect(LEVELS.oni.cardKeep).toBe(2);
+  expect(LEVELS.kabuki.cardKeep).toBe(2);
+  for (const l of ['weak', 'normal', 'strong', 'shihan'] as const) expect(LEVELS[l].cardKeep ?? 1).toBe(1);
+});
