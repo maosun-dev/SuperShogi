@@ -108,7 +108,7 @@ function fxScene(): { scene: FxScene; card: CardId | null } | null {
   if (name in CARDS) return { scene: 'card', card: name as CardId };
   // 落雷を飛車に落とす（壊さず3マスまで）
   if (name === 'rakurai-hisha') return { scene: 'card', card: 'rakurai' };
-  // 40手目を過ぎた成り上がり（飛車と銀の2つを成らせる。&fuuji=1 で相手の成り封じつき）
+  // 50手目を過ぎた成り上がり（飛車と銀の2つを成らせる。&fuuji=1 で相手の成り封じつき）
   if (name === 'shoryu2') return { scene: 'card', card: 'shoryu' };
   return null;
 }
@@ -141,7 +141,7 @@ export function fxMatchParams(): { level: Level; deck: CardId[]; initial: GameSt
       if (fx.card === 'yobimodoshi') { s.players.gote.hand.KI = 1; s.players.gote.hand.FU = 2; }
       if (q.get('kagami')) trap('kagami', null);
       if (q.get('fx') === 'shoryu2') {
-        s.ply = 50;
+        s.ply = 60;
         if (q.get('fuuji')) trap('narifuuji', null);
       }
       // 格落とし：相手の飛車を竜にする
@@ -336,7 +336,7 @@ function pickFxAction(scene: FxScene, view: GameState, legal: Action[]): Action 
 const PICKS: [string, string][] = [
   ['oshikaeshi', '術・押し返しの風'], ['irekae', '術・入れ替えの術'], ['shoryu', '術・成り上がり'],
   ['yobimodoshi', '術・呼び戻し'], ['kakuotoshi', '術・格落とし'], ['rakurai', '術・落雷'], ['rakurai-hisha', '術・落雷（飛車）'],
-  ['shoryu2', '術・成り上がり（40手目から・2つ）'],
+  ['shoryu2', '術・成り上がり（50手目から・2つ）'],
   ['itetsuku', '忍・凍てつく床'], ['otoshiana', '忍・落とし穴'], ['narifuuji', '忍・成り封じ'],
   ['kagami', '忍・鏡の結界'], ['aiuchi', '忍・相討ち'], ['migawari', '忍・身代わり'],
   ['hikijin', '纏・陣替えの旗'], ['tenma', '纏・天馬の蹄'], ['hagane', '纏・鋼の鎧'],

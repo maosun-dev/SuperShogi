@@ -141,7 +141,7 @@ describe('input', () => {
   it('成り上がり（強くなったあと）：1つ選ぶと「これで決める」、2つ目を選ぶとすぐ使う', () => {
     const s = emptyState();
     kings(s);
-    s.ply = 50;
+    s.ply = 60;
     put(s, sq(1, 6), 'HI', 'sente');
     put(s, sq(2, 6), 'GI', 'sente');
     const uid = giveCard(s, 'sente', 'shoryu');
@@ -156,7 +156,7 @@ describe('input', () => {
     expect(two.action).toBe(legal.find(a => a.type === 'card' && a.targets.length === 2)!);
   });
 
-  it('成り上がり（39手目まで）：1つ選ぶとすぐ使う', () => {
+  it('成り上がり（49手目まで）：1つ選ぶとすぐ使う', () => {
     const s = emptyState();
     kings(s);
     put(s, sq(2, 6), 'GI', 'sente');

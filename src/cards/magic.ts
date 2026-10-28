@@ -139,7 +139,7 @@ export const kakuotoshi: CardDef = {
 };
 
 // 成り上がりが強くなる手（両者合わせての手数）。この手から飛車・角も選べて、2つまで成らせる
-export const SHORYU_POWER_MOVE = 40;
+export const SHORYU_POWER_MOVE = 50;
 
 /** 成り上がりが強くなるまで、あと何手か（0 なら強くなっている）。s.ply は指し終えた手の数 */
 export function shoryuWait(s: GameState): number {

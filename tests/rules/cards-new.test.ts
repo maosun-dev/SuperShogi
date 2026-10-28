@@ -235,16 +235,16 @@ test('成り上がり（もと昇竜）：飛車・角は選べず、歩・香�
   expect(CARDS.shoryu.cost).toBe(2);
 });
 
-test('成り上がり：39手目までは1つだけ。40手目（ply 39）からは飛車・角も選べて、2つまで成らせる', () => {
+test('成り上がり：49手目までは1つだけ。50手目（ply 49）からは飛車・角も選べて、2つまで成らせる', () => {
   const s = base();
   put(s, { c: 1, r: 6 }, 'HI', 'sente');
   put(s, { c: 2, r: 6 }, 'KA', 'sente');
   put(s, { c: 3, r: 6 }, 'FU', 'sente');
   const uid = giveCard(s, 'sente', 'shoryu');
-  s.ply = 38;
+  s.ply = 48;
   expect(shoryuWait(s)).toBe(1);
   expect(cardActs(s, uid).every(a => a.targets.length === 1)).toBe(true);
-  s.ply = 39;
+  s.ply = 49;
   expect(shoryuWait(s)).toBe(0);
   const sets = cardActs(s, uid).map(a => a.targets.map(t => t.c).sort().join(''));
   expect(sets.sort()).toEqual(['1', '12', '13', '2', '23', '3']);

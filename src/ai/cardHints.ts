@@ -74,7 +74,7 @@ function pick(s: GameState, side: Side, cardId: CardId, acts: CardAction[]): Car
     case 'kakuotoshi':
       return acts;
     case 'shoryu':
-      // 40手目からは2つ成らせる組もある。成って増える値打ちの合計で上から選ぶ
+      // 50手目からは2つ成らせる組もある。成って増える値打ちの合計で上から選ぶ
       return topBy(acts, a => a.targets.reduce((n, t) => {
         const p = at(s, t);
         return n + (p ? (PROMOTED_VALUE[p.kind] ?? 0) - pieceValue(p) : 0);
