@@ -51,6 +51,11 @@ export const PAL = {
   hanabiMurasaki: 0xb98cff, // 花火の紫
   hanabiDaidai: 0xffa04a, // 花火の橙
   hanabiMizu: 0x86e8ff, // 花火の水色
+  // 大詰のエンディング（2026-10-28）：定式幕の3色（強さ選びの幕の切り替えと同じ値）と回り舞台の木
+  joshikiKuro: 0x1d1a17, // 定式幕の黒
+  joshikiKaki: 0xb4632a, // 定式幕の柿
+  joshikiMoegi: 0x3e7b45, // 定式幕の萌葱
+  butaiWood: 0x7a5232, // 回り舞台の床（使い込んだ檜）
 } as const;
 
 export type PalName = keyof typeof PAL;
