@@ -28,7 +28,7 @@ const CLOSE_FROM = 0.45; // 刻みのこの割合から幕が閉まり始める
  * 1 で閉まりきる。演出の後片付け（clearLayers）では消さず、画面ごと片付くまで残す
  * （消すと、エンディングへ切り替わる前に一瞬盤が見えてちらつく。2026-10-28）。このあとエンディングの幕が閉まった姿から開く
  */
-function closingCurtain(ctx: FxCtx): (k: number) => void {
+export function closingCurtain(ctx: FxCtx): (k: number) => void {
   const stripes = makuStripesCss();
   const side = (left: boolean): HTMLElement => {
     const e = document.createElement('div');

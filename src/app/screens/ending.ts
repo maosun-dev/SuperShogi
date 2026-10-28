@@ -177,8 +177,10 @@ export function endingScreen(params: unknown): Screen {
       cleanups.push(() => { for (const d of dancers) { d.m.position.y = d.y; d.m.rotation.z = d.rz; } });
 
       // ---- 時計と台本 ----
-      // 幕が開く柝は、画面の切り替えの音（main.ts の setClapper）が鳴らす
+      // 大見得から来るときは、柝の刻みがそのまま幕開きの音になる（切り替えの幕と音はない。screens.ts の curtainFor）。
+      // 設定から見返すときは、ここで拍子木を1つ鳴らして始める
       const sound = getSound();
+      if (replay) sound.play('hyoshigi');
       const mountedAt = performance.now();
       let clock: ReturnType<typeof createEndingClock> | null = null;
       let shownCast: CardId | null = null;

@@ -23,7 +23,7 @@ import { squareOf } from './trap';
 import type { KingFx } from './kingfx/kinds';
 import { hideDecor, settleTaker, takerAlong, type KingCapture } from './kingfx/common';
 import { KING_FX_PLAY } from './kingfx';
-import { oomie } from './kingfx/oomie';
+import { closingCurtain, oomie } from './kingfx/oomie';
 
 type CheckCue = Extract<Cue, { kind: 'check' }>;
 type GameOverCue = Extract<Cue, { kind: 'gameOver' }>;
@@ -303,8 +303,13 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
     hideDecor(am);
     // 大見得：取ったあとは「勝」を書かずに返す（このあとエンディング。字はその後の結果画面が書く）
     if (useOomie(oomieFlag, win)) {
-      if (!ctx.timing.camera) await plainCapture(ctx, k);
-      else await oomie(ctx, k);
+      if (!ctx.timing.camera) {
+        // 動きを減らす設定：取ったあと、定式幕を短く閉めてからエンディングへ（いきなり切り替えない）
+        await plainCapture(ctx, k);
+        const maku = closingCurtain(ctx);
+        await ctx.tween(500, (t) => maku(t));
+        maku(1);
+      } else await oomie(ctx, k);
       if (km) km.visible = false;
       if (!ctx.timing.camera) settleTaker(k); // 大見得は見得の傾きを残す
       return;
