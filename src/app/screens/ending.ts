@@ -10,7 +10,7 @@ import { CARDS } from '../../cards';
 import { getStage } from '../../view/stage';
 import { BH } from '../../view/board3d';
 import { getSound } from '../../fx/sound';
-import { makeCurtain, makePetals, makeStandee, makeTurntable, type Standee } from '../../fx/ending/props';
+import { closedMakuEl, makeCurtain, makePetals, makeStandee, makeTurntable, type Standee } from '../../fx/ending/props';
 import { CAST_ORDER, ENDING_LEN, ENDING_TRACK, MUSIC_STOP_AT, ROLES, STAFF, castAt, sceneAt } from '../ending/script';
 import { createEndingClock } from '../ending/clock';
 import { canSkip } from '../ending/rules';
@@ -104,7 +104,12 @@ export function endingScreen(params: unknown): Screen {
       const skip = el('button', 'ending-skip', '飛ばす') as HTMLButtonElement;
       skip.type = 'button';
       kojo.append(ooiri); // 大入袋は口上の紙の右下に下げる
-      box.append(bg, host, title, cast, kojo, skip);
+      // 始めの幕：大見得で閉めた幕と同じ画面の層の縞を、そのまま左右へ引いて開ける。
+      // 3Dの絵には切り替えの瞬間まで前の画面（盤）が残っているので、閉まった姿から始めて隠しておく（2026-10-28 ちらつき）。
+      // 3Dの幕は、終わりに閉まるところだけで使う
+      const cover = closedMakuEl(40);
+      const [coverL, coverR] = [...cover.children] as HTMLElement[];
+      box.append(bg, host, title, cast, kojo, cover, skip);
       root.append(box);
 
       const skippable = replay || canSkip(loadEndingSeen(safeStore()));
@@ -163,7 +168,8 @@ export function endingScreen(params: unknown): Screen {
       stage.camera.lookAt(camLook);
       curtain.root.position.copy(camPos).addScaledVector(camLook.clone().sub(camPos).normalize(), DIST);
       curtain.root.quaternion.copy(stage.camera.quaternion);
-      curtain.setOpen(0);
+      curtain.setOpen(1);
+      curtain.root.visible = false;
 
       // ---- 時計と台本 ----
       // 幕が開く柝は、画面の切り替えの音（main.ts の setClapper）が鳴らす
@@ -186,9 +192,16 @@ export function endingScreen(params: unknown): Screen {
         const t = (clock ? clock.t() : 0) + devAt;
         const scene = sceneAt(t);
 
-        // 幕：はじめに開き、bloom で閉まる
-        const open = t < TURN_TO ? ease((t - 0.6) / 3.4) : 1 - ease((t - TURN_TO) / 6);
-        curtain.setOpen(open);
+        // 始めの幕（画面の層）：左右へ引いて開ける。開ききったら外す
+        const first = ease((t - 0.6) / 3.4);
+        if (cover.isConnected) {
+          coverL.style.transform = `translateX(${(-100 * first).toFixed(2)}%)`;
+          coverR.style.transform = `translateX(${(100 * first).toFixed(2)}%)`;
+          if (first >= 1) cover.remove();
+        }
+        // 終わりの幕（3D）：bloom で閉まる。それまでは開いたまま見せない
+        curtain.root.visible = t >= TURN_TO;
+        curtain.setOpen(t < TURN_TO ? 1 : 1 - ease((t - TURN_TO) / 6));
         if (!reduced) curtain.sway(now);
         stage.camera.getWorldDirection(fwd);
         curtain.root.position.copy(stage.camera.position).addScaledVector(fwd, DIST);

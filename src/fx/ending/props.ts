@@ -142,6 +142,23 @@ export async function makeStandee(id: CardId): Promise<Standee> {
 
 // ---------- 定式幕 ----------
 
+/** 画面の層（HTML）で描く定式幕の縞（左右1枚ずつ、それぞれの左の端から黒・柿・萌葱）。大見得で閉める幕と、エンディングの最初の覆いで同じものを使う */
+export function makuStripesCss(): string {
+  return `repeating-linear-gradient(90deg, ${PALS.joshikiKuro} 0 9%, ${PALS.joshikiKaki} 9% 18%, ${PALS.joshikiMoegi} 18% 27%)`;
+}
+
+/** 閉まった定式幕の層（左右2枚。width 51% ずつで真ん中を少し重ねる）。z は重なりの順 */
+export function closedMakuEl(z: number): HTMLElement {
+  const box = document.createElement('div');
+  box.style.cssText = `position:absolute;inset:0;pointer-events:none;z-index:${z}`;
+  for (const left of [true, false]) {
+    const e = document.createElement('div');
+    e.style.cssText = `position:absolute;top:0;bottom:0;width:51%;${left ? 'left:0' : 'right:0'};background:${makuStripesCss()}`;
+    box.append(e);
+  }
+  return box;
+}
+
 /** 縦縞（黒・柿・萌葱）の布の模様。stripes は縞の本数 */
 function curtainTexture(stripes: number): THREE.CanvasTexture {
   const W = 64 * stripes, H = 8;
@@ -163,11 +180,16 @@ export function makeCurtain(width: number, height: number): Curtain {
   const root = new THREE.Group();
   const half = width / 2;
   const SEG = 48;
+  // 1枚は半分より少し広くし、閉じたとき真ん中で重ねる（突き合わせだと、揺れで合わせ目に隙間がちらつく。2026-10-28）
+  const pw = half * 1.08;
   const panels = [-1, 1].map((side) => {
-    const geo = new THREE.PlaneGeometry(half, height, SEG, 1);
-    // 光を受けない材質：大見得の終わりに閉めた幕（画面の層の縞）と同じ色に見せる
-    const mat = new THREE.MeshBasicMaterial({ map: curtainTexture(7), side: THREE.DoubleSide });
+    const geo = new THREE.PlaneGeometry(pw, height, SEG, 1);
+    // 光を受けない材質：大見得の終わりに閉めた幕（画面の層の縞）と同じ色に見せる。
+    // 幕はいつもいちばん手前なので、奥行きを比べずに後から描く（重なりのちらつきを出さない）
+    // 半透明の組（盤など）より後に描くため、幕も半透明の組に入れて描く順を最後にする
+    const mat = new THREE.MeshBasicMaterial({ map: curtainTexture(7), side: THREE.DoubleSide, depthTest: false, depthWrite: false, transparent: true });
     const mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = 1000 + side;
     root.add(mesh);
     return { side, mesh, base: Float32Array.from(geo.attributes.position.array as Float32Array) };
   });
@@ -177,7 +199,7 @@ export function makeCurtain(width: number, height: number): Curtain {
     for (const p of panels) {
       p.mesh.scale.x = s;
       // 外の端は動かさず、内の端が外へ寄る
-      p.mesh.position.x = p.side * (half - (half * s) / 2);
+      p.mesh.position.x = p.side * (half - (pw * s) / 2);
     }
   };
   place();

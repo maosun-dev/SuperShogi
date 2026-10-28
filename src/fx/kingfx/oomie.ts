@@ -6,6 +6,7 @@
 // 3案（tataki・iai・hanabi）のくじには入れない。「勝」の字は書かない（エンディングのあとの結果画面が書く）
 import * as THREE from 'three';
 import { PAL, PALS } from '../../view/palette';
+import { makuStripesCss } from '../ending/props';
 import { timeStop } from '../stagecraft';
 import { cameraTo, easeInOut, easeOut, flash, overlay, shakeBy, speedLines, type FxCtx } from '../kit';
 import { getSound } from '../sound';
@@ -28,7 +29,7 @@ const CLOSE_FROM = 0.45; // 刻みのこの割合から幕が閉まり始める
  * （消すと、エンディングへ切り替わる前に一瞬盤が見えてちらつく。2026-10-28）。このあとエンディングの幕が閉まった姿から開く
  */
 function closingCurtain(ctx: FxCtx): (k: number) => void {
-  const stripes = `repeating-linear-gradient(90deg, ${PALS.joshikiKuro} 0 9%, ${PALS.joshikiKaki} 9% 18%, ${PALS.joshikiMoegi} 18% 27%)`;
+  const stripes = makuStripesCss();
   const side = (left: boolean): HTMLElement => {
     const e = document.createElement('div');
     e.style.cssText = `position:absolute;top:0;bottom:0;width:51%;${left ? 'left:0' : 'right:0'};background:${stripes};`
