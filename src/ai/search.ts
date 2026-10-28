@@ -7,8 +7,6 @@ import { HAND_KINDS, idx, opponent, positionKey, sameSq, sqOf } from '../rules/b
 import { dropTargets, isInCheck, pieceTargets } from '../rules/moves';
 import type { Action, GameState, PieceKind, Side } from '../rules/types';
 import { evaluate, PIECE_VALUE } from './evaluate';
-import { CARDS } from '../cards';
-import { pieceValue } from '../rules/values';
 import { cardHints } from './cardHints';
 import { makeRng } from './random';
 
@@ -25,7 +23,6 @@ export interface SearchOptions {
   preferBonus?: number;
   smartEval?: boolean;   // 末端の点に賢くした見方（駒の置き場所・囲い・王の逃げ道）を足す
   cardKeep?: number;     // 使っていない札の値打ちの倍率（大きいほど札を温存し、ここぞで使う）
-  trapCaution?: boolean; // 相手が伏せたかもしれない相討ちに用心し、取る手に「見込み×取る駒の値打ち」の損を見込む
   seed: number;
   now?: () => number;    // 既定は Date.now（テストで差し替える）
 }
@@ -165,23 +162,6 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
 
   const path = new Set<string>(); // 根からいまの局面までに通った局面
 
-  // 伏せ札への用心：相手の伏せた札（中身が見えない）のうち相討ちである見込み。
-  // 相手が持ち込んだ忍札のうち、まだ表に出ていないもの（伏せたものも、見えている側からは使っていないように見える）を数える
-  const foe = opponent(side);
-  const hiddenTraps = root.traps.filter(t => t.owner === foe && t.cardId === null).length;
-  const unseenTraps = root.players[foe].cards.filter(c => !c.used && CARDS[c.cardId].kind === 'trap');
-  const aiuchiChance = opts.trapCaution && hiddenTraps > 0 && unseenTraps.some(c => c.cardId === 'aiuchi')
-    ? Math.min(1, hiddenTraps / unseenTraps.length) : 0;
-  // 自分（CPU の側）が王以外・番傘なしの駒で相手の駒を取る手の、見込みの損（その手番の側から見た点）
-  function captureRisk(s: GameState, a: Action): number {
-    if (aiuchiChance === 0 || s.turn !== side || a.type !== 'move') return 0;
-    const target = s.board[idx(a.to)];
-    if (!target || target.side === side) return 0;
-    const mover = s.board[idx(a.from)]!;
-    if (mover.kind === 'OU' || mover.equip?.cardId === 'bangasa') return 0;
-    return aiuchiChance * pieceValue(mover);
-  }
-
   // 同じ局面に戻ったときの点数（その局面の手番から見る）
   function drawScore(s: GameState): number {
     return s.turn === side ? -CONTEMPT : CONTEMPT;
@@ -294,8 +274,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
       evasions.sort((x, y) => x.order - y.order);
       for (const c of evasions) {
         const child = applyActionUnchecked(s, c.a, QUIET).state;
-        const b = captureRisk(s, c.a);
-        const v = childScore(s, child, alpha + b, beta + b, (n, al, be) => quiesce(n, qd - 1, al, be, ply + 1)) - b;
+        const v = childScore(s, child, alpha, beta, (n, al, be) => quiesce(n, qd - 1, al, be, ply + 1));
         if (v > best) best = v;
         if (v > alpha) alpha = v;
         if (alpha >= beta) break;
@@ -316,8 +295,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     caps.sort((x, y) => x.order - y.order);
     for (const c of caps) {
       const child = applyActionUnchecked(s, c.a, QUIET).state;
-      const b = captureRisk(s, c.a);
-      const v = childScore(s, child, alpha + b, beta + b, (n, al, be) => quiesce(n, qd - 1, al, be, ply + 1)) - b;
+      const v = childScore(s, child, alpha, beta, (n, al, be) => quiesce(n, qd - 1, al, be, ply + 1));
       if (v > best) best = v;
       if (v > alpha) alpha = v;
       if (alpha >= beta) break;
@@ -354,8 +332,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
       for (const c of cands) {
         const child = c.child ?? applyActionUnchecked(s, c.a, QUIET).state;
         const d = childDepth(s, child, depth, ply);
-        const b = captureRisk(s, c.a);
-        const v = childScore(s, child, alpha + b, beta + b, (n, al, be) => negamax(n, d, al, be, ply + 1)) - b;
+        const v = childScore(s, child, alpha, beta, (n, al, be) => negamax(n, d, al, be, ply + 1));
         if (v > best) { best = v; bestKey = c.key; }
         if (v > alpha) alpha = v;
         if (alpha >= beta) {
@@ -387,9 +364,7 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
       const d = childDepth(root, child, depth, 0);
       // 勧める手は点を足して比べるので、窓もそのぶん下げて読む（足す前の点が正しく出るように）
       const bonus = opts.prefer !== undefined && c.key === opts.prefer ? opts.preferBonus ?? 0 : 0;
-      // 用心の損（risk）は点から引き、勧める手の点（bonus）は足して比べる。窓もそのぶんずらして読む
-      const risk = captureRisk(root, c.a);
-      const v = childScore(root, child, alpha - bonus + risk, Infinity, (n, al, be) => negamax(n, d, al, be, 1)) - risk;
+      const v = childScore(root, child, alpha - bonus, Infinity, (n, al, be) => negamax(n, d, al, be, 1));
       if (v + bonus > bestScore) {
         bestScore = v + bonus;
         bestRaw = v;

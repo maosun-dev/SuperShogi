@@ -50,7 +50,7 @@ export const LEVELS: Record<Level, LevelConfig> = {
   // 強いに4割も勝てなかった。2026-10-27 の対局の数字）
   oni: {
     // 札を温存させる（使っていない札の値打ち2倍）：強いに 43%→59%（2026-10-28 の対局。3倍でも同じだった）
-    maxDepth: 8, timeLimitMs: 3000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0, cardKeep: 2, trapCaution: true,
+    maxDepth: 8, timeLimitMs: 3000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0, cardKeep: 2,
     deck: [],
     kuji: ['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tenma', 'omori'],
     kujiGuard: ['hagane', 'itetsuku', 'aiuchi', 'otoshiana', 'narifuuji', 'hikijin', 'kagami', 'bangasa'],
@@ -64,7 +64,7 @@ export const LEVELS: Record<Level, LevelConfig> = {
   },
   // 傾奇者：全18枚からくじ。最後の相手。序盤は定跡
   kabuki: {
-    maxDepth: 8, timeLimitMs: 5000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0, cardKeep: 2, trapCaution: true,
+    maxDepth: 8, timeLimitMs: 5000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0, cardKeep: 2,
     joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true,
     deck: [],
     kuji: 'all',
