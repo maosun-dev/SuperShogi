@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_KEIKO, drawFoeDeck, foeLabel, keikoOf } from '../../src/app/keiko';
 import { loadKeiko, saveKeiko, loadTally, recordResult, type KeyValueStore } from '../../src/app/storage';
-import { validateDeck } from '../../src/cards';
+import { CARDS, validateDeck } from '../../src/cards';
 import { LEVELS } from '../../src/ai/levels';
 import { makeRng } from '../../src/ai/random';
+import type { CardId } from '../../src/rules/types';
 
 function fakeStore(): KeyValueStore {
   const m = new Map<string, string>();
@@ -36,8 +37,19 @@ describe('稽古：相手の決め方', () => {
     expect(new Set(oni.flatMap((d) => d.filter((id) => LEVELS.oni.kujiGuard!.includes(id)))).size).toBeGreaterThan(3);
     expect(new Set(oni.map((d) => d.join())).size).toBeGreaterThan(1);
     const kabuki = Array.from({ length: 200 }, () => drawFoeDeck('kabuki', undefined, rng));
-    for (const d of kabuki) expect(validateDeck(d)).toBeNull();
-    expect(new Set(kabuki.flat()).size).toBeGreaterThan(10);
+    for (const d of kabuki) {
+      expect(validateDeck(d)).toBeNull();
+      // くじの範囲の札と、余ったときのコスト1の札だけ。鋼の鎧・韋駄天は入らない
+      for (const id of d) expect([...(LEVELS.kabuki.kuji as string[]), ...LEVELS.kabuki.kujiFill!]).toContain(id);
+      // 足す札は、くじの範囲の札で埋めきれなかったときだけ（足す札が入っていれば、範囲の札はもう1枚も入らない）
+      const cost = (ids: string[]) => ids.reduce((n, id) => n + CARDS[id as CardId].cost, 0);
+      if (d.some((id) => LEVELS.kabuki.kujiFill!.includes(id))) {
+        const rest = (LEVELS.kabuki.kuji as CardId[]).filter((id) => !d.includes(id));
+        for (const id of rest) expect(cost([...d.filter((x) => !LEVELS.kabuki.kujiFill!.includes(x)), id])).toBeGreaterThan(10);
+      }
+    }
+    expect(new Set(kabuki.flat()).size).toBeGreaterThan(6);
+    expect(kabuki.some((d) => d.some((id) => LEVELS.kabuki.kujiFill!.includes(id)))).toBe(true);
     expect(drawFoeDeck('shihan', undefined, rng)).toEqual(LEVELS.shihan.deck);
   });
   it('名前：大詰の3人', () => {

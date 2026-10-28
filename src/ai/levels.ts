@@ -25,6 +25,7 @@ export interface LevelConfig extends Omit<SearchOptions, 'seed' | 'now'> {
   deck: CardId[];     // 決まった持ち込み（くじの強さでは空）
   kuji?: CardId[] | 'all'; // あれば、札見せのたびにこの範囲（'all' は全18枚）からくじで組む
   kujiGuard?: CardId[]; // くじの前に、この中から1枚だけ先に入れる（鬼の守りの札）
+  kujiFill?: CardId[];  // くじの範囲で組んだあと、コストが余っていればこの中から足す（傾奇者のコスト1の札）
   joseki?: boolean;   // 序盤に定跡（joseki.ts）の手を勧める手として読む
   blunder: number;   // この割合で、読まずに駒を動かす手からでたらめに選ぶ（王を取れるときは除く）
 }
@@ -62,12 +63,15 @@ export const LEVELS: Record<Level, LevelConfig> = {
     joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true,
     deck: ['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin'],
   },
-  // 傾奇者：全18枚からくじ。最後の相手。序盤は定跡
+  // 傾奇者：勝ちやすい札からくじ。最後の相手。序盤は定跡。
+  // 全18枚からのくじでは師範に約55%（2026-10-28）。札ごとの「入れた側の勝率」の上のほうから選び、
+  // 師範の鏡の結界に打ち消されやすい重い纏札（鋼の鎧・韋駄天）は外す。コストが余ればコスト1の札で埋める
   kabuki: {
     maxDepth: 8, timeLimitMs: 5000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0, cardKeep: 2,
     joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true,
     deck: [],
-    kuji: 'all',
+    kuji: ['tenma', 'migawari', 'irekae', 'yobimodoshi', 'narifuuji', 'otoshiana', 'aiuchi'],
+    kujiFill: ['oshikaeshi', 'itetsuku', 'hikijin'],
   },
 };
 

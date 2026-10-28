@@ -4,7 +4,7 @@ import { describe, test, expect } from 'vitest';
 declare const console: { log(...args: unknown[]): void };
 import { JOMAKU, LEVEL_IDS, LEVELS, OOZUME, chooseCpuAction, isLevel, type Level } from '../../src/ai/levels';
 import { makeRng } from '../../src/ai/random';
-import { validateDeck } from '../../src/cards';
+import { CARDS, validateDeck } from '../../src/cards';
 import { applyAction, createGame, legalActions } from '../../src/rules/game';
 import { viewFor } from '../../src/rules/view';
 import { idx } from '../../src/rules/board';
@@ -161,12 +161,14 @@ describe('大詰の3人', () => {
     expect([LEVELS.oni.timeLimitMs, LEVELS.shihan.timeLimitMs, LEVELS.kabuki.timeLimitMs]).toEqual([3000, 4000, 5000]);
     for (const l of OOZUME) expect(LEVELS[l].maxNodes).toBeUndefined();
   });
-  test('札：師範は決まった6枚（コスト10）、鬼は攻めの10種類からくじ、傾奇者は全部からくじ', () => {
+  test('札：師範は決まった6枚（コスト10）、鬼は攻めの札からくじ、傾奇者は勝ちやすい札からくじ（余りはコスト1の札）', () => {
     expect(LEVELS.shihan.deck).toEqual(['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin']);
     expect(validateDeck(LEVELS.shihan.deck)).toBeNull();
     expect(LEVELS.shihan.kuji).toBeUndefined();
     expect(LEVELS.oni.kuji).toEqual(['rakurai', 'oshikaeshi', 'irekae', 'shoryu', 'kakuotoshi', 'yobimodoshi', 'idaten', 'tenma', 'omori']);
-    expect(LEVELS.kabuki.kuji).toBe('all');
+    expect(LEVELS.kabuki.kuji).not.toContain('hagane');
+    expect(LEVELS.kabuki.kuji).not.toContain('idaten');
+    for (const id of LEVELS.kabuki.kujiFill!) expect(CARDS[id].cost).toBe(1);
     // 鬼は守りの札を1枚だけ混ぜる（攻めの札だけだと、強いの罠と鎧に攻めを止められて勝てなかった）
     expect(LEVELS.oni.kujiGuard).toEqual(['hagane', 'itetsuku', 'aiuchi', 'otoshiana', 'narifuuji', 'hikijin', 'kagami', 'bangasa']);
     expect(LEVELS.kabuki.kujiGuard).toBeUndefined();
