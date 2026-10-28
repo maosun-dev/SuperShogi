@@ -286,10 +286,13 @@ export function createHud(root: HTMLElement): Hud {
       card.tabIndex = 0;
       card.dataset.uid = String(c.uid);
       if (!usable.has(c.uid)) card.classList.add('off');
-      // 成り上がりが強くなったら、朱の「強」の判を押す
-      if (c.cardId === 'shoryu' && shoryuWait(view) === 0) {
+      // 成り上がり：強くなるまでは墨の判で残りの手数を数え、強くなったら朱の「強」の判に変わる
+      if (c.cardId === 'shoryu') {
+        const wait = shoryuWait(view);
         card.classList.add('powered');
-        card.append(el('span', 'power-stamp', '強'));
+        const stamp = el('span', wait > 0 ? 'power-stamp wait' : 'power-stamp', wait > 0 ? String(wait) : '強');
+        stamp.setAttribute('aria-label', wait > 0 ? `あと${wait}手で強くなる` : '強くなっている');
+        card.append(stamp);
       }
       if (sel.card === c.uid) card.classList.add('sel');
       const tap = (): void => emit('card', c.uid);
