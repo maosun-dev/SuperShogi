@@ -252,3 +252,13 @@ test('勧める手でも、駒をただで取られる手なら選ばない', ()
   const r = search(s, 'sente', { ...BASE, maxDepth: 2, prefer: bad, preferBonus: 80 });
   expect(actionKey(r.action)).not.toBe(bad);
 });
+
+// 2026-10-28 CPU 同士の対局（強い同士）で、2手ごとに歩を打っては取られていた局面。
+// 追加の読みが成る手を読まず、歩を捨てて相手の角成りを読みの外へ押し出す手を良い手と見誤っていた
+test('成りを読みの外へ押し出すだけの捨て歩は打たない（水平線効果）', async () => {
+  const s = (await import('./fixtures/horizon-pawn.json')).default as unknown as GameState;
+  const r = search(viewFor(s, 'sente'), 'sente', {
+    maxDepth: 6, timeLimitMs: 600_000, maxNodes: 15_900, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, seed: 1,
+  });
+  expect(actionKey(r.action)).not.toBe('dFU12');
+});

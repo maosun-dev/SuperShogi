@@ -289,7 +289,9 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     for (const a of moveActions(s)) {
       if (a.type !== 'move' || a.second) continue;
       const t = s.board[idx(a.to)];
-      if (!t || t.side === s.turn) continue;
+      // 取る手と、最初の2段だけ成る手（成ると点が大きく上がる。読まないと、成りを読みの外へ押し出す捨て歩を
+      // 良い手と見誤る。深い段まで読むと手が膨らむので、王手を逃げる手と同じく2段まで）
+      if (t ? t.side === s.turn : !(a.promote && qd >= opts.qDepth - 1)) continue;
       caps.push({ a, key: '', order: orderKey(s, a, '', null, ply) });
     }
     caps.sort((x, y) => x.order - y.order);

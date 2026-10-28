@@ -11,12 +11,12 @@
  },
  {
   "action": "m8483",
-  "score": 720,
+  "score": 1020,
   "depth": 4
  },
  {
-  "action": "m3635",
-  "score": 280,
+  "action": "m0403",
+  "score": 320,
   "depth": 4
  },
  {
@@ -32,11 +32,11 @@
  {
   "action": "m7062",
   "score": 220,
-  "depth": 5
+  "depth": 4
  },
  {
   "action": "m5142",
-  "score": -610,
+  "score": -600,
   "depth": 5
  },
  {
@@ -76,7 +76,7 @@
  },
  {
   "action": "m4151",
-  "score": 700,
+  "score": 765,
   "depth": 4
  },
  {
@@ -86,12 +86,12 @@
  },
  {
   "action": "m1771+",
-  "score": 2090,
-  "depth": 4
+  "score": 2225,
+  "depth": 3
  },
  {
   "action": "m4480+",
-  "score": 3030,
+  "score": 3230,
   "depth": 4
  },
  {
@@ -117,7 +117,7 @@
  {
   "action": "m2618+",
   "score": 150,
-  "depth": 4
+  "depth": 3
  },
  {
   "action": "c42:03:",
@@ -156,7 +156,7 @@
  },
  {
   "action": "m1718",
-  "score": -290,
+  "score": -435,
   "depth": 4
  },
  {
