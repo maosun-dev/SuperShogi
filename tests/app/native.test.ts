@@ -30,7 +30,7 @@ const [KS, KD, KT, KH] = [
 
 describe('消えにくい保存', () => {
   it('保存の鍵は設定・持ち込み・戦績・駒落ち・稽古の相手・強さ選びの幕の6つ', () => {
-    expect([...SAVE_KEYS].sort()).toEqual([KD, KS, KT, KH, 'superShogi.keiko', 'superShogi.levelAct'].sort());
+    expect([...SAVE_KEYS].sort()).toEqual([KD, KS, KT, KH, 'superShogi.keiko', 'superShogi.levelAct', 'superShogi.ending'].sort());
   });
   it('localStorage にない鍵だけ戻す', async () => {
     const ls = fakeStore({ [KS]: 'LS' });

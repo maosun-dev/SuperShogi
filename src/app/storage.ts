@@ -27,8 +27,9 @@ const KEY_TALLY = 'superShogi.tally';
 const KEY_HANDICAP = 'superShogi.handicap';
 const KEY_KEIKO = 'superShogi.keiko';
 const KEY_LEVEL_ACT = 'superShogi.levelAct';
+const KEY_ENDING = 'superShogi.ending';
 // アプリで消えにくい保存領域にも写す鍵の一覧
-export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP, KEY_KEIKO, KEY_LEVEL_ACT] as const;
+export const SAVE_KEYS = [KEY_SETTINGS, KEY_DECK, KEY_TALLY, KEY_HANDICAP, KEY_KEIKO, KEY_LEVEL_ACT, KEY_ENDING] as const;
 export const NO_HANDICAP: Handicap = { side: 'sente', kind: 'none' };
 
 // アプリのときだけ、保存の鍵を Preferences にも書く版を返す（Web ではこれまでどおり）
@@ -126,6 +127,15 @@ export function loadLevelAct(st: KeyValueStore): LevelAct {
 
 export function saveLevelAct(st: KeyValueStore, act: LevelAct): void {
   st.setItem(KEY_LEVEL_ACT, JSON.stringify(act));
+}
+
+/** 大詰のエンディングを最後まで見たか（飛ばせるか・設定から見返せるかを決める） */
+export function loadEndingSeen(st: KeyValueStore): boolean {
+  return readJson(st, KEY_ENDING) === true;
+}
+
+export function markEndingSeen(st: KeyValueStore): void {
+  st.setItem(KEY_ENDING, JSON.stringify(true));
 }
 
 function count(v: unknown): number {
