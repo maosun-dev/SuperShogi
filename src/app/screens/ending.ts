@@ -240,6 +240,8 @@ export function endingScreen(params: unknown): Screen {
         petals.update(dt); // dt は秒（舞台の onFrame）
 
         title.classList.toggle('on', t >= 1.2 && t < TURN_FROM);
+        // 題字は出ている間、今の大きさからゆっくり寄っていく（2026-10-28 ユーザー）
+        if (!reduced) title.style.setProperty('--z', (1 + 0.16 * clamp01((t - 1.2) / (TURN_FROM + 0.9 - 1.2))).toFixed(4));
         kojo.classList.toggle('on', t >= 95);
         ooiri.classList.toggle('on', t >= 105);
         at('close', t, TURN_TO + 4.5, () => sound.play('maku'));

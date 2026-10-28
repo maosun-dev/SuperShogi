@@ -2204,10 +2204,10 @@ input:focus-visible {
 @keyframes ending-drift { from { transform: translateX(-4%) scale(1.06) rotate(-1deg); } to { transform: translateX(4%) scale(1.12) rotate(1deg); } }
 /* 題字「傾将棋」：横に並べて大きく。幕が開いたら出て、回り舞台が回り出す前に消える */
 .ending-title {
-  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.92);
-  display: flex; gap: 0; opacity: 0; transition: opacity .9s, transform 1.4s cubic-bezier(.2,.7,.2,1); pointer-events: none;
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(var(--z, 1));
+  display: flex; gap: 0; opacity: 0; transition: opacity .9s; pointer-events: none;
 }
-.ending-title.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.ending-title.on { opacity: 1; }
 .ending-title .et-ji { width: clamp(68px, 19vw, 120px); height: auto; display: block; }
 .ending-title .et-ji:first-child { transform: rotate(-4deg); }
 .ending-cast {
