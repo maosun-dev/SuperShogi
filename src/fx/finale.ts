@@ -23,6 +23,7 @@ import { squareOf } from './trap';
 import type { KingFx } from './kingfx/kinds';
 import { hideDecor, settleTaker, takerAlong, type KingCapture } from './kingfx/common';
 import { KING_FX_PLAY } from './kingfx';
+import { oomie } from './kingfx/oomie';
 
 type CheckCue = Extract<Cue, { kind: 'check' }>;
 type GameOverCue = Extract<Cue, { kind: 'gameOver' }>;
@@ -239,6 +240,17 @@ export function setKingFx(k: KingFx): void {
   kingFx = k;
 }
 
+/** 大見得を使う対局か（本番の傾奇者。対局画面が始まりに呼ぶ） */
+let oomieFlag = false;
+export function setOomie(on: boolean): void {
+  oomieFlag = on;
+}
+
+/** 大見得を流すか：大見得の対局で、見ている側（人）が勝ったときだけ。負けたらいつもの案 */
+export function useOomie(on: boolean, win: boolean): boolean {
+  return on && win;
+}
+
 /** 動きを減らす設定：どの案でも、取る駒がまっすぐ入って王がふっと消えるだけ */
 async function plainCapture(ctx: FxCtx, k: KingCapture): Promise<void> {
   if (k.taker && k.from) await ctx.tween(MOVE_MS * 2, (t) => takerAlong(k, t, 0.2), easeOut);
@@ -289,6 +301,14 @@ export async function playGameOver(ctx: FxCtx, cue: GameOverCue, kingAt: Square 
     }
     hideDecor(km);
     hideDecor(am);
+    // 大見得：取ったあとは「勝」を書かずに返す（このあとエンディング。字はその後の結果画面が書く）
+    if (useOomie(oomieFlag, win)) {
+      if (!ctx.timing.camera) await plainCapture(ctx, k);
+      else await oomie(ctx, k);
+      if (km) km.visible = false;
+      if (!ctx.timing.camera) settleTaker(k); // 大見得は見得の傾きを残す
+      return;
+    }
     if (!ctx.timing.camera) await plainCapture(ctx, k);
     else await KING_FX_PLAY[kingFx](ctx, k);
     // 案がどこで終わっても、王は消え、取る駒は王のマスにいる

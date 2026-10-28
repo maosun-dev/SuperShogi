@@ -20,7 +20,8 @@ import { releaseLift, setLifted, sync } from '../../view/pieces3d';
 import { getSound } from '../../fx/sound';
 import { createHud } from '../../view/hud';
 import { createPresenter } from '../../fx/player';
-import { setKingFx, skipFinale } from '../../fx/finale';
+import { setKingFx, setOomie, skipFinale } from '../../fx/finale';
+import { endingAfter, oomieOn, type EndingWhen } from '../ending/rules';
 import { drawKingFx, isKingFx, type KingFx } from '../../fx/kingfx/kinds';
 import { showScreen, type Screen } from '../screens';
 import { installAutoPlay, installFxKey } from '../dev';
@@ -95,6 +96,8 @@ export function matchScreen(params: unknown): Screen {
     recordResult(safeStore(), level, o);
   };
 
+  const when: EndingWhen = { level, keiko: !!keiko, friend: !!friend, auto: !!auto };
+
   // 結果画面へ（友との対局は friend の印を付けて渡す）
   const toResult = (result: Result): void => {
     void showScreen('result', friend ? { result, level, deck, friend: true } : { result, level, deck, keiko });
@@ -107,6 +110,8 @@ export function matchScreen(params: unknown): Screen {
       const devKing = import.meta.env.DEV ? new URLSearchParams(location.search).get('king') : null;
       setKingFx(isKingFx(devKing) ? devKing
         : session?.setup()?.kingFx ?? kingFx ?? drawKingFx(loadSettings(safeStore()).kingFx, Math.random()));
+      // 本番の傾奇者は、勝ったとき大見得（開発中は ?king=oomie でどの強さでも）
+      setOomie(oomieOn(when) || devKing === 'oomie');
       const box = document.createElement('div');
       box.className = 'match';
       box.dataset.screen = 'match';
@@ -169,7 +174,9 @@ export function matchScreen(params: unknown): Screen {
           level, humanDeck: deck, foeDeck, cpu, presenter, initial, handicap: loadHandicap(safeStore()), first,
           onOver: (result: Result) => {
             record(outcomeOf(result));
-            toResult(result);
+            // 本番の傾奇者に勝ったら、大見得のあとエンディングへ（エンディングが終わると結果画面）
+            if (endingAfter(when, result)) void showScreen('ending', { result, level, deck, keiko });
+            else toResult(result);
           },
         });
       }

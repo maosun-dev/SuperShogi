@@ -67,3 +67,13 @@ describe('大花火の見え方（fitView）', () => {
     expect(pc.width).toBeGreaterThan(6.8 * 2);
   }, 30_000);
 });
+
+describe('useOomie（大見得を使うか）', () => {
+  it('大見得の対局で人が勝ったときだけ。傾奇者に負けたら、いつもの演出', async () => {
+    const { useOomie } = await import('../../src/fx/finale');
+    expect(useOomie(true, true)).toBe(true);
+    expect(useOomie(true, false)).toBe(false);
+    expect(useOomie(false, true)).toBe(false);
+    expect(useOomie(false, false)).toBe(false);
+  });
+});
