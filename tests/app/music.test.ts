@@ -8,6 +8,9 @@ describe('musicFor（画面ごとの曲）', () => {
     expect(musicFor('match', 'sakura')).toBe('sakura');
     expect(musicFor('match')).toBe('taikyoku');
   });
+  it('エンディングはサクラドリフト', () => {
+    expect(musicFor('ending')).toBe('sakura');
+  });
   it('結果画面は無音（決着の決め音を聞かせる）', () => {
     expect(musicFor('result')).toBeNull();
   });

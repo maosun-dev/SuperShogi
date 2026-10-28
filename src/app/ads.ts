@@ -30,9 +30,9 @@ export interface Ads {
   setWanted(on: boolean): void;
 }
 
-/** その画面でバナーを出すか（対局中だけ出さない） */
+/** その画面でバナーを出すか（対局中とエンディングでは出さない） */
 export function bannerOn(name: ScreenName): boolean {
-  return name !== 'match';
+  return name !== 'match' && name !== 'ending';
 }
 
 export function createAds(deps: {

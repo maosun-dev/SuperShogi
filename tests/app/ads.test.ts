@@ -33,6 +33,9 @@ function make(plugin: AdsPlugin) {
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 
 describe('バナー広告の係', () => {
+  it('エンディングも広告の帯を出さない', () => {
+    expect(bannerOn('ending')).toBe(false);
+  });
   it('bannerOn は対局だけ false', () => {
     for (const n of ['title', 'level', 'deck', 'reveal', 'result', 'zukan', 'settings'] as const) expect(bannerOn(n)).toBe(true);
     expect(bannerOn('match')).toBe(false);

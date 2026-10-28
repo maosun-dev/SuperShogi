@@ -1,7 +1,9 @@
-// 画面ごとに流す曲。対局は設定で選んだ曲（おまかせなら毎局どれか）、結果画面は決着の決め音を聞かせるため無音、ほかはタイトルの曲。
+// 画面ごとに流す曲。対局は設定で選んだ曲（おまかせなら毎局どれか）、結果画面は決着の決め音を聞かせるため無音、
+// エンディングはサクラドリフト、ほかはタイトルの曲。
 import type { MusicName } from '../fx/sound';
 import type { BgmChoice } from './storage';
 import type { ScreenName } from './screens';
+import { ENDING_TRACK } from './ending/script';
 
 /** 対局の曲（設定の並び順） */
 export const MATCH_TRACKS = ['taikyoku', 'taikyoku2', 'sakura'] as const satisfies readonly MusicName[];
@@ -21,5 +23,6 @@ export function pickMatchTrack(choice: BgmChoice, rnd: number): MusicName {
 export function musicFor(name: ScreenName, match: MusicName = 'taikyoku'): MusicName | null {
   if (name === 'match') return match;
   if (name === 'result') return null;
+  if (name === 'ending') return ENDING_TRACK;
   return 'title';
 }

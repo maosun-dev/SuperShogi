@@ -128,3 +128,9 @@ describe('裏へ回ってから戻ったとき（iPhone で音が戻らなかっ
     expect(s.running()).toBe(true);
   });
 });
+
+describe('musicTime（いま鳴っている曲の位置）', () => {
+  it('AudioContext のない Node では null', () => {
+    expect(createSound().musicTime('sakura')).toBeNull();
+  });
+});
