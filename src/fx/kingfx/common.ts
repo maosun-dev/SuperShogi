@@ -159,7 +159,7 @@ export function sparks(ctx: FxCtx, at: THREE.Vector3, color: number, n = 120, sp
  * 先に切れ込みのある花びらに紅の縁、blossom は5枚の花と金のしべ
  */
 export type PetalShape = 'petal' | 'paper' | 'notch' | 'blossom';
-function petalTexture(color: string, shape: PetalShape): THREE.CanvasTexture {
+export function petalTexture(color: string, shape: PetalShape): THREE.CanvasTexture {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const g = c.getContext('2d')!;
   // アイコンの桜の花びら（tools/icon/furisode.mjs の sakura と同じ式）。原点が付け根、-y が先

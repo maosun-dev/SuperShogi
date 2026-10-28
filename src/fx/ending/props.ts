@@ -1,10 +1,11 @@
-// 大詰のエンディングの3Dの部品：回り舞台・札の板・定式幕（設計書 docs/superpowers/specs/2026-10-28-kabuki-ending-design.md 5章）。
+// 大詰のエンディングの3Dの部品：回り舞台・札の板・定式幕・桜（設計書 docs/superpowers/specs/2026-10-28-kabuki-ending-design.md 5章）。
 // 口上の紙・大入袋・役名の字は、くっきり読めるように画面の層（HTML）に出す（src/app/screens/ending.ts）
 import * as THREE from 'three';
 import type { CardId } from '../../rules/types';
 import { CARDS } from '../../cards';
 import { CARD_ART, KIND_MARK } from '../../view/cardArt';
 import { PAL, PALS } from '../../view/palette';
+import { petalTexture, type PetalShape } from '../kingfx/common';
 
 /** 部品の後片付け：形・材質・模様を捨てる */
 function disposeTree(root: THREE.Object3D): void {
@@ -195,5 +196,62 @@ export function makeCurtain(width: number, height: number): Curtain {
       }
     },
     dispose() { disposeTree(root); },
+  };
+}
+
+// ---------- 桜 ----------
+
+/** update の dt は秒 */
+export interface Petals { root: THREE.Group; setAmount(k: number): void; update(dt: number): void; dispose(): void }
+
+/**
+ * 舞台に降る桜（アイコンと同じ形の花びらと花）。setAmount(0〜1) で降る量を変える（0.15＝ちらほら、1＝一気に）。
+ * 花びらは center のまわり radius の中を、高さ height から舞い落ちる
+ */
+export function makePetals(center: THREE.Vector3, radius: number, height: number, max = 260): Petals {
+  const root = new THREE.Group();
+  root.position.copy(center);
+  const looks: [string, PetalShape][] = [[PALS.sakura, 'notch'], [PALS.gofun, 'notch'], [PALS.sakura, 'blossom'], [PALS.wana, 'petal']];
+  const mats = looks.map(([c, sh]) => new THREE.MeshBasicMaterial({ map: petalTexture(c, sh), transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+  const geo = new THREE.PlaneGeometry(0.26, 0.26);
+  const items: { m: THREE.Mesh; vy: number; spin: number; phase: number }[] = [];
+  const respawn = (m: THREE.Mesh, top: boolean): void => {
+    const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * radius;
+    m.position.set(Math.cos(a) * r, top ? height * (0.8 + Math.random() * 0.4) : Math.random() * height, Math.sin(a) * r);
+  };
+  for (let i = 0; i < max; i++) {
+    const m = new THREE.Mesh(geo, mats[i % mats.length]);
+    m.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+    m.scale.setScalar(0.7 + Math.random() * 0.8);
+    respawn(m, false);
+    m.visible = false;
+    root.add(m);
+    items.push({ m, vy: 0.6 + Math.random() * 0.7, spin: (Math.random() - 0.5) * 3, phase: Math.random() * 6 });
+  }
+  let amount = 0;
+  let t = 0;
+  return {
+    root,
+    setAmount(k) { amount = Math.min(1, Math.max(0, k)); },
+    update(dt) {
+      t += dt;
+      const shown = Math.round(items.length * amount);
+      items.forEach((it, i) => {
+        const on = i < shown;
+        if (on && !it.m.visible) respawn(it.m, false); // 増えたぶんは、見えている高さのあちこちから舞い始める
+        it.m.visible = on;
+        if (!on) return;
+        it.m.position.y -= it.vy * dt;
+        it.m.position.x += Math.sin(t * 1.3 + it.phase) * 0.4 * dt;
+        it.m.rotation.x += it.spin * dt;
+        it.m.rotation.z += it.spin * 0.7 * dt;
+        if (it.m.position.y < -height * 0.15) respawn(it.m, true);
+      });
+    },
+    dispose() {
+      geo.dispose();
+      for (const m of mats) { m.map?.dispose(); m.dispose(); }
+      root.removeFromParent();
+    },
   };
 }

@@ -1,8 +1,8 @@
 // 「大見得」：本番の傾奇者の王を取ったときだけの王取り（設計書 docs/superpowers/specs/2026-10-28-kabuki-ending-design.md 3章）。
 // 最後の一手：カメラが王へ寄り、取る駒がとてもゆっくり迫るあいだ、カメラが王のまわりを回り込む（盤が回って見える）。
 // 色が少し抜け、画面のまわりがぼやけて真ん中だけくっきり（2026-10-28 ユーザー「スローになってブラーになって盤が回転」）。
-// 取った瞬間にツケ打ち（バタバタ…バッタリ）で、ぼかしと遅さが一気に解ける。
-// 駒は少し傾いて見得を切り、桜吹雪が舞う。柝の「チョーン」で終わり、エンディングの幕へつなぐ。
+// 取った瞬間に太鼓の一打で、ぼかしと遅さが一気に解ける。
+// 駒は少し傾いて見得を切り、桜吹雪が舞う。そのままエンディングの幕（柝の「チョーン」で開く）へつなぐ。
 // 3案（tataki・iai・hanabi）のくじには入れない。「勝」の字は書かない（エンディングのあとの結果画面が書く）
 import * as THREE from 'three';
 import { PAL, PALS } from '../../view/palette';
@@ -20,13 +20,6 @@ const MIE_TILT = 0.14; // 見得の傾き（ラジアン）
 const MIE_MS = 260;    // 傾いて止まるまで
 const HOLD_MS = 1300;  // 見得を見せる長さ（桜が舞う）
 const TAIL_MS = 500;   // 柝のあと
-
-/** ツケ打ち：バタバタッ（録った tsuke）に、太鼓の「バッタリ」を重ねる */
-function tsuke(ctx: FxCtx): void {
-  const s = getSound();
-  s.play('tsuke', { gain: 1 });
-  void ctx.wait(300).then(() => s.play('drum', { gain: 1 }));
-}
 
 /** 迫り方：ほとんどの間ゆっくり進み、最後の一瞬で一気に入る */
 function lastStep(t: number): number {
@@ -78,7 +71,8 @@ export async function oomie(ctx: FxCtx, k: KingCapture): Promise<void> {
   }
   if (k.king) k.king.visible = false;
   settleTaker(k);
-  tsuke(ctx);
+  // 取った瞬間は太鼓だけ（拍子木は多いとユーザー。2026-10-28）
+  getSound().play('drum', { gain: 1 });
   flash(ctx, PALS.soubiPale, 0.55, 260);
   shakeBy(ctx, 0.22);
   // 取った瞬間の派手さ：金の火花・胡粉と金の衝撃の輪・紅白の花びらの噴き出し
@@ -103,9 +97,8 @@ export async function oomie(ctx: FxCtx, k: KingCapture): Promise<void> {
   petalStorm(ctx, { mode: 'burst', center: k.at.clone().setY(0.4), colors, shapes: ['notch', 'blossom'], n: 90, size: 0.22, life: 3200, power: 1.2 });
   petalStorm(ctx, { mode: 'rain', center: k.at, colors, shapes: ['notch', 'petal'], n: 220, size: 0.2, life: 4200, area: 5, height: 7 });
   petalStorm(ctx, { mode: 'swirl', center: k.at, colors: [PALS.sakura, PALS.soubiPale], shapes: ['blossom', 'notch'], n: 110, size: 0.24, life: 3600 });
-  await ctx.wait(HOLD_MS);
-  getSound().play('maku');
-  await ctx.wait(TAIL_MS);
+  // 柝は鳴らさない（このあとエンディングの幕が開くときに鳴る）
+  await ctx.wait(HOLD_MS + TAIL_MS);
   // 取った駒は傾いたまま見せて終わる（KingFxPlay の約束どおり、王のマスにいる）
   if (taker) taker.position.set(k.at.x, k.takerY, k.at.z);
 }

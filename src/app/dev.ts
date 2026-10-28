@@ -465,6 +465,17 @@ export function installFxKey(match: Match, submit: (a: Action) => void): () => v
 // 戦績には数えない。保存された設定（演出の長さ）は書き換えない
 
 /** URL の ?auto= から自動対局の強さを読む。開発中でなければ、または無ければ null */
+// ---------- エンディングの試し口（?ending=1。開発中だけ）----------
+// 対局せずにエンディングを開く（設定からの見返しと同じ：大見得なし・いつでも飛ばせる・終わったら設定へ）。
+// &at=<秒> でその秒から（曲は頭から流れるので、場面だけを先へ進めて見るときに使う）
+export function endingDevParams(): { replay: true; devAt?: number } | null {
+  if (!import.meta.env.DEV) return null;
+  const q = new URLSearchParams(location.search);
+  if (q.get('ending') !== '1') return null;
+  const at = Number(q.get('at'));
+  return Number.isFinite(at) && at > 0 ? { replay: true, devAt: at } : { replay: true };
+}
+
 export function autoLevel(): Level | null {
   if (!import.meta.env.DEV) return null;
   const v = new URLSearchParams(location.search).get('auto');

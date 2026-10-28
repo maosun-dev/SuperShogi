@@ -2193,3 +2193,54 @@ input:focus-visible {
 .howto-nav .turn:focus-visible, .howto-nav .done:focus-visible { outline: 2px solid var(--kaya); outline-offset: 3px; }
 /* 角印「学」：右下の角（左下の「設」と対になる。札の列にはかぶらない） */
 .kakuin.manabu { left: auto; right: 16px; transform: rotate(3deg); }
+
+/* ---- 大詰のエンディング（src/app/screens/ending.ts） ----
+   正面の札の役名は右の縦書き（墨の細い短冊に胡粉の字）。口上の紙は胡粉、大入袋は朱。影・光・グラデーションは使わない */
+.ending { position: absolute; inset: 0; overflow: hidden; background: var(--sumi); }
+.ending .stage-host { position: absolute; inset: 0; }
+.ending-cast {
+  position: absolute; right: max(16px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%);
+  writing-mode: vertical-rl; display: flex; gap: 10px; align-items: flex-start;
+  padding: 18px 10px; background: color-mix(in srgb, var(--sumi) 82%, transparent);
+  border-top: 2px solid var(--soubi); border-bottom: 2px solid var(--soubi);
+  color: var(--gofun); opacity: 0; transition: opacity .5s;
+  pointer-events: none;
+}
+.ending-cast.on { opacity: 1; }
+.ending-cast .name { font-family: var(--font-display); font-size: 30px; letter-spacing: .12em; }
+.ending-cast .role { font-family: var(--font-body); font-size: 14px; letter-spacing: .2em; color: color-mix(in srgb, var(--gofun) 75%, var(--soubi)); margin-top: 3.2em; }
+.ending-kojo {
+  position: absolute; left: 50%; top: 50%; width: min(78vw, 340px); aspect-ratio: 3 / 4;
+  transform: translate(-50%, -46%); opacity: 0; transition: opacity 1.4s, transform 1.4s;
+  background: var(--gofun); color: var(--sumi);
+  border-top: 6px solid var(--wana); border-bottom: 6px solid var(--wana);
+  pointer-events: none;
+}
+.ending-kojo.on { opacity: 1; transform: translate(-50%, -50%); }
+.ending-kojo .senshuraku { position: absolute; right: 9%; top: 8%; font-size: clamp(48px, 15vw, 72px); display: flex; flex-direction: column; }
+.ending-kojo .staff { position: absolute; left: 9%; bottom: 10%; display: flex; flex-direction: column; gap: 14px; }
+.ending-kojo .row { display: flex; align-items: center; gap: 10px; }
+.ending-kojo .row .role { font-size: 20px; display: flex; flex-direction: column; color: var(--wana); }
+.ending-kojo .who { font-family: var(--font-body); font-size: 17px; letter-spacing: .06em; }
+.ending-ooiri {
+  position: absolute; right: 9%; bottom: 7%;
+  width: 56px; height: 98px; background: var(--wana); color: var(--gofun);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: translateY(14px); transition: opacity .6s, transform .6s; pointer-events: none;
+}
+.ending-ooiri.on { opacity: 1; transform: none; }
+.ending-ooiri .ooiri-word { font-size: 28px; display: flex; flex-direction: column; }
+.ending .kz { display: block; line-height: 0; }
+.ending .kz .kouzan { height: 1em; }
+.ending-skip {
+  position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  font-family: var(--font-body); font-size: 15px; padding: 8px 22px;
+  background: color-mix(in srgb, var(--sumi) 80%, transparent); color: var(--gofun);
+  border: 1px solid var(--soubi); border-radius: 3px;
+  opacity: 0; pointer-events: none; transition: opacity .3s;
+}
+.ending-skip.on { opacity: 1; pointer-events: auto; }
+.ending-skip:focus-visible { outline: 2px solid var(--soubi); outline-offset: 3px; opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .ending-cast, .ending-kojo, .ending-ooiri { transition: opacity .2s; }
+}

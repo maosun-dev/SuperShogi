@@ -20,6 +20,7 @@ import { levelScreen } from './screens/level';
 import { deckScreen } from './screens/deck';
 import { revealScreen } from './screens/reveal';
 import { settingsScreen } from './screens/settings';
+import { endingScreen } from './screens/ending';
 import { linkScreen } from './screens/link';
 import { friendScreen } from './screens/friend';
 import { gcLinkScreen } from './screens/gclink';
@@ -28,7 +29,7 @@ import { armSoundUnlock, watchAppLife } from './unlock';
 import { appLife } from './appLife';
 import { soundLog } from '../fx/soundLog';
 import { prepareSaves } from './native';
-import { autoMatchParams, fxMatchParams } from './dev';
+import { autoMatchParams, endingDevParams, fxMatchParams } from './dev';
 import { bannerOn, initAds, setBannerWanted } from './ads';
 import { playSplash } from './splash';
 import { musicFor, pickMatchTrack } from './music';
@@ -67,7 +68,8 @@ function start(): void {
   const sound = getSound();
   sound.setVolume(settings.volume);
   // 幕の音：ふだんは拍子木、決着から結果画面へは歌舞伎の垂れ幕
-  setClapper((to) => sound.play(to === 'result' ? 'maku' : 'hyoshigi'));
+  // 結果画面とエンディングへは柝（キキン）。エンディングの幕が開く音はこれ1回（重ねない）
+  setClapper((to) => sound.play(to === 'result' || to === 'ending' ? 'maku' : 'hyoshigi'));
   // 最初の操作で解錠する。裏に回ったら曲ごと音を止め、表に戻って止まっていたら付け直す
   armSoundUnlock(sound, window);
   const life = appLife();
@@ -85,21 +87,23 @@ function start(): void {
   registerScreen('deck', (p) => deckScreen(p));
   registerScreen('reveal', (p) => revealScreen(p));
   registerScreen('settings', () => settingsScreen());
+  registerScreen('ending', (p) => endingScreen(p));
   registerScreen('link', (p) => linkScreen(p));
   registerScreen('friend', () => friendScreen());
   registerScreen('gclink', (p) => gcLinkScreen(p));
   registerScreen('howto', () => howtoScreen());
   // 開発中に ?fx=<カード> が付いていれば演出の試し口として、?auto=<強さ> なら自動対局として、対局画面から始める
   const dev = fxMatchParams() ?? autoMatchParams();
+  const devEnding = endingDevParams();
   // 起動の画面（maosun-dev のしるし）。開発の試し口・自動対局では出さない
-  const splash = dev ? null : playSplash(sound, prefersReducedMotion());
+  const splash = dev || devEnding ? null : playSplash(sound, prefersReducedMotion());
   // アプリでは保存を戻し終わってから最初の画面を出す（失敗しても画面は出す）。
   // 最初の画面は起動の画面のうしろで先に組み立てておき、打ち終わったら起動の画面を消す。
   // 追跡の確認と広告は、起動の画面が消えてから（ロゴの上にかぶせない）
   void prepareSaves().catch(() => { /* 戻せなくても始める */ }).then(async () => {
     sound.setVolume(loadSettings(safeStore()).volume); // 戻した設定の音量を反映
     try {
-      await (dev ? showScreen('match', dev) : showScreen('title'));
+      await (dev ? showScreen('match', dev) : devEnding ? showScreen('ending', devEnding) : showScreen('title'));
     } finally {
       // 最初の画面の組み立てに失敗しても、起動の画面は必ず消す（押せないまま止まらないように）
       if (splash) {
