@@ -59,6 +59,9 @@ export async function oomie(ctx: FxCtx, k: KingCapture): Promise<void> {
   const up = new THREE.Vector3(0, 1, 0);
   const dir = ctx.me === 'sente' ? 1 : -1;
   speedLines(ctx, true);
+  // 溜めの音：スローに入る音、取る直前に風を切る音（2026-10-28 ユーザー「タメの音もほしい」）
+  getSound().play('slowmo', { gain: 0.9 });
+  void ctx.wait(SLOW_MS * 0.62).then(() => getSound().play('slowWhoosh', { gain: 0.9 }));
   try {
     await ctx.tween(SLOW_MS, (t) => {
       if (k.taker && k.from) takerAlong(k, lastStep(t), 0.3);
