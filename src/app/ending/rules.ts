@@ -15,6 +15,11 @@ export function endingAfter(w: EndingWhen, result: Result): boolean {
   return oomieOn(w) && result.reason === 'king-captured' && result.winner === 'sente';
 }
 
+/** 設定に「幕切れを見る」を出すか：一度最後まで見たら出す */
+export function showReplay(seen: boolean): boolean {
+  return seen;
+}
+
 /** 飛ばせるか：一度最後まで見たら飛ばせる（初めては飛ばせない） */
 export function canSkip(seen: boolean): boolean {
   return seen;

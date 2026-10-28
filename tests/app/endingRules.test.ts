@@ -1,6 +1,6 @@
 // エンディングを流す・飛ばせる・見返せるの決まりと、見たかの記録
 import { describe, expect, it } from 'vitest';
-import { canSkip, endingAfter, oomieOn, type EndingWhen } from '../../src/app/ending/rules';
+import { canSkip, endingAfter, oomieOn, showReplay, type EndingWhen } from '../../src/app/ending/rules';
 import { loadEndingSeen, markEndingSeen, SAVE_KEYS, type KeyValueStore } from '../../src/app/storage';
 import type { Result } from '../../src/rules/types';
 
@@ -49,5 +49,12 @@ describe('飛ばせるか・見たかの記録', () => {
   });
   it('アプリの消えにくい保存にも写す鍵に入っている', () => {
     expect(SAVE_KEYS).toContain('superShogi.ending');
+  });
+});
+
+describe('showReplay（設定に「幕切れを見る」を出すか）', () => {
+  it('最後まで見たあとだけ出す', () => {
+    expect(showReplay(false)).toBe(false);
+    expect(showReplay(true)).toBe(true);
   });
 });

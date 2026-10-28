@@ -3,10 +3,11 @@
 // 変えたらすぐ保存し、すぐ効かせる（音は setVolume、演出の長さは演出役が毎回設定を読み直す）。
 import { getSound, type MusicName } from '../../fx/sound';
 import { MATCH_TRACKS, MATCH_TRACK_LABEL } from '../music';
-import { loadSettings, safeStore, saveSettings, type Settings } from '../storage';
+import { loadEndingSeen, loadSettings, safeStore, saveSettings, type Settings } from '../storage';
+import { showReplay } from '../ending/rules';
 import { STAGES, STAGE_LABEL, changeStage, effectiveMotion, prefersReducedMotion } from '../stageTheme';
 import { layerUrl } from '../../view/backdrop';
-import { type Screen } from '../screens';
+import { showScreen, type Screen } from '../screens';
 import { button, el, pageHead } from './ui';
 import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
 import { CREDITS, MIT_TEXT, OFL_NOTE } from '../credits';
@@ -233,6 +234,14 @@ export function settingsScreen(): Screen {
       body.append(markBox, text);
       nameSec.append(nameHead, body);
 
+      // ---- 幕切れ：傾奇者を倒したエンディングを最後まで見たら、ここから見返せる ----
+      const endSec = el('section', 'set-item ending-replay');
+      if (showReplay(loadEndingSeen(safeStore()))) {
+        const endSeg = el('div', 'seg');
+        endSeg.append(button('', '幕切れを見る', () => { void showScreen('ending', { result: { winner: 'sente', reason: 'king-captured' }, level: 'kabuki', deck: [], replay: true }); }));
+        endSec.append(el('h2', '', '幕切れ'), endSeg, el('p', 'note', '傾奇者を倒したあとのエンディングを、もう一度流します'));
+      }
+
       // ---- クレジット：ふだんは見出しだけ。押すと字体・部品の名前と作り手、約束が開く（全文はさらに中で畳む） ----
       const crSec = el('section', 'set-item credits');
       const crBox = el('details', 'credit-box');
@@ -254,7 +263,9 @@ export function settingsScreen(): Screen {
 
       // 項目は和紙の一枚に墨で書く（舞台の絵の上でも読めるように）
       const sheet = el('div', 'sheet');
-      sheet.append(stSec, mvSec, fxSec, volSec, bgSec, kfSec, nameSec, crSec);
+      sheet.append(stSec, mvSec, fxSec, volSec, bgSec, kfSec, nameSec);
+      if (endSec.childElementCount > 0) sheet.append(endSec);
+      sheet.append(crSec);
       box.append(pageHead('設定', 'title'), sheet);
       root.append(box);
     },
