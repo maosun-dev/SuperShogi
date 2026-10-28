@@ -202,7 +202,7 @@ export function matchScreen(params: unknown): Screen {
         if (at && !(was && was.c === at.c && was.r === at.r)) getSound().play('tick');
         setHighlights(stage, res.highlights, lastMove);
         if (st.mode === 'promote') hud.askPromote();
-        else hud.setPrompt(res.prompt ?? null, { stop: st.mode === 'second', choices: res.choices });
+        else hud.setPrompt(res.prompt ?? null, { stop: st.mode === 'second', confirm: res.confirm, choices: res.choices });
         hud.select({
           hand: st.mode === 'drop' ? st.kind : null,
           card: st.mode === 'card' || st.mode === 'pick' ? st.uid : null,

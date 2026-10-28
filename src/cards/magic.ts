@@ -138,18 +138,35 @@ export const kakuotoshi: CardDef = {
   },
 };
 
+// 成り上がりが強くなる手（両者合わせての手数）。この手から飛車・角も選べて、2つまで成らせる
+export const SHORYU_POWER_MOVE = 40;
+
+/** 成り上がりが強くなるまで、あと何手か（0 なら強くなっている）。s.ply は指し終えた手の数 */
+export function shoryuWait(s: GameState): number {
+  return Math.max(0, SHORYU_POWER_MOVE - (s.ply + 1));
+}
+
 export const shoryu: CardDef = {
   id: 'shoryu', name: '成り上がり', kind: 'magic', cost: 2, fx: 'shoryu',
-  text: '自分の歩・香車・桂馬・銀1つを、どこにいてもその場で成らせる。成った駒・成り封じを受けた駒は選べない。相手の成り封じは発動する',
+  text: `自分の歩・香車・桂馬・銀1つを、どこにいてもその場で成らせる。${SHORYU_POWER_MOVE}手目からは飛車・角も選べて、2つまで成らせる。成った駒・成り封じを受けた駒は選べない。相手の成り封じは発動する`,
   prompt: '成らせる自分の駒を選んでください',
   targetSets(s, side) {
-    return piecesOf(s, side)
+    const powered = shoryuWait(s) === 0;
+    const cands = piecesOf(s, side)
       .filter(({ p }) => !p.promoted && !p.sealed
-        && (p.kind === 'FU' || p.kind === 'KY' || p.kind === 'KE' || p.kind === 'GI'))
-      .map(({ sq }) => [sq]);
+        && (p.kind === 'FU' || p.kind === 'KY' || p.kind === 'KE' || p.kind === 'GI'
+          || (powered && (p.kind === 'HI' || p.kind === 'KA'))))
+      .map(({ sq }) => sq);
+    const sets = cands.map(sq => [sq]);
+    if (powered) {
+      for (let i = 0; i < cands.length; i++) {
+        for (let j = i + 1; j < cands.length; j++) sets.push([cands[i], cands[j]]);
+      }
+    }
+    return sets;
   },
-  resolve(ctx, [sq]) {
-    ctx.promoteInPlace(sq);
+  resolve(ctx, targets) {
+    for (const sq of targets) ctx.promoteInPlace(sq);
   },
 };
 

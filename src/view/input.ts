@@ -27,6 +27,7 @@ export interface InputResult {
   highlights: Highlight[];
   prompt?: string;            // 案内の帯に出す文
   choices?: HandKind[];       // mode 'pick' のときの選択肢
+  confirm?: boolean;          // 札の対象をここで決められる（もっと選ぶこともできる）とき「これで決める」を出す
 }
 
 type MoveAction = Extract<Action, { type: 'move' }>;
@@ -41,6 +42,7 @@ export function liftedSquare(st: InputState): Square | null {
 }
 const PROMPT_PROMOTE = '成りますか？';
 const PROMPT_SECOND = 'もう1回動かせます（動かさなくても終われます）';
+const PROMPT_MORE = 'もう1つ選べます（このままでも使えます）';
 
 const moveActions = (legal: Action[]) => legal.filter((a): a is MoveAction => a.type === 'move');
 const dropActions = (legal: Action[]) => legal.filter((a): a is DropAction => a.type === 'drop');
@@ -153,8 +155,15 @@ function cardTap(view: GameState, legal: Action[], st: Extract<InputState, { mod
   if (hit.length === 0) return fallback(view, legal, at);
   const picked = [...st.picked, at];
   const full = hit.find(a => sameSet(a.targets, picked));
-  if (full) return done(view, legal, full);
+  // もっと多く選べる組が無ければ、ここで使う（成り上がりは2つ目も選べるので待つ）
+  if (full && !hit.some(a => a.targets.length > picked.length)) return done(view, legal, full);
   return render(view, legal, { mode: 'card', uid: st.uid, picked });
+}
+
+// 札の対象を選びかけで、今選んでいる組そのままで使える行動
+function cardFull(legal: Action[], st: Extract<InputState, { mode: 'card' }>): CardAction | undefined {
+  if (st.picked.length === 0) return undefined;
+  return cardActions(legal, st.uid).find(a => sameSet(a.targets, st.picked));
 }
 
 export function reduceInput(view: GameState, legal: Action[], st: InputState, ev: InputEvent): InputResult {
@@ -177,8 +186,11 @@ export function reduceInput(view: GameState, legal: Action[], st: InputState, ev
       return useCard(view, legal, st, ev.uid);
     case 'promote':
       return st.mode === 'promote' ? promoteAnswer(view, legal, st, ev.yes) : render(view, legal, st);
-    case 'stop':
-      return st.mode === 'second' ? stopSecond(view, legal, st) : render(view, legal, st);
+    case 'stop': {
+      if (st.mode === 'second') return stopSecond(view, legal, st);
+      const full = st.mode === 'card' ? cardFull(legal, st) : undefined;
+      return full ? done(view, legal, full) : render(view, legal, st);
+    }
     case 'pick': {
       if (st.mode !== 'pick') return render(view, legal, st);
       const a = cardActions(legal, st.uid).find(c => c.pick === ev.kind);
@@ -192,6 +204,7 @@ function render(view: GameState, legal: Action[], st: InputState): InputResult {
   const highlights: Highlight[] = [];
   let prompt: string | undefined;
   let choices: HandKind[] | undefined;
+  let confirm: boolean | undefined;
 
   switch (st.mode) {
     case 'idle': break;
@@ -237,6 +250,7 @@ function render(view: GameState, legal: Action[], st: InputState): InputResult {
       for (const p of st.picked) highlights.push({ sq: p, kind: 'selected' });
       const rest = acts.flatMap(a => a.targets).filter(t => !st.picked.some(p => sameSq(p, t)));
       for (const t of uniqueSquares(rest)) highlights.push({ sq: t, kind: 'target' });
+      if (cardFull(legal, st)) { confirm = true; prompt = PROMPT_MORE; }
       break;
     }
     case 'pick': {
@@ -246,5 +260,5 @@ function render(view: GameState, legal: Action[], st: InputState): InputResult {
       break;
     }
   }
-  return { state: st, highlights, prompt, choices };
+  return { state: st, highlights, prompt, choices, confirm };
 }

@@ -3,6 +3,7 @@
 import type { CardId, GameState, HandKind, Side } from '../rules/types';
 import { LEVEL_NAME, type Level } from '../ai/levels';
 import { CARDS } from '../cards';
+import { SHORYU_POWER_MOVE, shoryuWait } from '../cards/magic';
 import { KIND_MARK, cardHtml } from './cardArt';
 
 type HudEvent = 'hand' | 'card' | 'use' | 'promote' | 'pick' | 'stop' | 'cancel';
@@ -11,7 +12,7 @@ export interface Hud {
   /** 帯・駒台・伏せ札・手札を描き直す。usable は今使えるカードの uid（なければ全部使えない扱い） */
   // foe：友との対局のときの相手の名前・判子・待っている間の一言（無ければ CPU）
   render(view: GameState, me: Side, opts: { thinking: boolean; level: Level; keiko?: boolean; usable?: Set<number>; foe?: FoeLabel }): void;
-  setPrompt(text: string | null, opts?: { stop?: boolean; choices?: HandKind[] }): void;
+  setPrompt(text: string | null, opts?: { stop?: boolean; confirm?: boolean; choices?: HandKind[] }): void;
   askPromote(): void;          // 成る／成らないの2つのボタン
   on(ev: HudEvent, fn: (arg?: unknown) => void): void;
   lock(locked: boolean): void; // 演出中・思考中は押せない見た目にする（手札の説明は読める）
@@ -133,12 +134,13 @@ export function createHud(root: HTMLElement): Hud {
   const dMeta = el('span', 'dmeta');
   dHead.append(dName, dMeta);
   const dText = el('p', 'dtext');
+  const dPower = el('p', 'dpower');
   const dNote = el('p', 'dnote', '今は使えません');
   const dBtns = el('div', 'dbtns');
   const useBtn = button('use', '使う');
   const dCancel = button('cancel', 'やめる');
   dBtns.append(useBtn, dCancel);
-  detail.append(dHead, dText, dNote, dBtns);
+  detail.append(dHead, dText, dPower, dNote, dBtns);
   footer.append(detail, me, hand, prompt);
 
   // ---- 相手の残り札の板 ----
@@ -284,6 +286,11 @@ export function createHud(root: HTMLElement): Hud {
       card.tabIndex = 0;
       card.dataset.uid = String(c.uid);
       if (!usable.has(c.uid)) card.classList.add('off');
+      // 成り上がりが強くなったら、朱の「強」の判を押す
+      if (c.cardId === 'shoryu' && shoryuWait(view) === 0) {
+        card.classList.add('powered');
+        card.append(el('span', 'power-stamp', '強'));
+      }
       if (sel.card === c.uid) card.classList.add('sel');
       const tap = (): void => emit('card', c.uid);
       card.addEventListener('click', tap);
@@ -292,6 +299,14 @@ export function createHud(root: HTMLElement): Hud {
       });
       hand.append(card);
     }
+  }
+
+  // 成り上がりの説明に添える「あと何手で強くなるか」
+  function shoryuNote(view: GameState): string {
+    const n = shoryuWait(view);
+    return n === 0
+      ? '強くなっています（飛車・角も・2つまで）'
+      : `あと${n}手で強くなります（${SHORYU_POWER_MOVE}手目から）`;
   }
 
   function cardOf(uid: number): CardId | undefined {
@@ -336,8 +351,8 @@ export function createHud(root: HTMLElement): Hud {
         b.addEventListener('click', () => emit('pick', k));
         btns.append(b);
       }
-      if (opts.stop) {
-        const b = button('stop', 'ここで止める');
+      if (opts.stop || opts.confirm) {
+        const b = opts.confirm ? button('stop yes', 'これで決める') : button('stop', 'ここで止める');
         b.addEventListener('click', () => emit('stop'));
         btns.append(b);
       }
@@ -391,6 +406,9 @@ export function createHud(root: HTMLElement): Hud {
       dName.textContent = c.name;
       dMeta.textContent = `${k.label}・コスト${c.cost}`;
       dText.textContent = c.text;
+      const power = id === 'shoryu' && last ? shoryuNote(last.view) : null;
+      dPower.textContent = power ?? '';
+      dPower.hidden = power === null;
       dNote.hidden = usable;
       useBtn.disabled = !usable;
       detail.hidden = false;

@@ -74,10 +74,11 @@ function pick(s: GameState, side: Side, cardId: CardId, acts: CardAction[]): Car
     case 'kakuotoshi':
       return acts;
     case 'shoryu':
-      return topBy(acts, a => {
-        const p = at(s, a.targets[0]);
-        return p ? (PROMOTED_VALUE[p.kind] ?? 0) - pieceValue(p) : 0;
-      }, HINT_TOP);
+      // 40手目からは2つ成らせる組もある。成って増える値打ちの合計で上から選ぶ
+      return topBy(acts, a => a.targets.reduce((n, t) => {
+        const p = at(s, t);
+        return n + (p ? (PROMOTED_VALUE[p.kind] ?? 0) - pieceValue(p) : 0);
+      }, 0), HINT_TOP);
     case 'otoshiana':
     case 'itetsuku': {
       const reach = foeReach(s, side);

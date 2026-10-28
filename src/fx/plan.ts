@@ -104,9 +104,12 @@ export function planFx(events: GameEvent[], actor: Side): Cue[] {
       case 'swapped':
       case 'frozen':
       case 'demoted':
-      case 'promotedInPlace':
       case 'handTransferred':
         sink()?.push(e);
+        break;
+      case 'promotedInPlace':
+        // 成り上がりの2つ目は、1つ目が成り封じに止められたあとでも成り上がりの演出の中で見せる
+        (magic ? magic.effects : sink())?.push(e);
         break;
       case 'warded':
         cues.push({ kind: 'ward', pieceId: e.pieceId, at: e.at, owner: e.owner, cardId: e.cardId });

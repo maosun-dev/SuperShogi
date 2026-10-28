@@ -66,6 +66,19 @@ describe('planFx', () => {
     expect((c2[0] as Extract<Cue, { kind: 'magic' }>).effects.map(e => e.type)).toEqual(['promotedInPlace']);
   });
 
+  it('成り上がりで2つ成らせ、1つ目が成り封じに止められても、2つ目の promotedInPlace は magic に入る', () => {
+    const s = base();
+    s.ply = 60;
+    setTrap(s, 'gote', 'narifuuji');
+    put(s, sq(1, 6), 'HI', 'sente');
+    const gi = put(s, sq(2, 6), 'GI', 'sente');
+    const u = giveCard(s, 'sente', 'shoryu');
+    const cues = cuesOf(s, { type: 'card', uid: u, targets: [sq(1, 6), sq(2, 6)] });
+    expect(cues.map(c => c.kind)).toEqual(['magic', 'trapFire']);
+    expect((cues[0] as Extract<Cue, { kind: 'magic' }>).effects).toEqual([{ type: 'promotedInPlace', pieceId: gi.id, at: sq(2, 6) }]);
+    expect((cues[1] as Extract<Cue, { kind: 'trapFire' }>).effects.map(e => e.type)).toEqual(['promotionBlocked']);
+  });
+
   it('凍てつく床・相討ち・身代わり：trapFire の effects に効果が入る', () => {
     const s = base();
     setTrap(s, 'gote', 'itetsuku', sq(4, 5));

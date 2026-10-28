@@ -4,6 +4,7 @@ import { applyAction, legalActions } from '../../src/rules/game';
 import { idx, positionKey } from '../../src/rules/board';
 import { canPromote, isInCheck, pieceTargets } from '../../src/rules/moves';
 import { CARDS } from '../../src/cards';
+import { shoryuWait } from '../../src/cards/magic';
 import type { Action, GameState, Square } from '../../src/rules/types';
 import { emptyState, giveCard, put, setTrap } from '../helpers';
 
@@ -232,6 +233,45 @@ test('成り上がり（もと昇竜）：飛車・角は選べず、歩・香�
   expect(ts).toEqual([3, 4, 5, 6]);
   expect(CARDS.shoryu.name).toBe('成り上がり');
   expect(CARDS.shoryu.cost).toBe(2);
+});
+
+test('成り上がり：39手目までは1つだけ。40手目（ply 39）からは飛車・角も選べて、2つまで成らせる', () => {
+  const s = base();
+  put(s, { c: 1, r: 6 }, 'HI', 'sente');
+  put(s, { c: 2, r: 6 }, 'KA', 'sente');
+  put(s, { c: 3, r: 6 }, 'FU', 'sente');
+  const uid = giveCard(s, 'sente', 'shoryu');
+  s.ply = 38;
+  expect(shoryuWait(s)).toBe(1);
+  expect(cardActs(s, uid).every(a => a.targets.length === 1)).toBe(true);
+  s.ply = 39;
+  expect(shoryuWait(s)).toBe(0);
+  const sets = cardActs(s, uid).map(a => a.targets.map(t => t.c).sort().join(''));
+  expect(sets.sort()).toEqual(['1', '12', '13', '2', '23', '3']);
+});
+
+test('成り上がり（強くなったあと）：2つ同時に成る', () => {
+  const s = base();
+  s.ply = 60;
+  put(s, { c: 1, r: 6 }, 'HI', 'sente');
+  put(s, { c: 2, r: 6 }, 'GI', 'sente');
+  const uid = giveCard(s, 'sente', 'shoryu');
+  const { state, events } = applyAction(s, card(uid, [{ c: 1, r: 6 }, { c: 2, r: 6 }]));
+  expect(at(state, 1, 6)).toMatchObject({ kind: 'HI', promoted: true });
+  expect(at(state, 2, 6)).toMatchObject({ kind: 'GI', promoted: true });
+  expect(events.filter(e => e.type === 'promotedInPlace')).toHaveLength(2);
+});
+
+test('成り上がり（強くなったあと）：成り封じは1つ目だけを止め、2つ目は成る', () => {
+  const s = base();
+  s.ply = 60;
+  setTrap(s, 'gote', 'narifuuji');
+  put(s, { c: 1, r: 6 }, 'HI', 'sente');
+  put(s, { c: 2, r: 6 }, 'GI', 'sente');
+  const uid = giveCard(s, 'sente', 'shoryu');
+  const { state } = applyAction(s, card(uid, [{ c: 1, r: 6 }, { c: 2, r: 6 }]));
+  expect(at(state, 1, 6)).toMatchObject({ promoted: false, sealed: true });
+  expect(at(state, 2, 6)).toMatchObject({ promoted: true });
 });
 
 test('昇竜：相手の成り封じが発動すると成れず、その駒は成れなくなる', () => {

@@ -138,6 +138,33 @@ describe('input', () => {
     expect(off.state).toEqual({ mode: 'card', uid, picked: [] });
   });
 
+  it('成り上がり（強くなったあと）：1つ選ぶと「これで決める」、2つ目を選ぶとすぐ使う', () => {
+    const s = emptyState();
+    kings(s);
+    s.ply = 50;
+    put(s, sq(1, 6), 'HI', 'sente');
+    put(s, sq(2, 6), 'GI', 'sente');
+    const uid = giveCard(s, 'sente', 'shoryu');
+    const { res: r1, legal } = run(s, [{ type: 'useCard', uid }, tap(1, 6)]);
+    expect(r1.action).toBeUndefined();
+    expect(r1.confirm).toBe(true);
+    expect(r1.prompt).toBe('もう1つ選べます（このままでも使えます）');
+    expect(has(r1, 2, 6, 'target')).toBe(true);
+    const { res: one } = run(s, [{ type: 'useCard', uid }, tap(1, 6), { type: 'stop' }]);
+    expect(one.action).toBe(legal.find(a => a.type === 'card' && a.targets.length === 1 && a.targets[0].c === 1)!);
+    const { res: two } = run(s, [{ type: 'useCard', uid }, tap(1, 6), tap(2, 6)]);
+    expect(two.action).toBe(legal.find(a => a.type === 'card' && a.targets.length === 2)!);
+  });
+
+  it('成り上がり（39手目まで）：1つ選ぶとすぐ使う', () => {
+    const s = emptyState();
+    kings(s);
+    put(s, sq(2, 6), 'GI', 'sente');
+    const uid = giveCard(s, 'sente', 'shoryu');
+    const { res } = run(s, [{ type: 'useCard', uid }, tap(2, 6)]);
+    expect(res.action).toBeDefined();
+  });
+
   it('対象なしのカードはすぐ使う／呼び戻しは種類を選ぶ', () => {
     const s = emptyState();
     kings(s);
