@@ -2208,7 +2208,7 @@ input:focus-visible {
   display: flex; gap: 0; opacity: 0; transition: opacity .9s, transform 1.4s cubic-bezier(.2,.7,.2,1); pointer-events: none;
 }
 .ending-title.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-.ending-title .et-ji { width: clamp(92px, 27vw, 170px); height: auto; display: block; }
+.ending-title .et-ji { width: clamp(68px, 19vw, 120px); height: auto; display: block; }
 .ending-title .et-ji:first-child { transform: rotate(-4deg); }
 .ending-cast {
   position: absolute; right: max(16px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%);

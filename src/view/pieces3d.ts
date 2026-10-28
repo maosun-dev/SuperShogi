@@ -442,6 +442,11 @@ export function pieceMesh(id: number): THREE.Object3D | undefined {
   return objs.get(id)?.grp;
 }
 
+/** 盤にある駒の物すべて（エンディングで踊らせるため） */
+export function allPieceMeshes(): THREE.Object3D[] {
+  return [...objs.values()].map((o) => o.grp);
+}
+
 /**
  * 盤の物を局面どおりに揃える。view は viewFor 済みの局面、me は画面を見ている側。
  * 演出のあとの安全網：演出が駒をどう動かしても（位置・向き・大きさ・見え方・材質を変えても）、

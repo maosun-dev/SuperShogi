@@ -9,6 +9,7 @@ import { isLevel, type Level } from '../../ai/levels';
 import { CARDS } from '../../cards';
 import { getStage } from '../../view/stage';
 import { BH } from '../../view/board3d';
+import { allPieceMeshes } from '../../view/pieces3d';
 import { getSound } from '../../fx/sound';
 import { closedMakuEl, makeCurtain, makePetals, makeStandee, makeTurntable, type Standee } from '../../fx/ending/props';
 import { CAST_ORDER, ENDING_LEN, ENDING_TRACK, MUSIC_STOP_AT, ROLES, STAFF, castAt, sceneAt } from '../ending/script';
@@ -171,6 +172,10 @@ export function endingScreen(params: unknown): Screen {
       curtain.setOpen(1);
       curtain.root.visible = false;
 
+      // 盤の駒の総踊り：回り舞台の間、駒が波のように順に跳ねて少し揺れる（2026-10-28 ユーザー「盤面は適当に動かしてもいい」）
+      const dancers = allPieceMeshes().map((m) => ({ m, y: m.position.y, rz: m.rotation.z, phase: (m.position.x + m.position.z) * 0.55 }));
+      cleanups.push(() => { for (const d of dancers) { d.m.position.y = d.y; d.m.rotation.z = d.rz; } });
+
       // ---- 時計と台本 ----
       // 幕が開く柝は、画面の切り替えの音（main.ts の setClapper）が鳴らす
       const sound = getSound();
@@ -211,6 +216,16 @@ export function endingScreen(params: unknown): Screen {
         const u = Math.min(TURN_TO, Math.max(TURN_FROM, t));
         const w = (TURN_TO - TURN_FROM) / CAST_ORDER.length;
         table.setTurn(-((u - TURN_FROM) / w - 0.5) * STEP);
+
+        // 駒の総踊り（回り舞台の間だけ。動きを減らす設定では踊らない）
+        if (!reduced) {
+          const on = t >= TURN_FROM && t < TURN_TO ? Math.min(1, (t - TURN_FROM) / 2, (TURN_TO - t) / 2) : 0;
+          for (const d of dancers) {
+            const w = Math.sin(t * 3.2 - d.phase);
+            d.m.position.y = d.y + on * Math.max(0, w) * 0.5;
+            d.m.rotation.z = d.rz + on * Math.sin(t * 1.6 - d.phase) * 0.08;
+          }
+        }
 
         // 正面の札の名と役名
         const c = castAt(t);
