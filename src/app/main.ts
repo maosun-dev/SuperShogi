@@ -68,8 +68,7 @@ function start(): void {
   const sound = getSound();
   sound.setVolume(settings.volume);
   // 幕の音：ふだんは拍子木、決着から結果画面へは歌舞伎の垂れ幕
-  // 結果画面とエンディングへは柝（キキン）。エンディングの幕が開く音はこれ1回（重ねない）
-  setClapper((to) => sound.play(to === 'result' || to === 'ending' ? 'maku' : 'hyoshigi'));
+  setClapper((to) => sound.play(to === 'result' ? 'maku' : 'hyoshigi'));
   // 最初の操作で解錠する。裏に回ったら曲ごと音を止め、表に戻って止まっていたら付け直す
   armSoundUnlock(sound, window);
   const life = appLife();

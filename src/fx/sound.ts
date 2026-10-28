@@ -28,6 +28,7 @@ type CardSoundName =
   | 'ote' // 王手
   // 王を取る・取られる演出（2026-10-25 仮の3案。素材の音）
   | 'bakuhatsu' | 'bakuhatsu2' | 'iai' | 'daiken' | 'naguru' | 'slowWhoosh' | 'slowmo'
+  | 'kizami' // 大見得の終わりの柝の刻み（拍子木3。約6.4秒）
   | 'uchitottari'; // 大見得の声「傾奇者、討ち取ったりー」（2026-10-28 持ち主が録った声）
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
@@ -113,6 +114,7 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   slowmo: { files: ['sfx/lic/slowmo.mp3'], gain: 0.6 }, // スローモーション（頭2.6秒）
   // 持ち主の声。「傾奇者」を0.82倍に伸ばして少し響かせ、間を詰め、「討ち取ったりー」は響き＋山びこ（エコー）。音圧を上げた（約4.1秒。ffmpeg で整えた）
   uchitottari: { files: ['sfx/uchitottari.mp3'], gain: 1 },
+  kizami: { files: ['sfx/lic/kizami.mp3'], gain: 0.8 }, // 拍子木3：だんだん速くなる柝の刻み（大見得のあと、エンディングの前の溜め）
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -410,6 +412,7 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   slowWhoosh: (k, t, g) => BASE_RECIPES.whoosh(k, t, 0.6 * g),
   slowmo: () => {}, // 合成の代わりはない
   uchitottari: () => {}, // 声の代わりはない
+  kizami: (k, t, g) => BASE_RECIPES.hyoshigi(k, t, g),
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 

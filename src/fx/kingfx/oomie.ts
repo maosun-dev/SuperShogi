@@ -18,8 +18,8 @@ const BLUR_PX = 7;     // まわりのぼかしの強さ
 const ZOOM_MS = 700;   // 取ったあと、取った駒へ寄り直す
 const MIE_TILT = 0.14; // 見得の傾き（ラジアン）
 const MIE_MS = 260;    // 傾いて止まるまで
-const HOLD_MS = 1300;  // 見得を見せる長さ（桜が舞う）
-const TAIL_MS = 500;   // 柝のあと
+const HOLD_MS = 900;   // 見得を見せてから柝の刻みに入るまで（桜が舞う）
+const KIZAMI_MS = 6400; // 柝の刻み（拍子木3）の長さ
 
 /** 迫り方：ほとんどの間ゆっくり進み、最後の一瞬で一気に入る */
 function lastStep(t: number): number {
@@ -97,8 +97,16 @@ export async function oomie(ctx: FxCtx, k: KingCapture): Promise<void> {
   petalStorm(ctx, { mode: 'burst', center: k.at.clone().setY(0.4), colors, shapes: ['notch', 'blossom'], n: 90, size: 0.22, life: 3200, power: 1.2 });
   petalStorm(ctx, { mode: 'rain', center: k.at, colors, shapes: ['notch', 'petal'], n: 220, size: 0.2, life: 4200, area: 5, height: 7 });
   petalStorm(ctx, { mode: 'swirl', center: k.at, colors: [PALS.sakura, PALS.soubiPale], shapes: ['blossom', 'notch'], n: 110, size: 0.24, life: 3600 });
-  // 柝は鳴らさない（このあとエンディングの幕が開くときに鳴る）
-  await ctx.wait(HOLD_MS + TAIL_MS);
+  // 溜め：柝の刻み（拍子木3。だんだん速くなる）を最後まで聞かせる。そのあいだカメラはゆっくり回り込む。
+  // 刻みが終わったら、対局画面がエンディングへ移る（2026-10-28 ユーザーの流れ）
+  await ctx.wait(HOLD_MS);
+  getSound().play('kizami');
+  const c2 = k.at.clone().setY(0.3);
+  const off2 = cam.pos.clone().sub(c2);
+  await ctx.tween(KIZAMI_MS, (t) => {
+    cam.pos.copy(c2).add(off2.clone().applyAxisAngle(up, dir * 0.6 * t));
+    cam.look.copy(c2);
+  });
   // 取った駒は傾いたまま見せて終わる（KingFxPlay の約束どおり、王のマスにいる）
   if (taker) taker.position.set(k.at.x, k.takerY, k.at.z);
 }

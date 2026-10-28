@@ -1,6 +1,6 @@
 // 大詰のエンディング（設計書 docs/superpowers/specs/2026-10-28-kabuki-ending-design.md）。
 // 本番の傾奇者に勝つと、大見得のあとここへ来る。曲（サクラドリフト）の位置に合わせて、台本（ending/script.ts）どおりに
-// 定式幕が開く → 回り舞台に18枚の札が役者として立ち、正面の札の役名が出る → 桜が一気に舞って幕が閉まる →
+// 定式幕が開く → 題字「傾将棋」を横に大きく → 回り舞台に18枚の札が役者として立ち、正面の札の役名が出る → 桜が一気に舞って幕が閉まる →
 // 幕の前に口上の紙（千穐楽・作・御礼）→ 大入袋と打ち出しの太鼓 → 結果画面（見返しなら設定）。
 // 初めては飛ばせない。最後まで見たら記録し、2回目からと見返しは、画面を押すと「飛ばす」が出る
 import * as THREE from 'three';
@@ -18,6 +18,8 @@ import { loadEndingSeen, markEndingSeen, safeStore } from '../storage';
 import { keikoOf, type Keiko } from '../keiko';
 import { showScreen, type Screen } from '../screens';
 import { el, writeKouzan } from './ui';
+import { brushChar } from './title';
+import { oozumeGara } from './oozumeGara';
 
 export interface EndingParams { result: Result; level: Level; deck: CardId[]; keiko?: Keiko; replay?: boolean }
 
@@ -90,10 +92,19 @@ export function endingScreen(params: unknown): Screen {
       kojo.append(staff);
       const ooiri = el('div', 'ending-ooiri');
       ooiri.append(kouzanColumn('ooiri-word', '大入'));
+      // 背景：傾奇者の振袖の柄を半透明にして、ゆっくり流す（2026-10-28 ユーザー「背景が寂しい」）
+      const bg = el('div', 'ending-bg');
+      bg.innerHTML = oozumeGara('kabuki'); // 定数だけでできた文字列
+      // 題字：幕が開いたら、横書きで大きく（回り舞台が回り出す前）
+      const title = el('div', 'ending-title');
+      title.setAttribute('aria-label', '傾将棋');
+      title.innerHTML = brushChar('傾', 'et-ji', 'var(--sumi)', 'var(--gofun)', 80, 18)
+        + brushChar('将', 'et-ji', 'var(--gofun)', 'var(--sumi)', 80, 18)
+        + brushChar('棋', 'et-ji', 'var(--gofun)', 'var(--sumi)', 80, 18); // 定数だけでできた文字列
       const skip = el('button', 'ending-skip', '飛ばす') as HTMLButtonElement;
       skip.type = 'button';
       kojo.append(ooiri); // 大入袋は口上の紙の右下に下げる
-      box.append(host, cast, kojo, skip);
+      box.append(bg, host, title, cast, kojo, skip);
       root.append(box);
 
       const skippable = replay || canSkip(loadEndingSeen(safeStore()));
@@ -194,12 +205,12 @@ export function endingScreen(params: unknown): Screen {
         petals.setAmount(scene === 'bloom' ? 1 : scene === 'kojo' ? 0.55 : scene === 'ooiri' ? 0.75 : t < TURN_FROM ? 0.08 : 0.16);
         petals.update(dt); // dt は秒（舞台の onFrame）
 
+        title.classList.toggle('on', t >= 1.2 && t < TURN_FROM);
         kojo.classList.toggle('on', t >= 95);
         ooiri.classList.toggle('on', t >= 105);
         at('close', t, TURN_TO + 4.5, () => sound.play('maku'));
         at('stop', t, MUSIC_STOP_AT, () => sound.music(null));
-        at('don1', t, 105.4, () => sound.play('drum', { gain: 0.9 }));
-        at('don2', t, 106.2, () => sound.play('drum', { gain: 1 }));
+        at('don', t, 105.4, () => sound.play('drum', { gain: 1 })); // 打ち出しの太鼓は1回（2026-10-28 ユーザー）
         if (t >= ENDING_LEN) leave(true);
       });
     },

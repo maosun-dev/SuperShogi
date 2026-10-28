@@ -25,3 +25,11 @@ describe('画面の切り替えのフック', () => {
     await expect(m.showScreen('title')).resolves.toBeUndefined();
   });
 });
+
+describe('curtainFor（切り替えの幕を引くか）', () => {
+  it('エンディングへは引かない（大見得の拍子木からそのまま定式幕へ）。ほかは引く', async () => {
+    const { curtainFor } = await import('../../src/app/screens');
+    expect(curtainFor('ending')).toBe(false);
+    for (const n of ['title', 'result', 'match', 'settings'] as const) expect(curtainFor(n)).toBe(true);
+  });
+});

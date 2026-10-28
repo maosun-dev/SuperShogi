@@ -61,13 +61,18 @@ function swap(name: ScreenName, params: unknown): void {
   try { hook(name); } catch { /* フックの失敗で画面の入れ替えを止めない */ }
 }
 
+/** 切り替えの幕を引くか：エンディングへは引かない（大見得の拍子木の刻みから、そのまま定式幕が開く） */
+export function curtainFor(to: ScreenName): boolean {
+  return to !== 'ending';
+}
+
 /** 幕を引いて画面を入れ替える。引いている最中の呼び出しは、終わってから順に実行する */
 export function showScreen(name: ScreenName, params?: unknown): Promise<void> {
   const run = async (): Promise<void> => {
     if (!root || !curtain) throw new Error('起動前に showScreen が呼ばれました');
     if (!makers.has(name)) throw new Error(`画面が登録されていません: ${name}`); // 幕を引く前に弾く
-    if (current === null) {
-      // 最初の1枚（や、前の入れ替えに失敗した後）は幕なしで出す
+    if (current === null || !curtainFor(name)) {
+      // 最初の1枚（や、前の入れ替えに失敗した後）と、幕を引かない画面（エンディング）は幕なしで出す
       swap(name, params);
       return;
     }

@@ -11,7 +11,7 @@ import { TITLE_EM, TITLE_GLYPHS } from '../titleGlyphs';
 import { linkAvailable } from '../../net/link';
 
 /** 筆の字1文字の SVG。縁（rim）を太い線で先に描き、その上に字を塗る。thick で字そのものも太らせる */
-function brushChar(ch: keyof typeof TITLE_GLYPHS, cls: string, fill: string, rim: string, rimW: number, thick: number): string {
+export function brushChar(ch: keyof typeof TITLE_GLYPHS, cls: string, fill: string, rim: string, rimW: number, thick: number): string {
   const d = TITLE_GLYPHS[ch];
   return `<svg class="${cls}" viewBox="-40 -40 ${TITLE_EM + 80} ${TITLE_EM + 80}" aria-hidden="true">`
     + `<path d="${d}" style="fill:${rim};stroke:${rim}" stroke-width="${rimW}" stroke-linejoin="round"/>`
