@@ -343,6 +343,7 @@ const SOUND_PICKS = {
   kachi: '勝ちの決め音', make: '負けの決め音', suzu: 'りん（引き分けの書き終わり）',
   bakuhatsu: '爆発1（王取り）', bakuhatsu2: '爆発2（王取り）', iai: '居合抜き（王取り）', daiken: '大剣（王取り）',
   naguru: '強く殴る（叩き割り）', slowWhoosh: 'スローの風切り（王取り）', slowmo: 'スローモーション（王取り）',
+  uchitottari: '声「傾奇者、討ち取ったりー」（大見得）',
 } satisfies Record<SoundName, string>;
 
 /** 左下の効果音の試し聞き：一覧から選ぶとすぐ鳴る。「鳴らす」でもう一度 */

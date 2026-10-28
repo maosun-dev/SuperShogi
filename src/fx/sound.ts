@@ -27,7 +27,8 @@ type CardSoundName =
   | 'shakuhachi' // 対局の始まりの「開戦」
   | 'ote' // 王手
   // 王を取る・取られる演出（2026-10-25 仮の3案。素材の音）
-  | 'bakuhatsu' | 'bakuhatsu2' | 'iai' | 'daiken' | 'naguru' | 'slowWhoosh' | 'slowmo';
+  | 'bakuhatsu' | 'bakuhatsu2' | 'iai' | 'daiken' | 'naguru' | 'slowWhoosh' | 'slowmo'
+  | 'uchitottari'; // 大見得の声「傾奇者、討ち取ったりー」（2026-10-28 持ち主が録った声）
 
 export type MusicName = 'taikyoku' | 'taikyoku2' | 'sakura' | 'title';
 
@@ -110,6 +111,8 @@ export const SAMPLES: Partial<Record<SoundName, Sample>> = {
   naguru: { files: ['sfx/lic/naguru.mp3'], gain: 0.8 }, // ロボットを強く殴る（叩き割りの一撃）
   slowWhoosh: { files: ['sfx/lic/slowWhoosh.mp3'], gain: 0.7 }, // パンチの風切り音（スロー）
   slowmo: { files: ['sfx/lic/slowmo.mp3'], gain: 0.6 }, // スローモーション（頭2.6秒）
+  // 持ち主の声。「傾奇者」を0.82倍に伸ばして少し響かせ、間を詰め、「討ち取ったりー」は響き＋山びこ（エコー）。音圧を上げた（約4.1秒。ffmpeg で整えた）
+  uchitottari: { files: ['sfx/uchitottari.mp3'], gain: 1 },
 };
 
 /** 曲のファイルの返事を使ってよいか。200番台か、番号のない返事（iPhone アプリ）で中身があるとき */
@@ -134,6 +137,8 @@ export interface Sound {
   running(): boolean;
   /** 流す曲を決める（null で止める）。音が出せるようになるまでは待ち、出せるようになったら流す */
   music(name: MusicName | null): void;
+  /** いま鳴っている曲 name の位置（秒）。その曲が鳴っていなければ null（エンディングの場面を曲に合わせる） */
+  musicTime(name: MusicName): number | null;
   /** 裏へ回ったときに音を止める（音の仕組みを捨てる。戻ったら unlock で作り直す） */
   sleep(): void;
   /** 調べる用：音の仕組みの状態と時計（例「running t=12.34」）。時計が進まなければ固まっている */
@@ -404,6 +409,7 @@ const CARD_RECIPES: Record<CardSoundName, Recipe> = {
   naguru: (k, t, g) => BASE_RECIPES.drum(k, t, g),
   slowWhoosh: (k, t, g) => BASE_RECIPES.whoosh(k, t, 0.6 * g),
   slowmo: () => {}, // 合成の代わりはない
+  uchitottari: () => {}, // 声の代わりはない
 };
 const RECIPES: Record<SoundName, Recipe> = { ...BASE_RECIPES, ...CARD_RECIPES };
 
@@ -412,7 +418,7 @@ const SAMPLE_EXTRA: Partial<Record<SoundName, Recipe>> = {
   komaHard: (k, t, g) => tone(k, t, 160, 0.16, 0.45 * g, 90),
 };
 
-const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false, music() {}, sleep() {}, state: () => '音なし' };
+const silent: Sound = { unlock() {}, play() {}, setVolume() {}, running: () => false, music() {}, musicTime: () => null, sleep() {}, state: () => '音なし' };
 
 const MUSIC_FADE_IN = 1.2; // 秒
 const MUSIC_FADE_OUT = 0.25; // 時定数（秒）。約1秒で聞こえなくなる
@@ -549,6 +555,11 @@ export function createSound(): Sound {
     music(name) {
       wanted = name;
       syncMusic();
+    },
+    musicTime(name) {
+      if (!playing || !ctx || playing.name !== name) return null;
+      const { src, startedAt, offset } = playing;
+      return musicPosition(offset, ctx.currentTime - startedAt, src.loopStart, src.loopEnd);
     },
     sleep() {
       // iPhone のアプリは裏から戻ると AudioContext が固まり、触っても音が戻らないことがある（2026-10-26）。

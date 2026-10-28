@@ -12,7 +12,7 @@ import { getSound } from '../sound';
 import { freezeFrame, petalStorm, settleTaker, shockRing, sparks, takerAlong, type KingCapture } from './common';
 
 const NEAR_MS = 550;   // カメラが王へ寄る
-const SLOW_MS = 1900;  // 取る駒がゆっくり迫り、カメラが回り込む
+const SLOW_MS = 2700;  // 取る駒がゆっくり迫り、カメラが回り込む（声「傾奇者、討ち取ったりー」の長さに合わせる）
 const ORBIT = 1.5;     // 回り込む角度（ラジアン。約86度）
 const BLUR_PX = 7;     // まわりのぼかしの強さ
 const ZOOM_MS = 700;   // 取ったあと、取った駒へ寄り直す
@@ -21,12 +21,11 @@ const MIE_MS = 260;    // 傾いて止まるまで
 const HOLD_MS = 1300;  // 見得を見せる長さ（桜が舞う）
 const TAIL_MS = 500;   // 柝のあと
 
-/** ツケ打ち：バタ・バタ…バッタリ（録った音が無いので、太鼓を短く2つと強く1つで代える） */
+/** ツケ打ち：バタバタッ（録った tsuke）に、太鼓の「バッタリ」を重ねる */
 function tsuke(ctx: FxCtx): void {
   const s = getSound();
-  s.play('drum', { gain: 0.45 });
-  void ctx.wait(110).then(() => s.play('drum', { gain: 0.45 }));
-  void ctx.wait(330).then(() => s.play('drum', { gain: 1 }));
+  s.play('tsuke', { gain: 1 });
+  void ctx.wait(300).then(() => s.play('drum', { gain: 1 }));
 }
 
 /** 迫り方：ほとんどの間ゆっくり進み、最後の一瞬で一気に入る */
@@ -59,9 +58,10 @@ export async function oomie(ctx: FxCtx, k: KingCapture): Promise<void> {
   const up = new THREE.Vector3(0, 1, 0);
   const dir = ctx.me === 'sente' ? 1 : -1;
   speedLines(ctx, true);
-  // 溜めの音：スローに入る音、取る直前に風を切る音（2026-10-28 ユーザー「タメの音もほしい」）
-  getSound().play('slowmo', { gain: 0.9 });
-  void ctx.wait(SLOW_MS * 0.62).then(() => getSound().play('slowWhoosh', { gain: 0.9 }));
+  // 溜めの音：スローに入る音と声「傾奇者、討ち取ったりー」、取る直前に風を切る音（2026-10-28 ユーザーの頼みと録音）
+  getSound().play('slowmo', { gain: 0.45 });
+  getSound().play('uchitottari');
+  void ctx.wait(SLOW_MS * 0.86).then(() => getSound().play('slowWhoosh', { gain: 0.7 }));
   try {
     await ctx.tween(SLOW_MS, (t) => {
       if (k.taker && k.from) takerAlong(k, lastStep(t), 0.3);
