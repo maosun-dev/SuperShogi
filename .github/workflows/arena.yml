@@ -1,0 +1,93 @@
+# CPU 同士の対局を GitHub の計算機に分けて同時に指し、強さを測る（手元だと1時間かかるのを10分ほどに）。
+# 手元から node tools/arena/cloud.mjs で動かし、結果を取り寄せて数える。鍵（Secrets）は使わない。
+name: CPUの強さを測る
+
+on:
+  workflow_dispatch:
+    inputs:
+      matches:
+        description: '指す組み合わせ。「mode@seed」を空白で区切る（例：pair:kabuki:shihan@43 pair:shihan:oni@41）'
+        required: true
+      games:
+        description: '1つの組み合わせで指す局数'
+        default: '28'
+      scale:
+        description: '考える時間の倍率（1 が本番）'
+        default: '1'
+      per_job:
+        description: '1台の計算機で同時に指す局数（計算機は4コア）'
+        default: '4'
+      commit:
+        description: '測るコミット（空なら選んだブランチの最新）。直す前と比べるときに使う'
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        env:
+          MATCHES: ${{ inputs.matches }}
+          GAMES: ${{ inputs.games }}
+          PER_JOB: ${{ inputs.per_job }}
+        run: |
+          node -e '
+            const games = Number(process.env.GAMES), per = Number(process.env.PER_JOB);
+            const jobs = Math.ceil(games / per);
+            const include = [];
+            for (const m of process.env.MATCHES.trim().split(/\s+/)) {
+              const [mode, seed] = m.split("@");
+              if (!/^[a-z:]+$/.test(mode) || !/^\d+$/.test(seed)) throw new Error("組み合わせの書き方が違う: " + m);
+              for (let j = 0; j < jobs; j++) include.push({ mode, seed, job: j });
+            }
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, "matrix=" + JSON.stringify({ include }) + "\n");
+          '
+
+  play:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # この計算機の受け持ち：全体を (台数×per_job) 組に分けたうちの、job×per_job から per_job 組
+      - name: 対局
+        env:
+          MODE: ${{ matrix.mode }}
+          SEED: ${{ matrix.seed }}
+          JOB: ${{ matrix.job }}
+          GAMES: ${{ inputs.games }}
+          SCALE: ${{ inputs.scale }}
+          PER_JOB: ${{ inputs.per_job }}
+        run: |
+          JOBS=$(( (GAMES + PER_JOB - 1) / PER_JOB ))
+          SHARDS=$(( JOBS * PER_JOB ))
+          OUT="out/${MODE//:/-}-${SEED}-j${JOB}.jsonl"
+          mkdir -p out
+          for k in $(seq 0 $(( PER_JOB - 1 ))); do
+            npx vite-node tools/arena/arena.ts -- "$MODE" "$GAMES" $(( JOB * PER_JOB + k )) "$SHARDS" "$SEED" "$SCALE" \
+              | grep '^{' > "out/part-$k.jsonl" &
+          done
+          wait
+          cat out/part-*.jsonl > "$OUT"
+          rm out/part-*.jsonl
+          wc -l "$OUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: arena-${{ matrix.seed }}-${{ strategy.job-index }}
+          path: out/*.jsonl
+          retention-days: 7

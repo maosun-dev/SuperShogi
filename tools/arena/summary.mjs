@@ -9,12 +9,13 @@ console.log(`対局 ${recs.length}`);
 const draws = recs.filter((r) => r.winner === null).length;
 console.log(`引き分け ${draws}（${pct(draws, recs.length)}）  平均手数 ${(recs.reduce((n, r) => n + r.plies, 0) / Math.max(1, recs.length)).toFixed(0)}`);
 
-// 強さどうし
+// 強さどうし（弱い順）
+const ORDER = ['weak', 'normal', 'strong', 'oni', 'shihan', 'kabuki'];
 const pairs = new Map();
 for (const r of recs) {
   if (r.mode === 'cards') continue;
   const a = r.sente.level, b = r.gote.level;
-  const [lo, hi] = ['weak', 'normal', 'strong'].indexOf(a) < ['weak', 'normal', 'strong'].indexOf(b) ? [a, b] : [b, a];
+  const [lo, hi] = ORDER.indexOf(a) < ORDER.indexOf(b) ? [a, b] : [b, a];
   const key = `${hi} 対 ${lo}`;
   const e = pairs.get(key) ?? { n: 0, hiWin: 0, draw: 0 };
   e.n++;
