@@ -284,6 +284,28 @@ test('落とし穴への用心：王の前の最後の壁を空いたマスへ�
   expect(actionKey(wary.action)).not.toBe(push);
 });
 
+// 2026-10-29 録画2本目：相手の歩が自分の落とし穴の上に乗っていて、それを取った駒が落ちて王の筋が開いた
+function pitUnderFoePosition(): GameState {
+  const s = emptyState('sente');
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  put(s, { c: 4, r: 4 }, 'FU', 'sente');   // 王と相手の飛車の間の、ただ1枚の壁
+  put(s, { c: 5, r: 4 }, 'GI', 'sente');   // 取った先を守る
+  put(s, { c: 4, r: 3 }, 'FU', 'gote');    // ただで取れる歩（この下に穴があるかもしれない）
+  put(s, { c: 4, r: 0 }, 'HI', 'gote');
+  put(s, { c: 0, r: 0 }, 'OU', 'gote');
+  giveCard(s, 'gote', 'otoshiana');
+  s.traps.push({ uid: s.nextId++, owner: 'gote', cardId: null, at: null });
+  return s;
+}
+
+test('落とし穴への用心：相手の駒が乗ったマスでも、取ると穴に落ちることがある', () => {
+  const take = 'm4443';
+  const plain = search(pitUnderFoePosition(), 'sente', { ...BASE, maxDepth: 2, noise: 0 });
+  expect(actionKey(plain.action)).toBe(take);
+  const wary = search(pitUnderFoePosition(), 'sente', { ...BASE, maxDepth: 2, noise: 0, pitCaution: true });
+  expect(actionKey(wary.action)).not.toBe(take);
+});
+
 test('落とし穴への用心：相手の持ち込みに落とし穴が無ければ用心しない', () => {
   const s = pitTrapPosition();
   s.players.gote.cards = [];

@@ -90,12 +90,12 @@ function pitPossible(s: GameState, side: Side): boolean {
     && s.players[foe].cards.some(c => c.cardId === 'otoshiana' && !c.used);
 }
 
-// その手で空いたマスへ入った駒が落とし穴で消えたら、自分の王が相手の駒にむき出しになるか
-// （2026-10-29 傾奇者が王の前の最後の壁の歩を進めて穴に落とし、飛車に王を取られた）
+// その手で入ったマスの駒が落とし穴で消えたら、自分の王が相手の駒にむき出しになるか
+// （2026-10-29 傾奇者が王の前の最後の壁の歩を進めて穴に落とし、飛車に王を取られた）。
+// 穴を伏せた側の駒は自分の穴に乗れるので、相手の駒を取る手も落ちることがある（同じ日の録画2本目）
 function pitExposesKing(s: GameState, a: Action, child: GameState): boolean {
   if (a.type === 'card') return false;
   const to = a.to;
-  if (s.board[idx(to)]) return false;                                   // 取る手：駒のいたマスに穴は無い
   if (a.type === 'move' && s.board[idx(a.from)]?.kind === 'OU') return false; // 王は穴に落ちない
   const side = s.turn;
   if (isInCheck(child, side)) return false;                             // 穴が無くても王がむき出し（読みで分かる）
