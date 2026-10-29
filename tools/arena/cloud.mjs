@@ -31,6 +31,13 @@ function gh(...a) {
   return r.stdout.trim();
 }
 
+// 短いコミット番号は GitHub 側で取り出せないので、手元で完全な番号にしておく
+if (opt.commit) {
+  const r = spawnSync('git', ['rev-parse', '--verify', `${opt.commit}^{commit}`], { encoding: 'utf8', cwd: here });
+  if (r.status !== 0) throw new Error(`コミットが見つからない: ${opt.commit}`);
+  opt.commit = r.stdout.trim();
+}
+
 // 1. 動かす
 const since = Date.now() - 5_000;
 gh('workflow', 'run', 'arena.yml', '-R', REPO, '--ref', 'main',
