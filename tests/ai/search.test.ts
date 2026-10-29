@@ -262,3 +262,32 @@ test('成りを読みの外へ押し出すだけの捨て歩は打たない（�
   });
   expect(actionKey(r.action)).not.toBe('dFU12');
 });
+
+// 2026-10-29 ユーザーの録画：傾奇者が、王の前の最後の壁の歩を進めて伏せた落とし穴に落とし、飛車に王を取られた
+function pitTrapPosition(): GameState {
+  const s = emptyState('sente');
+  put(s, { c: 4, r: 8 }, 'OU', 'sente');
+  put(s, { c: 4, r: 3 }, 'FU', 'sente');   // 王と相手の飛車の間の、ただ1枚の壁。進めれば成れる
+  put(s, { c: 5, r: 3 }, 'GI', 'sente');   // 成った先を守る
+  put(s, { c: 4, r: 0 }, 'HI', 'gote');
+  put(s, { c: 0, r: 0 }, 'OU', 'gote');
+  giveCard(s, 'gote', 'otoshiana');
+  s.traps.push({ uid: s.nextId++, owner: 'gote', cardId: null, at: null }); // 場所も中身も見えない伏せ札
+  return s;
+}
+
+test('落とし穴への用心：王の前の最後の壁を空いたマスへ進めない（pitCaution のときだけ）', () => {
+  const push = 'm4342+';
+  const plain = search(pitTrapPosition(), 'sente', { ...BASE, maxDepth: 2, noise: 0 });
+  expect(actionKey(plain.action)).toBe(push);
+  const wary = search(pitTrapPosition(), 'sente', { ...BASE, maxDepth: 2, noise: 0, pitCaution: true });
+  expect(actionKey(wary.action)).not.toBe(push);
+});
+
+test('落とし穴への用心：相手の持ち込みに落とし穴が無ければ用心しない', () => {
+  const s = pitTrapPosition();
+  s.players.gote.cards = [];
+  giveCard(s, 'gote', 'aiuchi');
+  const r = search(s, 'sente', { ...BASE, maxDepth: 2, noise: 0, pitCaution: true });
+  expect(actionKey(r.action)).toBe('m4342+');
+});

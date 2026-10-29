@@ -23,6 +23,7 @@ export interface SearchOptions {
   preferBonus?: number;
   smartEval?: boolean;   // 末端の点に賢くした見方（駒の置き場所・囲い・王の逃げ道）を足す
   cardKeep?: number;     // 使っていない札の値打ちの倍率（大きいほど札を温存し、ここぞで使う）
+  pitCaution?: boolean;  // 相手が落とし穴を伏せていそうなとき、王の前の最後の壁の駒を空いたマスへ進めない（根の手だけ）
   seed: number;
   now?: () => number;    // 既定は Date.now（テストで差し替える）
 }
@@ -37,6 +38,7 @@ const CONTEMPT = 150;             // 同じ局面に戻る（千日手へ向か�
 const DROP_NEAR_FOE = 2;          // 根より下では、相手の王からこのマス数以内に打つ手だけ読む
 const DROP_NEAR_ME = 1;           // …または自分の王の隣
 export const CARD_CANDIDATES_PER_CARD = 3; // 1枚のカードから候補に残す行動の数の上限
+export const PIT_CAUTION = 1500;  // 落とし穴に落ちたら王がむき出しになる手の損（歩15枚ぶん。よほど得でなければ選ばない）
 
 // 読みの中の適用：王手の知らせは使わないので作らない
 const QUIET = { quiet: true };
@@ -79,6 +81,27 @@ function blockSquares(s: GameState, side: Side): Set<number> {
 
 function victimValue(kind: PieceKind): number {
   return kind === 'OU' ? KING_VICTIM : PIECE_VALUE[kind];
+}
+
+// 相手が落とし穴を伏せているかもしれない：場所も中身も見えない伏せ札があり、相手の持ち込みに落とし穴がある
+function pitPossible(s: GameState, side: Side): boolean {
+  const foe = opponent(side);
+  return s.traps.some(t => t.owner === foe && t.cardId === null)
+    && s.players[foe].cards.some(c => c.cardId === 'otoshiana' && !c.used);
+}
+
+// その手で空いたマスへ入った駒が落とし穴で消えたら、自分の王が相手の駒にむき出しになるか
+// （2026-10-29 傾奇者が王の前の最後の壁の歩を進めて穴に落とし、飛車に王を取られた）
+function pitExposesKing(s: GameState, a: Action, child: GameState): boolean {
+  if (a.type === 'card') return false;
+  const to = a.to;
+  if (s.board[idx(to)]) return false;                                   // 取る手：駒のいたマスに穴は無い
+  if (a.type === 'move' && s.board[idx(a.from)]?.kind === 'OU') return false; // 王は穴に落ちない
+  const side = s.turn;
+  if (isInCheck(child, side)) return false;                             // 穴が無くても王がむき出し（読みで分かる）
+  const gone = { ...child, board: child.board.slice() };
+  gone.board[idx(to)] = null;
+  return isInCheck(gone, side);
 }
 
 // 行動を見分ける短い文字列
@@ -351,6 +374,9 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
 
   let partial = null as { action: Action; score: number } | null; // 深さ1の途中結果
 
+  // 落とし穴に用心するか（強さの設定があり、相手が穴を伏せていそうなとき）
+  const wary = !!opts.pitCaution && pitPossible(root, side);
+
   // 根：前の深さで一番だった手を先頭にして、すべての候補を読む
   function rootSearch(depth: number, prevBest: Action | null): { action: Action; score: number } {
     tick();
@@ -364,8 +390,10 @@ export function search(view: GameState, side: Side, opts: SearchOptions): Search
     for (const c of cands) {
       const child = c.child ?? applyActionUnchecked(root, c.a, QUIET).state;
       const d = childDepth(root, child, depth, 0);
-      // 勧める手は点を足して比べるので、窓もそのぶん下げて読む（足す前の点が正しく出るように）
-      const bonus = opts.prefer !== undefined && c.key === opts.prefer ? opts.preferBonus ?? 0 : 0;
+      // 勧める手は点を足して比べるので、窓もそのぶん下げて読む（足す前の点が正しく出るように）。
+      // 落とし穴に落ちたら王がむき出しになる手は、同じやり方で点を引いて比べる
+      const bonus = (opts.prefer !== undefined && c.key === opts.prefer ? opts.preferBonus ?? 0 : 0)
+        - (wary && pitExposesKing(root, c.a, child) ? PIT_CAUTION : 0);
       const v = childScore(root, child, alpha - bonus, Infinity, (n, al, be) => negamax(n, d, al, be, 1));
       if (v + bonus > bestScore) {
         bestScore = v + bonus;

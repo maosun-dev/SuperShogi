@@ -60,15 +60,17 @@ export const LEVELS: Record<Level, LevelConfig> = {
   // 2026-10 の札の直しで押し返しの風（2になった）を外した
   shihan: {
     maxDepth: 8, timeLimitMs: 4000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0,
-    joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true,
+    joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true, pitCaution: true,
     deck: ['kagami', 'narifuuji', 'hagane', 'itetsuku', 'hikijin'],
   },
-  // 傾奇者：勝ちやすい札からくじ。最後の相手。序盤は定跡。
+  // 師範・傾奇者は、相手が落とし穴を伏せていそうなとき王の前の最後の壁を進めない（pitCaution。2026-10-29 ユーザーの録画で、
+// 傾奇者が開戦30手ほどで穴に歩を落として飛車に王を取られた。序幕は決め技として残す）
+// 傾奇者：勝ちやすい札からくじ。最後の相手。序盤は定跡。
   // 全18枚からのくじでは師範に約55%（2026-10-28）。札ごとの「入れた側の勝率」の上のほうから選び、
   // 師範の鏡の結界に打ち消されやすい重い纏札（鋼の鎧・韋駄天）は外す。コストが余ればコスト1の札で埋める
   kabuki: {
     maxDepth: 8, timeLimitMs: 5000, qDepth: 6, cardPlies: 2, cardWidth: 8, noise: 4, blunder: 0, cardKeep: 2,
-    joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true,
+    joseki: true, preferBonus: JOSEKI_BONUS, smartEval: true, pitCaution: true,
     deck: [],
     kuji: ['tenma', 'migawari', 'irekae', 'yobimodoshi', 'narifuuji', 'otoshiana', 'aiuchi'],
     kujiFill: ['oshikaeshi', 'itetsuku', 'hikijin'],
