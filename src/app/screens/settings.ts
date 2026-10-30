@@ -242,10 +242,10 @@ export function settingsScreen(): Screen {
         endSec.append(el('h2', '', '幕切れ'), endSeg, el('p', 'note', '傾奇者を倒したあとのエンディングを、もう一度流します'));
       }
 
-      // ---- 実況・配信：配信者が迷わないよう、畳まずに出す。朱の「御免」（お許しが出ている）の判を添える ----
+      // ---- 実況・配信：配信者が迷わないよう、畳まずに出す。朱の「歓迎」の判を添える ----
       const streamSec = el('section', 'set-item stream-ok');
       const streamHead = el('h2');
-      const gomen = el('span', 'gomen', '御免');
+      const gomen = el('span', 'gomen', '歓迎');
       gomen.setAttribute('aria-hidden', 'true');
       streamHead.append(document.createTextNode('実況・配信'), gomen);
       streamSec.append(streamHead,

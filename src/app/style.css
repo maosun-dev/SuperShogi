@@ -2405,6 +2405,8 @@ input:focus-visible {
 
   /* 札の名前の帯・決着の筆文字・知らせ・集中線は、盤の列の幅に収める（左右の列にかぶせない） */
   .match .fx-cutin, .match .fx-brush, .match .fx-notice, .match .fx-lines { left: var(--left-w); right: var(--right-w); }
+  /* 筆文字の段は層の大きさに合わせる（横に広いと字の幅から段が画面より高くなり、字が下へずれるため） */
+  .match .fx-brush { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
 
   /* 手札が7枚以上なら札を小さくして4枚ずつ並べ、スクロールせずに全部見せる */
   .match .mine-area > .hand:has(> .card:nth-child(7)) { gap: 8px; }
@@ -2460,7 +2462,7 @@ input:focus-visible {
   .zukan .row { gap: 12px; }
 }
 }
-/* 設定の「実況・配信」：見出しの横に朱の判「御免」（天下御免＝お許しが出ている） */
+/* 設定の「実況・配信」：見出しの横に朱の判「歓迎」 */
 .stream-ok h2 { display: flex; align-items: center; gap: 10px; }
 .stream-ok .gomen {
   display: inline-grid;
