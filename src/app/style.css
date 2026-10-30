@@ -2412,3 +2412,26 @@ input:focus-visible {
   .match { --ui-z: 1.35; --left-w: calc(220px * var(--ui-z)); --right-w: calc(300px * var(--ui-z)); }
   .match .side, .match .mine-area > .hand, .match .card-panel, .match .detail { zoom: var(--ui-z); }
 }
+/* 広い画面の札選び：札の一覧を左に大きく、持ち込みの札と駒落ち・決めるボタンは右の列へ（スクロールせずに選べるように） */
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  #app:has(> .deckb) { max-width: 1040px; }
+  .deckb {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+  .deckb > .page-head { grid-column: 1 / -1; }
+  .deckb > .cost-meter, .deckb > .msg, .deckb > .rows { grid-column: 1; }
+  .deckb > .deck-foot {
+    grid-column: 2;
+    grid-row: 2 / -1;
+    overflow-y: auto;
+    padding: 12px 18px;
+    border-top: 0;
+    border-left: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent);
+  }
+  /* 持ち込みの札は折り返して並べる */
+  .deckb .deck-foot .strip { flex-wrap: wrap; overflow-x: visible; }
+  .deckb .row { flex-wrap: wrap; gap: 12px; overflow-x: visible; padding: 14px 16px 8px; }
+  .deckb .pick .card { --s: .95; }
+}
