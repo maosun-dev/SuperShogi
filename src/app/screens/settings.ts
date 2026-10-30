@@ -1,5 +1,5 @@
 // 設定：舞台（背景）の選び、背景の動き「多め／少なめ」、演出の長さ「短め／長め」、音の大きさのつまみ、対局の曲（試聴つき）、王を取る演出（仮の3案）、
-// いちばん下に名の由来（「傾」と傾奇者）とクレジット（字体・部品と約束。全文は押すと開く）。
+// いちばん下に名の由来（「傾」と傾奇者）と実況・配信の許しとクレジット（字体・部品と約束。全文は押すと開く）。
 // 変えたらすぐ保存し、すぐ効かせる（音は setVolume、演出の長さは演出役が毎回設定を読み直す）。
 import { getSound, type MusicName } from '../../fx/sound';
 import { MATCH_TRACKS, MATCH_TRACK_LABEL } from '../music';
@@ -242,6 +242,16 @@ export function settingsScreen(): Screen {
         endSec.append(el('h2', '', '幕切れ'), endSeg, el('p', 'note', '傾奇者を倒したあとのエンディングを、もう一度流します'));
       }
 
+      // ---- 実況・配信：配信者が迷わないよう、畳まずに出す。朱の「御免」（お許しが出ている）の判を添える ----
+      const streamSec = el('section', 'set-item stream-ok');
+      const streamHead = el('h2');
+      const gomen = el('span', 'gomen', '御免');
+      gomen.setAttribute('aria-hidden', 'true');
+      streamHead.append(document.createTextNode('実況・配信'), gomen);
+      streamSec.append(streamHead,
+        el('p', '', 'このゲームの実況・配信・動画の投稿は自由です。収益化もかまいません。連絡も要りません。'),
+        el('p', '', '曲はすべて Suno の有料プランで作ったもので、配信や動画にそのまま使えます。'));
+
       // ---- クレジット：ふだんは見出しだけ。押すと字体・部品の名前と作り手、約束が開く（全文はさらに中で畳む） ----
       const crSec = el('section', 'set-item credits');
       const crBox = el('details', 'credit-box');
@@ -265,7 +275,7 @@ export function settingsScreen(): Screen {
       const sheet = el('div', 'sheet');
       sheet.append(stSec, mvSec, fxSec, volSec, bgSec, kfSec, nameSec);
       if (endSec.childElementCount > 0) sheet.append(endSec);
-      sheet.append(crSec);
+      sheet.append(streamSec, crSec);
       box.append(pageHead('設定', 'title'), sheet);
       root.append(box);
     },
