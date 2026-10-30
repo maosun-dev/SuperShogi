@@ -8,6 +8,12 @@ describe('背景の絵', () => {
     expect(layerUrl('/', 'ukiyoe', 'mid')).toBe('/stages/ukiyoe/mid.webp');
     expect(layerUrl('./', 'kabuki', 'thumb')).toBe('./stages/kabuki/thumb.webp');
   });
+  it('横長の画面では横長の絵（-wide）を読む。設定の見本は縦長のまま', () => {
+    expect(layerUrl('/', 'ukiyoe', 'back', true)).toBe('/stages/ukiyoe/back-wide.webp');
+    expect(layerUrl('/', 'byobu', 'front', true)).toBe('/stages/byobu/front-wide.webp');
+    expect(layerUrl('./', 'kabuki', 'thumb', true)).toBe('./stages/kabuki/thumb.webp');
+    expect(layerUrl('/', 'ukiyoe', 'mid', false)).toBe('/stages/ukiyoe/mid.webp');
+  });
   it('ずれは奥ほど小さく、手前ほど大きい。入力は -1〜1 に丸める', () => {
     expect(parallaxShift('back', 1, 0)).toEqual({ x: 0, y: 0 });
     const mid = parallaxShift('mid', 1, -1);

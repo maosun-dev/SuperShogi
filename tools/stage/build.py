@@ -11,6 +11,8 @@ import bpy
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'stages')
 W, H = 810, 1440           # 縦長の絵（スマホの画面に合わせる。iPhone の幅 430 の約2倍）
 W_FULL, H_FULL = W, H      # 置き場所の計算に使う縦横比（荒く描くときも変えない）
+SX = 1.0                   # 横長の絵のとき、横に敷く板をどれだけ広げるか（縦長の絵の幅の何倍見えるか）
+SUFFIX = ''                # 横長の絵は back-wide.webp のように名前に付ける
 SAMPLES = 20
 SUMI = '#1D1A17'
 
@@ -266,10 +268,11 @@ def render(sc, path, show, transparent, w=None, h=None):
 def write_all(sc, name):
     d = os.path.join(OUT, name)
     os.makedirs(d, exist_ok=True)
-    render(sc, os.path.join(d, 'back.webp'), {'back'}, False)
-    render(sc, os.path.join(d, 'mid.webp'), {'mid'}, True)
-    render(sc, os.path.join(d, 'front.webp'), {'front'}, True)
-    render(sc, os.path.join(d, 'thumb.webp'), {'back', 'mid', 'front'}, False, 270, 480)
+    render(sc, os.path.join(d, f'back{SUFFIX}.webp'), {'back'}, False)
+    render(sc, os.path.join(d, f'mid{SUFFIX}.webp'), {'mid'}, True)
+    render(sc, os.path.join(d, f'front{SUFFIX}.webp'), {'front'}, True)
+    if not SUFFIX:   # 設定の見本は縦長のものだけ
+        render(sc, os.path.join(d, 'thumb.webp'), {'back', 'mid', 'front'}, False, 270, 480)
 
 
 # ---------- 歌舞伎の舞台 ----------
@@ -287,25 +290,37 @@ def disc(layer, m, loc, r):
     return keep(bpy.context.object, layer, m)
 
 
+def spread(base, lo, hi, k):
+    """縦長の絵では base のまま。横長の絵では lo〜hi に k 個を等しく並べる（横に広がってまばらにならないように）"""
+    if SX == 1:
+        return base
+    return [lo + (hi - lo) * i / (k - 1) for i in range(k)]
+
+
+def left_u(u):
+    """左端から測った位置を、横長の絵でも縦長の絵と同じ大きさに保つ（左上の枝などの形を崩さない）"""
+    return -1 + (u + 1) / SX
+
+
 def kabuki():
     sc = reset()
     world_color(sc, '#6A4A30', 0.5)
     # 奥：定式幕（黒・柿・萌葱）。ひだを付けた布。少し自ら光らせて沈ませない
-    curtain = plane('back', stripes('joshiki', ['#26201B', '#A9542A', '#3D6E3A'], 0.85, emit=0.04), -6, 6, -1.6, 8, 3.0, cuts=60)
+    curtain = plane('back', stripes('joshiki', ['#26201B', '#A9542A', '#3D6E3A'], 0.85, emit=0.04), -6 * SX, 6 * SX, -1.6, 8, 3.0, cuts=int(60 * SX))
     fold(curtain, 0.16, 7.0)
     # 上の一文字幕：紅に金の縁と、白抜きの紋（丸）
     _, _, z0 = scr(0, 0.62, 2.4)
-    plane('back', mat('ichimonji', '#C21F37', 0.7, emit=0.1), -6, 6, z0, 8, 2.4)
-    plane('back', mat('kin_fuchi', '#E2B24A', 0.35, 0.8), -6, 6, z0 - 0.22, z0, 2.35)
+    plane('back', mat('ichimonji', '#C21F37', 0.7, emit=0.1), -6 * SX, 6 * SX, z0, 8, 2.4)
+    plane('back', mat('kin_fuchi', '#E2B24A', 0.35, 0.8), -6 * SX, 6 * SX, z0 - 0.22, z0, 2.35)
     mon = mat('mon', '#F6EEDC', 0.6, emit=0.2)
     naka = mat('mon_naka', '#C21F37', 0.6)
-    for u in (-0.6, 0.0, 0.6):
+    for u in spread([-0.6, 0.0, 0.6], -0.7, 0.7, 7):
         x, y, z = scr(u, 0.8, 2.3)
         disc('back', mon, (x, y, z), 0.42)
         disc('back', naka, (x, y - 0.01, z), 0.26)
     # 床：明るい檜の板（奥へ向かう板目）
-    floor('back', stripes('hinoki', ['#EBCB93', '#E2BE80', '#EFD3A1', '#DDB577'], 0.55), -9, 9, -14, 3.2, -1.6)
-    plane('back', mat('kage', '#3A2618', 0.9), -6, 6, -1.6, -1.4, 2.9)
+    floor('back', stripes('hinoki', ['#EBCB93', '#E2BE80', '#EFD3A1', '#DDB577'], 0.55), -9 * SX, 9 * SX, -14, 3.2, -1.6)
+    plane('back', mat('kage', '#3A2618', 0.9), -6 * SX, 6 * SX, -1.6, -1.4, 2.9)
     # 中：両脇の柱（黒漆と金具）と、一文字幕の下に吊る提灯の列
     for u in (-0.93, 0.93):
         x, y, _ = scr(u, 0, 0.5)
@@ -315,7 +330,7 @@ def kabuki():
     chochin = mat('chochin', '#FBF1DA', 0.5, emit=2.2)
     wa = mat('chochin_wa', '#1D1A17', 0.5)
     obi = mat('chochin_obi', '#C21F37', 0.6)
-    for i, u in enumerate([-0.72, -0.43, -0.14, 0.14, 0.43, 0.72]):
+    for i, u in enumerate(spread([-0.72, -0.43, -0.14, 0.14, 0.43, 0.72], -0.82, 0.82, 14)):
         x, y, z = scr(u, 0.5 - (0.03 if i % 2 else 0), 1.0)
         cyl('mid', chochin, (x, y, z), 0.26, 0.6)
         for dz in (-0.33, 0.33):
@@ -324,20 +339,20 @@ def kabuki():
         cyl('mid', wa, (x, y, z + 0.7), 0.012, 0.75, verts=6)
     # 手前：左上から垂れる梅の枝と、下の舞台の縁（黒い框に金の鋲）
     eda = mat('ume_eda', '#2A1B12', 0.8)
-    pts = [scr(-1.1, 1.05, -5.0), scr(-0.75, 0.88, -5.0), scr(-0.45, 0.93, -5.0), scr(-0.15, 0.8, -5.0)]
+    pts = [scr(left_u(-1.1), 1.05, -5.0), scr(left_u(-0.75), 0.88, -5.0), scr(left_u(-0.45), 0.93, -5.0), scr(left_u(-0.15), 0.8, -5.0)]
     for p0, p1 in zip(pts, pts[1:]):
         seg('front', eda, p0, p1, 0.05)
-    seg('front', eda, scr(-0.75, 0.88, -5.0), scr(-0.6, 0.74, -5.0), 0.035)
+    seg('front', eda, scr(left_u(-0.75), 0.88, -5.0), scr(left_u(-0.6), 0.74, -5.0), 0.035)
     hana = mat('ume', '#E07A96', 0.5)
     shin = mat('ume_shin', '#E2B24A', 0.4, 0.6)
     for (u, v) in [(-0.9, 0.95), (-0.68, 0.9), (-0.52, 0.97), (-0.36, 0.86), (-0.6, 0.76), (-0.2, 0.83), (-0.82, 0.83)]:
-        x, y, z = scr(u, v, -5.1)
+        x, y, z = scr(left_u(u), v, -5.1)
         blob('front', hana, (x, y, z), (0.12, 0.05, 0.12), seg=12)
         blob('front', shin, (x, y - 0.05, z), (0.035, 0.02, 0.035), seg=8)
     _, y, z = scr(0, -0.97, -4.0)
-    box('front', mat('kamachi', '#2A1C14', 0.35), (0, y, z), (14, 0.4, 0.36))
+    box('front', mat('kamachi', '#2A1C14', 0.35), (0, y, z), (14 * SX, 0.4, 0.36))
     byo = mat('byo', '#E2B24A', 0.3, 0.9)
-    for u in (-0.8, -0.4, 0.0, 0.4, 0.8):
+    for u in spread([-0.8, -0.4, 0.0, 0.4, 0.8], -0.9, 0.9, 13):
         bx, by, bz = scr(u, -0.97, -4.25)
         blob('front', byo, (bx, by, bz), (0.07, 0.04, 0.07), seg=10)
     # 光：上からのスポットライト（中央を明るく）と、客席からの明るい光
@@ -353,7 +368,7 @@ def ukiyoe():
     sc = reset()
     world_color(sc, '#D8EEF4', 0.9)
     # 奥：天の藍から浅葱、地平の生成りへ抜ける空（板のたては y の -11.5〜11.5）
-    plane('back', gradient_sky('sora', [(0.0, '#F6EEDB'), (0.35, '#CDEAF0'), (0.62, '#7CC0DE'), (0.86, '#3576B4'), (1.0, '#24508E')], -11.5, 11.5), -12, 12, -9, 14, 6.0)
+    plane('back', gradient_sky('sora', [(0.0, '#F6EEDB'), (0.35, '#CDEAF0'), (0.62, '#7CC0DE'), (0.86, '#3576B4'), (1.0, '#24508E')], -11.5, 11.5), -12 * SX, 12 * SX, -9, 14, 6.0)
     # 紅の日輪（右上）
     disc('back', mat('hi', '#D7263D', 0.5, emit=1.0), scr(0.48, 0.66, 5.5), 0.9)
     # 遠くの山（白い頂）：画面の下寄りに小さく
@@ -368,6 +383,11 @@ def ukiyoe():
     def cloud(layer, u, v, y, n, wu, s=1.0):
         cx, cy, cz = scr(u, v, y)
         w = wu * scr(1, 0, y)[0]
+        # 横長の絵：横いっぱいの雲の帯は玉を増やしてつなげ、小さな雲は縦長の絵と同じ幅に保つ（玉がばらけないように）
+        if wu >= 2:
+            n = round(n * SX)
+        else:
+            w /= SX
         for i in range(n):
             t = i / max(1, n - 1)
             k = (0.5 + 0.35 * math.sin(t * math.pi)) * s
@@ -398,13 +418,14 @@ def byobu():
     sc = reset()
     world_color(sc, '#E8DDC4', 0.55)
     # 奥：壁と、上の長押・欄間（黒い木の格子）
-    plane('back', mat('kabe', '#E6D8B8', 0.95), -9, 9, -1.6, 9, 4.2)
+    plane('back', mat('kabe', '#E6D8B8', 0.95), -9 * SX, 9 * SX, -1.6, 9, 4.2)
     _, _, ztop = scr(0, 0.62, 4.0)
-    box('back', mat('nageshi', '#2A1B12', 0.5), (0, 4.0, ztop), (14, 0.3, 0.3))
+    box('back', mat('nageshi', '#2A1B12', 0.5), (0, 4.0, ztop), (14 * SX, 0.3, 0.3))
     koshi = mat('ranma', '#3A2A1C', 0.5)
-    for i in range(-8, 9):
+    n = int(8 * SX)
+    for i in range(-n, n + 1):
         box('back', koshi, (i * 0.45, 4.05, ztop + 0.9), (0.06, 0.06, 1.5))
-    box('back', koshi, (0, 4.05, ztop + 1.65), (14, 0.08, 0.1))
+    box('back', koshi, (0, 4.05, ztop + 1.65), (14 * SX, 0.08, 0.1))
     # 六曲の金屏風（折れ目でジグザグ）
     kin = mat('kinpaku', '#D9AE3C', 0.3, 0.9)
     waku = mat('waku', '#1D1A17', 0.4)
@@ -422,11 +443,11 @@ def byobu():
     for (x, z, s) in [(-1.1, 1.9, 0.75), (0.5, 2.25, 0.85), (-2.9, 2.45, 0.6), (1.7, 1.95, 0.6), (-0.3, 2.75, 0.5), (2.4, 1.6, 0.45)]:
         blob('back', ha, (x, 2.35, z), (s, 0.12, s * 0.45))
     # 床：畳（い草の色）と黒い縁
-    floor('back', stripes('igusa', ['#CFC98F', '#C6C084'], 0.06, axis=0), -9, 9, -14, 2.4, -1.6)
+    floor('back', stripes('igusa', ['#CFC98F', '#C6C084'], 0.06, axis=0), -9 * SX, 9 * SX, -14, 2.4, -1.6)
     heri = mat('heri', '#22301F', 0.7)
     for y in (-8.0, -4.0, 0.0):
-        box('back', heri, (0, y, -1.58), (18, 0.14, 0.02))
-    for x in (-4.0, 0.0, 4.0):
+        box('back', heri, (0, y, -1.58), (18 * SX, 0.14, 0.02))
+    for x in [4.0 * k for k in range(-int(2 * SX), int(2 * SX) + 1)]:
         box('back', heri, (x, -5.0, -1.58), (0.14, 14, 0.02))
     # 中：左の床柱（白木）
     x, y, _ = scr(-0.95, 0, 1.0)
@@ -434,8 +455,8 @@ def byobu():
     # 手前：上から下がる簾（細い竹の横縞）と、紅の房
     _, y, z0 = scr(0, 0.86, -5.0)
     _, _, z1 = scr(0, 1.05, -5.0)
-    plane('front', stripes('sudare', ['#C9A86C', '#A88650'], 0.045, axis=1), -3, 3, z0, z1, y)
-    box('front', mat('sudare_fuchi', '#2A1B12', 0.5), (0, y - 0.02, z0), (6, 0.04, 0.08))
+    plane('front', stripes('sudare', ['#C9A86C', '#A88650'], 0.045, axis=1), -3 * SX, 3 * SX, z0, z1, y)
+    box('front', mat('sudare_fuchi', '#2A1B12', 0.5), (0, y - 0.02, z0), (6 * SX, 0.04, 0.08))
     fusa = mat('fusa', '#B0172E', 0.6)
     tama = mat('fusa_tama', '#E2B24A', 0.3, 0.8)
     for u in (-0.55, 0.55):
@@ -451,9 +472,17 @@ def byobu():
 if __name__ == '__main__':
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
     which = argv or ['kabuki', 'ukiyoe', 'byobu']
+    # 横長の絵（パソコンの広い画面用）：16:9 で描き、back-wide.webp などに書き出す
+    if '--wide' in which:
+        W, H = 1920, 1080
+        W_FULL, H_FULL = W, H
+        SX = (W / H) / (810 / 1440)
+        SUFFIX = '-wide'
+        which = [w for w in which if w != '--wide']
     if '--fast' in which:
-        SAMPLES, W, H = 8, 270, 480
-        which = [w for w in which if w != '--fast'] or ['kabuki', 'ukiyoe', 'byobu']
+        SAMPLES, W, H = 8, W // 3, H // 3
+        which = [w for w in which if w != '--fast']
+    which = which or ['kabuki', 'ukiyoe', 'byobu']
     for name in which:
         {'kabuki': kabuki, 'ukiyoe': ukiyoe, 'byobu': byobu}[name]()
         print('書き出しました', name)

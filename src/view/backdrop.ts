@@ -9,9 +9,13 @@ export const LAYERS: Layer[] = ['back', 'mid', 'front'];
 // 層ごとのずれの大きさ（px）。奥は動かさない
 const DEPTH: Record<Layer, number> = { back: 0, mid: 7, front: 16 };
 
-export function layerUrl(base: string, stage: StageId, layer: Layer | 'thumb'): string {
-  return `${base}stages/${stage}/${layer}.webp`;
+/** 絵の場所。wide なら横長の画面用の絵（back-wide.webp など）。設定の見本（thumb）は縦長だけ */
+export function layerUrl(base: string, stage: StageId, layer: Layer | 'thumb', wide = false): string {
+  return `${base}stages/${stage}/${layer}${wide && layer !== 'thumb' ? '-wide' : ''}.webp`;
 }
+
+/** 横長の画面か（縦長の絵を引き伸ばすとぼやけるので、横長の絵に替える） */
+const WIDE_QUERY = '(min-aspect-ratio: 1/1)';
 
 const clamp1 = (v: number): number => Math.max(-1, Math.min(1, v));
 
@@ -46,10 +50,16 @@ export function mountBackdrop(parent: HTMLElement, stage: StageId, motion: 'full
   parent.prepend(box);
 
   const base = import.meta.env.BASE_URL;
+  let current = stage;
+  const wideMq = matchMedia(WIDE_QUERY);
   const setStage = (id: StageId): void => {
-    for (const { layer, img } of imgs) img.src = layerUrl(base, id, layer);
+    current = id;
+    for (const { layer, img } of imgs) img.src = layerUrl(base, id, layer, wideMq.matches);
   };
   setStage(stage);
+  // 窓の形が縦長↔横長に変わったら絵を替える
+  const onShape = (): void => setStage(current);
+  wideMq.addEventListener('change', onShape);
 
   // 入力：指（マウス）の位置。動かしていないときは時間でゆっくり揺らす
   let mode = motion;
@@ -99,6 +109,6 @@ export function mountBackdrop(parent: HTMLElement, stage: StageId, motion: 'full
       mode = m;
       if (m === 'full') start(); else stop();
     },
-    destroy() { stop(); box.remove(); },
+    destroy() { stop(); wideMq.removeEventListener('change', onShape); box.remove(); },
   };
 }

@@ -108,9 +108,24 @@ export function levelScreen(): Screen {
       }
       render();
 
+      // ---- 広い画面：幕を切り替えず、序幕と大詰を左右に並べて全部見せる（狭い画面では CSS で隠す） ----
+      const both = el('div', 'level-both');
+      for (const { act: a, name, sub } of ACTS) {
+        const col = el('section', `level-col ${a}`);
+        const head = el('div', 'level-col-head');
+        const n = el('span', 'act-name');
+        writeKouzan(n, name);
+        head.append(n, el('span', 'act-sub', sub));
+        const colList = el('div', 'level-list');
+        colList.dataset.act = a;
+        colList.append(...actLevels(a).map(fuda));
+        col.append(head, colList);
+        both.append(col);
+      }
+
       const foot = el('div', 'level-keiko');
       foot.append(kb);
-      box.append(pageHead('強さ選び', 'title'), tabs, list, foot);
+      box.append(pageHead('強さ選び', 'title'), tabs, list, both, foot);
       root.append(box);
     },
     unmount() {},

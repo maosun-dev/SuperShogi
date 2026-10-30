@@ -46,12 +46,18 @@ export function titleFarEdgeExtent(aspect: number, d: number): number {
   return max;
 }
 
-/** 盤の奥の縁が揺れのどの角度でも横幅の92%に収まる、いちばん近いカメラの距離 */
+/**
+ * 盤の奥の縁が揺れのどの角度でも横幅の92%に収まる、いちばん近いカメラの距離。
+ * 横長の画面（パソコン）では、縦横比 TITLE_WIDE_ASPECT の画面と同じ距離まで引く
+ * （横幅に合わせると寄りすぎて盤が画面を埋め、背景も床も見えない）
+ */
+export const TITLE_WIDE_ASPECT = 0.62;
 export function titleCameraDistance(aspect: number): number {
+  const a = Math.min(aspect, TITLE_WIDE_ASPECT);
   let lo = 3, hi = 300;
   for (let i = 0; i < 50; i++) {
     const m = (lo + hi) / 2;
-    if (titleFarEdgeExtent(aspect, m) <= FAR_FILL) hi = m; else lo = m;
+    if (titleFarEdgeExtent(a, m) <= FAR_FILL) hi = m; else lo = m;
   }
   return hi;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cameraDistance, titleCameraDistance, titleFarEdgeExtent } from '../../src/view/fit';
+import { TITLE_WIDE_ASPECT, cameraDistance, titleCameraDistance, titleFarEdgeExtent } from '../../src/view/fit';
 
 const tan19 = Math.tan((19 * Math.PI) / 180);
 
@@ -28,5 +28,10 @@ describe('タイトルのカメラ', () => {
   });
   it('対局画面のカメラより近い（広角で寄って遠近感を出す）', () => {
     expect(titleCameraDistance(aspect)).toBeLessThan(cameraDistance(aspect, 38));
+  });
+  it('横長の画面では縦横比 TITLE_WIDE_ASPECT の画面と同じ距離まで引く（寄りすぎて盤が画面を埋めないように）', () => {
+    expect(titleCameraDistance(16 / 9)).toBeCloseTo(titleCameraDistance(TITLE_WIDE_ASPECT));
+    expect(titleCameraDistance(2.33)).toBeCloseTo(titleCameraDistance(TITLE_WIDE_ASPECT));
+    expect(titleFarEdgeExtent(16 / 9, titleCameraDistance(16 / 9))).toBeLessThan(0.4);
   });
 });

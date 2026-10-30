@@ -2356,11 +2356,32 @@ input:focus-visible {
     border-radius: 0 14px 14px 0;
     box-shadow: 0 10px 24px rgba(40, 20, 0, .35);
   }
-  /* 説明の板：絵・見出し・文・ボタンを縦に。収まらないときは文だけを流し、ボタンはいつも見せる */
-  .match .detail:not([hidden]) { z-index: 4; display: flex; flex-direction: column; overflow: hidden; }
-  .match .detail > * { flex: none; }
-  .match .detail .dtext { flex: 0 1 auto; min-height: 3.5em; overflow-y: auto; }
+  /* 説明の並び：札の絵を左に、名前と種類をその右に、説明の文はその下に横幅いっぱいで流す（絵の高さぶん文の場所を増やす）。
+     説明の板（自分の札）は、収まらないときは文だけを流し、ボタンはいつも見せる */
+  .match .detail:not([hidden]) {
+    z-index: 4;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, auto) auto auto auto;
+    grid-template-areas: "art head" "text text" "power power" "note note" "btns btns";
+    align-content: start;
+    column-gap: 14px;
+    overflow: hidden;
+  }
+  .match .detail .dart { grid-area: art; }
+  .match .detail .dhead { grid-area: head; }
+  .match .detail .dtext { grid-area: text; min-height: 3.5em; overflow-y: auto; }
+  .match .detail .dpower { grid-area: power; }
+  .match .detail .dnote { grid-area: note; }
+  .match .detail .dbtns { grid-area: btns; }
   .match .card-panel { display: block; z-index: 3; }
+  .match .card-panel:is(.mahou, .wana, .soubi) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "who who" "art head" "text text";
+    align-content: start;
+    column-gap: 14px;
+  }
   .match .card-panel.wana { --c: var(--wana); }
   .match .card-panel.soubi { --c: var(--soubi); }
   .match .card-panel:not(.mahou, .wana, .soubi) {
@@ -2371,25 +2392,29 @@ input:focus-visible {
     box-shadow: none;
   }
   .match .cp-hint { margin: 0; font-size: 13px; color: var(--gofun); opacity: .75; }
-  .match .cp-who { margin: 0 0 10px; font-size: 12px; font-weight: 800; color: var(--wana-deep); }
-  /* 札の絵：説明の板と札の説明の場所で同じ大きさ */
-  .match .detail .dart, .match .cp-art { display: flex; justify-content: center; margin-bottom: 14px; }
-  .match .detail .dart .card, .match .cp-art .card { --s: 1.6; cursor: default; }
+  .match .cp-who { grid-area: who; margin: 0 0 10px; font-size: 12px; font-weight: 800; color: var(--wana-deep); }
+  .match .cp-art { grid-area: art; }
+  .match .cp-head { grid-area: head; }
+  .match .cp-text { grid-area: text; }
+  /* 札の絵：説明の板と札の説明の場所で同じ大きさ。画面の縦が短いほど小さく */
+  .match .detail .dart, .match .cp-art { display: block; margin-bottom: 10px; }
+  .match .detail .dart .card, .match .cp-art .card { --s: 1.1; cursor: default; }
+  @media (max-height: 820px) { .match .detail .dart .card, .match .cp-art .card { --s: .9; } }
+  @media (max-height: 640px) { .match .detail .dart .card, .match .cp-art .card { --s: .7; } }
+  @media (max-height: 560px) { .match .detail .dart .card, .match .cp-art .card { --s: .55; } }
   /* 札には大きさの class「hand」が付くので、昔からある手札の板の指定（.match .hand・考え中の薄さ）を打ち消す */
   .match .cp-art .card, .match .detail .dart .card { display: block; padding: 0; overflow: visible; opacity: 1; }
-  /* 画面の縦が短いときは絵を小さくして、説明が絵に押し出されないようにする */
-  @media (max-height: 820px) { .match .detail .dart .card, .match .cp-art .card { --s: 1.2; } }
-  @media (max-height: 640px) { .match .detail .dart .card, .match .cp-art .card { --s: .85; } }
-  /* とても短いときは自分の札の絵を省く（同じ札が手札に見えている）。相手の札は小さく残す */
-  @media (max-height: 560px) {
-    .match .detail .dart { display: none; }
-    .match .cp-art .card { --s: .6; }
-    .match .cp-art { margin-bottom: 8px; }
-  }
-  .match .cp-head { display: flex; align-items: baseline; gap: 8px; }
+  /* 名前と種類は絵の右に縦に積む */
+  .match .detail .dhead, .match .cp-head { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; }
   .match .cp-name { font-size: 19px; font-weight: 800; }
   .match .cp-meta { font-size: 12px; opacity: .7; }
   .match .cp-text { font-size: 14px; line-height: 1.75; margin: 6px 0 0; }
+  /* とても低い画面：字と余白を少し詰めて、長い札の文も収める */
+  @media (max-height: 560px) {
+    .match .card-panel, .match .detail { padding: 10px 14px; }
+    .match .cp-text, .match .detail .dtext { font-size: 13px; line-height: 1.6; }
+    .match .cp-who { margin-bottom: 6px; }
+  }
 
   .match .mine-area > .hand {
     flex-wrap: wrap;
@@ -2432,26 +2457,36 @@ input:focus-visible {
 /* 広い画面の札選び：札の一覧を左に大きく、持ち込みの札と駒落ち・決めるボタンは右の列へ（スクロールせずに選べるように） */
 @supports selector(:has(*)) {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
-  #app:has(> .deckb) { max-width: 1040px; }
+  #app:has(> .deckb) { max-width: 1200px; }
   .deckb {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-columns: minmax(0, 1fr) 420px;
     grid-template-rows: auto auto auto minmax(0, 1fr);
   }
+  /* 左は札の一覧だけ（縦いっぱい）。残りのコスト・お知らせ・持ち込み・決めるボタンは右の列に集める */
   .deckb > .page-head { grid-column: 1 / -1; }
-  .deckb > .cost-meter, .deckb > .msg, .deckb > .rows { grid-column: 1; }
+  .deckb > .rows { grid-column: 1; grid-row: 2 / -1; }
+  .deckb > .cost-meter { grid-column: 2; grid-row: 2; padding: 14px 22px 0; background: color-mix(in srgb, var(--yoru-deep) 70%, transparent); border-left: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent); }
+  .deckb > .msg { grid-column: 2; grid-row: 3; padding: 4px 22px 8px; background: color-mix(in srgb, var(--yoru-deep) 70%, transparent); border-left: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent); box-shadow: none; }
   .deckb > .deck-foot {
     grid-column: 2;
-    grid-row: 2 / -1;
+    grid-row: 4;
     overflow-y: auto;
     padding: 12px 18px;
     border-top: 0;
     border-left: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent);
   }
-  /* 持ち込みの札は折り返して並べる */
-  .deckb .deck-foot .strip { flex-wrap: wrap; overflow-x: visible; }
+  /* 持ち込みの札は折り返して、大きく並べる */
+  .deckb .deck-foot .strip { flex-wrap: wrap; overflow-x: visible; gap: 10px; }
+  .deckb .deck-foot .chosen { zoom: 1.6; }
+  .deckb .deck-foot .strip .none { font-size: 15px; line-height: 1.7; }
+  .deckb .deck-foot .acts { margin-top: 14px; }
+  .deckb .deck-foot .acts button { padding-block: 14px; font-size: 17px; }
   .deckb .row { flex-wrap: wrap; gap: 12px; overflow-x: visible; padding: 14px 16px 8px; }
   .deckb .pick .card { --s: .95; }
+  /* 縦が短い画面では札を少し小さくして、一覧をスクロールせずに見せる */
+  @media (max-height: 760px) { .deckb .pick .card { --s: .8; } .deckb .row { padding-block: 10px 4px; } }
+  @media (max-height: 620px) { .deckb .pick .card { --s: .66; } }
 }
 }
 /* 広い画面の札図鑑：列を広げて札を大きく（18枚をスクロールせずに見せる） */
@@ -2482,3 +2517,39 @@ input:focus-visible {
 }
 .stream-ok p { font-size: 14px; line-height: 1.85; }
 .stream-ok p + p { margin-top: 6px; }
+/* 広い画面のタイトル：横いっぱいに使い、3D の盤を大きく。題字・札・角印は画面に合わせて大きくする */
+@supports selector(:has(*)) {
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  #app:has(> .title-screen) { max-width: none; }
+  .title-screen { --tz: clamp(1, calc(100vh / 760px), 1.4); }
+  .title-screen .logo { zoom: calc(var(--tz) * .85); top: 18px; right: 28px; }
+  .title-screen .fuda-row { zoom: var(--tz); bottom: 20px; gap: 26px; }
+  .title-screen .kakuin { zoom: var(--tz); left: 24px; bottom: 20px; }
+  .title-screen .kakuin.manabu { left: auto; right: 24px; }
+}
+}
+/* 強さ選び：ふだん（スマホ）は幕のタブで切り替える。広い画面では序幕と大詰を左右に並べて全部見せる */
+.level-both { display: none; }
+@supports selector(:has(*)) {
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  #app:has(> .level) { max-width: 1040px; }
+  .level > .level-acts, .level > .level-list { display: none; }
+  .level-both { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; padding: 8px 16px 0; }
+  .level-col .level-list { padding: 10px 0 12px; }
+  /* 幕の見出し：定式幕の縞の帯に、幕の名と一言 */
+  .level-col-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 12px;
+    padding: 9px 12px 8px;
+    border-radius: 3px;
+    color: var(--gofun);
+    background: repeating-linear-gradient(90deg, #26201B 0 22px, #A9542A 22px 44px, #3D6E3A 44px 66px);
+    box-shadow: 0 5px 12px color-mix(in srgb, var(--sumi) 45%, transparent);
+  }
+  .level-col-head .act-name { font-size: 26px; line-height: 1; filter: drop-shadow(0 0 2px var(--sumi)) drop-shadow(0 0 4px var(--sumi)); }
+  .level-col-head .act-sub { font-size: 12px; font-weight: 800; text-shadow: 0 0 3px var(--sumi), 0 0 2px var(--sumi); }
+  .level .level-keiko { max-width: 520px; margin: 0 auto; width: 100%; }
+}
+}
