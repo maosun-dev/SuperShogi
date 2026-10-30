@@ -1,4 +1,4 @@
-// 札の説明の場所（広い画面の右上。設計書 docs/superpowers/specs/2026-10-31-wide-match-design.md）。
+// 札の説明の場所（広い画面の左上。設計書 docs/superpowers/specs/2026-10-31-wide-match-design.md）。
 // 何も選んでいないときは案内だけ、相手が札を使ったらその札を出す。自分の札の説明は hud の説明の板を上に重ねて出す。
 // 広い画面でないときは CSS で隠す
 import type { CardId, GameEvent, Side } from '../rules/types';
@@ -54,6 +54,8 @@ export function createCardPanel(): CardPanel {
       root.replaceChildren(el('p', 'cp-who', '相手が使った札'), art, head, el('p', 'cp-text', info.text));
     },
     clear() {
+      // すでに案内だけなら作り直さない（読み上げが毎回鳴らないように）
+      if (root.className === 'card-panel' && root.querySelector('.cp-hint')) return;
       root.className = 'card-panel';
       root.replaceChildren(el('p', 'cp-hint', HINT));
     },

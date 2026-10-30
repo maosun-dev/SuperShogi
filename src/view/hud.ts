@@ -22,8 +22,10 @@ export interface Hud {
   /** カードの説明の板を開く。usable が false なら「使う」を押せなくする */
   showDetail(uid: number, usable: boolean): void;
   hideDetail(): void;
-  /** 札の説明の場所（広い画面の右上）に、相手が使った札を出す */
+  /** 札の説明の場所（広い画面の左上）に、相手が使った札を出す */
   showFoeCard(id: CardId): void;
+  /** 札の説明の場所を案内だけに戻す（待ったで盤を戻したとき） */
+  clearFoeCard(): void;
   /** 駒台の箱の画面上の四角（取った駒を飛ばす先）。見えていなければ null */
   komadaiRect(side: 'me' | 'foe'): DOMRect | null;
   root: HTMLElement;
@@ -134,6 +136,7 @@ export function createHud(root: HTMLElement): Hud {
   detail.setAttribute('role', 'dialog');
   // 札の絵（広い画面のときだけ見せる）
   const dArt = el('div', 'dart');
+  dArt.setAttribute('aria-hidden', 'true'); // 札の名前は見出しで読むので、絵は読ませない
   const dHead = el('div', 'dhead');
   const dName = el('b', 'dname');
   const dMeta = el('span', 'dmeta');
@@ -168,7 +171,7 @@ export function createHud(root: HTMLElement): Hud {
   restBox.append(restTitle, restList, trapHead, trapList, restAbout, restClose);
   rest.append(restBox);
 
-  // ---- 札の説明の場所（広い画面の右上。ふだんは CSS で隠す） ----
+  // ---- 札の説明の場所（広い画面の左上。ふだんは CSS で隠す） ----
   const panel = createCardPanel();
 
   root.append(foe, board, footer, rest, panel.root);
@@ -430,7 +433,12 @@ export function createHud(root: HTMLElement): Hud {
       (usable ? useBtn : dCancel).focus();
     },
     showFoeCard(id) {
+      // 読むだけの説明を開いたままだと相手の札が隠れるので閉じる
+      hud.hideDetail();
       panel.showFoe(id);
+    },
+    clearFoeCard() {
+      panel.clear();
     },
     komadaiRect(side) {
       const r = (side === 'me' ? meHands : foeHands).getBoundingClientRect();

@@ -2291,6 +2291,7 @@ input:focus-visible {
    ふだん（スマホ・アプリ）は、札の説明の場所と説明の板の札の絵を出さない */
 .match .card-panel { display: none; }
 .match .detail .dart { display: none; }
+@supports selector(:has(*)) {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
   /* 対局と、対局から続けて流れるエンディングは、列の幅の上限（430px）を外して画面いっぱいに使う */
   #app:has(> .match), #app:has(> .ending) { max-width: none; }
@@ -2340,7 +2341,7 @@ input:focus-visible {
   /* 右の列は縦に余裕があるので、持ち駒の札を大きく（たくさん取っても折り返して収まる） */
   .match .komadai .koma { zoom: 1.4; }
 
-  /* 右の列：上が札の説明（紙）、下が手札（木の板） */
+  /* 左の列：上が札の説明（紙）、下が手札（木の板） */
   .match .card-panel, .match .detail {
     --c: var(--mahou);
     position: static;
@@ -2374,6 +2375,8 @@ input:focus-visible {
   /* 札の絵：説明の板と札の説明の場所で同じ大きさ */
   .match .detail .dart, .match .cp-art { display: flex; justify-content: center; margin-bottom: 14px; }
   .match .detail .dart .card, .match .cp-art .card { --s: 1.6; cursor: default; }
+  /* 札には大きさの class「hand」が付くので、昔からある手札の板の指定（.match .hand・考え中の薄さ）を打ち消す */
+  .match .cp-art .card, .match .detail .dart .card { display: block; padding: 0; overflow: visible; opacity: 1; }
   /* 画面の縦が短いときは絵を小さくして、説明が絵に押し出されないようにする */
   @media (max-height: 820px) { .match .detail .dart .card, .match .cp-art .card { --s: 1.2; } }
   @media (max-height: 640px) { .match .detail .dart .card, .match .cp-art .card { --s: .85; } }
@@ -2416,12 +2419,16 @@ input:focus-visible {
     transform-origin: 50% 100%;
   }
 }
+}
 /* 大きな画面（フルHD など）では、左右の列をまとめて大きくする（配信で字が読めるように） */
+@supports selector(:has(*)) {
 @media (min-width: 1600px) and (min-height: 900px) and (min-aspect-ratio: 5/4) {
   .match { --ui-z: 1.35; --left-w: calc(300px * var(--ui-z)); --right-w: calc(220px * var(--ui-z)); }
   .match .side, .match .mine-area > .hand, .match .card-panel, .match .detail { zoom: var(--ui-z); }
 }
+}
 /* 広い画面の札選び：札の一覧を左に大きく、持ち込みの札と駒落ち・決めるボタンは右の列へ（スクロールせずに選べるように） */
+@supports selector(:has(*)) {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
   #app:has(> .deckb) { max-width: 1040px; }
   .deckb {
@@ -2444,9 +2451,12 @@ input:focus-visible {
   .deckb .row { flex-wrap: wrap; gap: 12px; overflow-x: visible; padding: 14px 16px 8px; }
   .deckb .pick .card { --s: .95; }
 }
+}
 /* 広い画面の札図鑑：列を広げて札を大きく（18枚をスクロールせずに見せる） */
+@supports selector(:has(*)) {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
   #app:has(> .zukan) { max-width: 820px; }
   .zukan .row .card { --s: 1; }
   .zukan .row { gap: 12px; }
+}
 }

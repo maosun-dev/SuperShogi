@@ -401,6 +401,7 @@ export function matchScreen(params: unknown): Screen {
         if (!net) return;
         drawGen++;
         fx.interrupt(); // 流している演出だけ止める（このあとの演出は流す）
+        hud.clearFoeCard(); // 取り消された相手の札は出しておかない
         getSound().play('hyoshigi');
         net.hideNote();
         clearInput();
