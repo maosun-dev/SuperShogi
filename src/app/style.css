@@ -2295,15 +2295,17 @@ input:focus-visible {
   /* 対局と、対局から続けて流れるエンディングは、列の幅の上限（430px）を外して画面いっぱいに使う */
   #app:has(> .match), #app:has(> .ending) { max-width: none; }
   .match {
-    --left-w: 220px;
-    --right-w: 300px;
+    --left-w: 300px;
+    --right-w: 220px;
     display: grid;
     grid-template-columns: var(--left-w) minmax(0, 1fr) var(--right-w);
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    /* 左の列は札（説明と手札）、右の列は駒台（上が相手・下が自分。自分の駒台は将棋盤と同じ右下） */
     grid-template-areas:
-      "foe board panel"
-      ".   board panel"
-      "me  board hand";
+      "panel board foe"
+      "panel board ."
+      "hand  board ."
+      "hand  board me";
     gap: 12px 0;
   }
   /* 下の帯の箱をほどいて、中の自分の帯・手札・説明の板をそれぞれの場所へ */
@@ -2324,7 +2326,8 @@ input:focus-visible {
     box-shadow: inset 0 3px 0 rgba(255, 240, 200, .6), 0 2px 0 #8A5A22, 0 10px 22px rgba(40, 20, 0, .35);
   }
   .match .side.foe::before { display: none; }
-  .match .side.foe, .match .side.me { padding: 12px 14px; border-radius: 0 14px 14px 0; }
+  .match .side.foe, .match .side.me { padding: 12px 14px; }
+  .match .side.foe, .match .side.me { border-radius: 14px 0 0 14px; }
   .match .side.foe { margin-top: 12px; }
   .match .side.me { margin-bottom: 12px; display: flex; flex-direction: column-reverse; gap: 10px; }
   /* 帯の中：名前と伏せ札・残り札が横に収まらないので折り返す */
@@ -2347,7 +2350,7 @@ input:focus-visible {
     background: var(--gofun);
     color: var(--sumi);
     border-left: 8px solid var(--c);
-    border-radius: 14px 0 0 14px;
+    border-radius: 0 14px 14px 0;
     box-shadow: 0 10px 24px rgba(40, 20, 0, .35);
   }
   /* 説明の板：絵・見出し・文・ボタンを縦に。収まらないときは文だけを流し、ボタンはいつも見せる */
@@ -2392,7 +2395,7 @@ input:focus-visible {
     overflow-y: auto;
     margin: 12px 0;
     padding: 20px 12px 14px;
-    border-radius: 14px 0 0 14px;
+    border-radius: 0 14px 14px 0;
   }
 
   /* 札の名前の帯・決着の筆文字・知らせ・集中線は、盤の列の幅に収める（左右の列にかぶせない） */
@@ -2409,7 +2412,7 @@ input:focus-visible {
 }
 /* 大きな画面（フルHD など）では、左右の列をまとめて大きくする（配信で字が読めるように） */
 @media (min-width: 1600px) and (min-height: 900px) and (min-aspect-ratio: 5/4) {
-  .match { --ui-z: 1.35; --left-w: calc(220px * var(--ui-z)); --right-w: calc(300px * var(--ui-z)); }
+  .match { --ui-z: 1.35; --left-w: calc(300px * var(--ui-z)); --right-w: calc(220px * var(--ui-z)); }
   .match .side, .match .mine-area > .hand, .match .card-panel, .match .detail { zoom: var(--ui-z); }
 }
 /* 広い画面の札選び：札の一覧を左に大きく、持ち込みの札と駒落ち・決めるボタンは右の列へ（スクロールせずに選べるように） */
