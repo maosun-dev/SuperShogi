@@ -2337,6 +2337,8 @@ input:focus-visible {
   .match .side.foe .komadai { margin-top: 10px; }
   /* 持ち駒は列の幅で折り返す（横にスクロールさせない） */
   .match .komadai { height: auto; min-height: 34px; flex-wrap: wrap; overflow: visible; }
+  /* 右の列は縦に余裕があるので、持ち駒の札を大きく（たくさん取っても折り返して収まる） */
+  .match .komadai .koma { zoom: 1.4; }
 
   /* 右の列：上が札の説明（紙）、下が手札（木の板） */
   .match .card-panel, .match .detail {
