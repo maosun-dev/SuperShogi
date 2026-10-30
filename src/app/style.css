@@ -2312,10 +2312,10 @@ input:focus-visible {
   .match .side.me { grid-area: me; }
   .match > .board-area { grid-area: board; }
   .match .card-panel, .match .detail { grid-area: panel; }
-  .match .hand { grid-area: hand; }
+  .match .mine-area > .hand { grid-area: hand; }
 
   /* 左右の板：駒台と同じ榧の木目。盤の側だけ角を丸める */
-  .match .side.foe, .match .side.me, .match .hand {
+  .match .side.foe, .match .side.me, .match .mine-area > .hand {
     --dai-ink: #2A1B10;
     color: var(--dai-ink);
     background:
@@ -2383,7 +2383,7 @@ input:focus-visible {
   .match .cp-meta { font-size: 12px; opacity: .7; }
   .match .cp-text { font-size: 14px; line-height: 1.75; margin: 6px 0 0; }
 
-  .match .hand {
+  .match .mine-area > .hand {
     flex-wrap: wrap;
     justify-content: center;
     align-content: flex-start;
@@ -2394,6 +2394,9 @@ input:focus-visible {
     padding: 20px 12px 14px;
     border-radius: 14px 0 0 14px;
   }
+
+  /* 札の名前の帯・決着の筆文字・知らせ・集中線は、盤の列の幅に収める（左右の列にかぶせない） */
+  .match .fx-cutin, .match .fx-brush, .match .fx-notice, .match .fx-lines { left: var(--left-w); right: var(--right-w); }
 
   /* 短冊は対局画面全体を基準に、盤の列の下の端の真ん中へ */
   .match .prompt {
@@ -2407,5 +2410,5 @@ input:focus-visible {
 /* 大きな画面（フルHD など）では、左右の列をまとめて大きくする（配信で字が読めるように） */
 @media (min-width: 1600px) and (min-height: 900px) and (min-aspect-ratio: 5/4) {
   .match { --ui-z: 1.35; --left-w: calc(220px * var(--ui-z)); --right-w: calc(300px * var(--ui-z)); }
-  .match .side, .match .hand, .match .card-panel, .match .detail { zoom: var(--ui-z); }
+  .match .side, .match .mine-area > .hand, .match .card-panel, .match .detail { zoom: var(--ui-z); }
 }
