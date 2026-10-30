@@ -2291,3 +2291,109 @@ input:focus-visible {
    ふだん（スマホ・アプリ）は、札の説明の場所と説明の板の札の絵を出さない */
 .match .card-panel { display: none; }
 .match .detail .dart { display: none; }
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  /* 対局を出している間だけ、列の幅の上限（430px）を外して画面いっぱいに使う */
+  #app:has(> .match) { max-width: none; }
+  .match {
+    --left-w: 220px;
+    --right-w: 300px;
+    display: grid;
+    grid-template-columns: var(--left-w) minmax(0, 1fr) var(--right-w);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "foe board panel"
+      ".   board panel"
+      "me  board hand";
+    gap: 12px 0;
+  }
+  /* 下の帯の箱をほどいて、中の自分の帯・手札・説明の板をそれぞれの場所へ */
+  .match .mine-area { display: contents; }
+  .match > .side.foe { grid-area: foe; }
+  .match .side.me { grid-area: me; }
+  .match > .board-area { grid-area: board; }
+  .match .card-panel, .match .detail { grid-area: panel; }
+  .match .hand { grid-area: hand; }
+
+  /* 左右の板：駒台と同じ榧の木目。盤の側だけ角を丸める */
+  .match .side.foe, .match .side.me, .match .hand {
+    --dai-ink: #2A1B10;
+    color: var(--dai-ink);
+    background:
+      repeating-linear-gradient(90deg, rgba(120, 70, 20, 0) 0 9px, rgba(120, 70, 20, .10) 9px 10px, rgba(120, 70, 20, 0) 10px 23px, rgba(90, 50, 10, .08) 23px 25px),
+      linear-gradient(#E9C27A, #DDAF62 60%, #D3A255);
+    box-shadow: inset 0 3px 0 rgba(255, 240, 200, .6), 0 2px 0 #8A5A22, 0 10px 22px rgba(40, 20, 0, .35);
+  }
+  .match .side.foe::before { display: none; }
+  .match .side.foe, .match .side.me { padding: 12px 14px; border-radius: 0 14px 14px 0; }
+  .match .side.foe { margin-top: 12px; }
+  .match .side.me { margin-bottom: 12px; display: flex; flex-direction: column-reverse; gap: 10px; }
+  /* 帯の中：名前と伏せ札・残り札が横に収まらないので折り返す */
+  .match .side .row { flex-wrap: wrap; row-gap: 8px; }
+  .match .side.foe .who { flex-basis: 100%; }
+  .match .side.foe .rest-open { margin-left: auto; }
+  .match .side.foe .komadai { margin-top: 10px; }
+  /* 持ち駒は列の幅で折り返す（横にスクロールさせない） */
+  .match .komadai { height: auto; min-height: 34px; flex-wrap: wrap; overflow: visible; }
+
+  /* 右の列：上が札の説明（紙）、下が手札（木の板） */
+  .match .card-panel, .match .detail {
+    --c: var(--mahou);
+    position: static;
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 12px 0 0;
+    padding: 16px 18px;
+    background: var(--gofun);
+    color: var(--sumi);
+    border-left: 8px solid var(--c);
+    border-radius: 14px 0 0 14px;
+    box-shadow: 0 10px 24px rgba(40, 20, 0, .35);
+  }
+  .match .detail { z-index: 4; }
+  .match .card-panel { display: block; z-index: 3; }
+  .match .card-panel.wana { --c: var(--wana); }
+  .match .card-panel.soubi { --c: var(--soubi); }
+  .match .card-panel:not(.mahou, .wana, .soubi) {
+    --c: color-mix(in srgb, var(--gofun) 30%, transparent);
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--sumi) 72%, transparent);
+    box-shadow: none;
+  }
+  .match .cp-hint { margin: 0; font-size: 13px; color: var(--gofun); opacity: .75; }
+  .match .cp-who { margin: 0 0 10px; font-size: 12px; font-weight: 800; color: var(--wana-deep); }
+  /* 札の絵：説明の板と札の説明の場所で同じ大きさ */
+  .match .detail .dart, .match .cp-art { display: flex; justify-content: center; margin-bottom: 14px; }
+  .match .detail .dart .card, .match .cp-art .card { --s: 1.6; cursor: default; }
+  .match .cp-head { display: flex; align-items: baseline; gap: 8px; }
+  .match .cp-name { font-size: 19px; font-weight: 800; }
+  .match .cp-meta { font-size: 12px; opacity: .7; }
+  .match .cp-text { font-size: 14px; line-height: 1.75; margin: 6px 0 0; }
+
+  .match .hand {
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    max-height: 46vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    margin: 12px 0;
+    padding: 20px 12px 14px;
+    border-radius: 14px 0 0 14px;
+  }
+
+  /* 短冊は対局画面全体を基準に、盤の列の下の端の真ん中へ */
+  .match .prompt {
+    top: auto;
+    bottom: 18px;
+    left: calc(var(--left-w) + (100% - var(--left-w) - var(--right-w)) / 2);
+    max-width: calc(100% - var(--left-w) - var(--right-w) - 32px);
+    transform-origin: 50% 100%;
+  }
+}
+/* 大きな画面（フルHD など）では、左右の列をまとめて大きくする（配信で字が読めるように） */
+@media (min-width: 1600px) and (min-height: 900px) and (min-aspect-ratio: 5/4) {
+  .match { --ui-z: 1.35; --left-w: calc(220px * var(--ui-z)); --right-w: calc(300px * var(--ui-z)); }
+  .match .side, .match .hand, .match .card-panel, .match .detail { zoom: var(--ui-z); }
+}
