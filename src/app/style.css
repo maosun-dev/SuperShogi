@@ -2350,7 +2350,10 @@ input:focus-visible {
     border-radius: 14px 0 0 14px;
     box-shadow: 0 10px 24px rgba(40, 20, 0, .35);
   }
-  .match .detail { z-index: 4; }
+  /* 説明の板：絵・見出し・文・ボタンを縦に。収まらないときは文だけを流し、ボタンはいつも見せる */
+  .match .detail:not([hidden]) { z-index: 4; display: flex; flex-direction: column; overflow: hidden; }
+  .match .detail > * { flex: none; }
+  .match .detail .dtext { flex: 0 1 auto; min-height: 3.5em; overflow-y: auto; }
   .match .card-panel { display: block; z-index: 3; }
   .match .card-panel.wana { --c: var(--wana); }
   .match .card-panel.soubi { --c: var(--soubi); }
@@ -2366,6 +2369,15 @@ input:focus-visible {
   /* 札の絵：説明の板と札の説明の場所で同じ大きさ */
   .match .detail .dart, .match .cp-art { display: flex; justify-content: center; margin-bottom: 14px; }
   .match .detail .dart .card, .match .cp-art .card { --s: 1.6; cursor: default; }
+  /* 画面の縦が短いときは絵を小さくして、説明が絵に押し出されないようにする */
+  @media (max-height: 820px) { .match .detail .dart .card, .match .cp-art .card { --s: 1.2; } }
+  @media (max-height: 640px) { .match .detail .dart .card, .match .cp-art .card { --s: .85; } }
+  /* とても短いときは自分の札の絵を省く（同じ札が手札に見えている）。相手の札は小さく残す */
+  @media (max-height: 560px) {
+    .match .detail .dart { display: none; }
+    .match .cp-art .card { --s: .6; }
+    .match .cp-art { margin-bottom: 8px; }
+  }
   .match .cp-head { display: flex; align-items: baseline; gap: 8px; }
   .match .cp-name { font-size: 19px; font-weight: 800; }
   .match .cp-meta { font-size: 12px; opacity: .7; }
