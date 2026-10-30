@@ -2435,3 +2435,9 @@ input:focus-visible {
   .deckb .row { flex-wrap: wrap; gap: 12px; overflow-x: visible; padding: 14px 16px 8px; }
   .deckb .pick .card { --s: .95; }
 }
+/* 広い画面の札図鑑：列を広げて札を大きく（18枚をスクロールせずに見せる） */
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  #app:has(> .zukan) { max-width: 820px; }
+  .zukan .row .card { --s: 1; }
+  .zukan .row { gap: 12px; }
+}
