@@ -2292,8 +2292,8 @@ input:focus-visible {
 .match .card-panel { display: none; }
 .match .detail .dart { display: none; }
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
-  /* 対局を出している間だけ、列の幅の上限（430px）を外して画面いっぱいに使う */
-  #app:has(> .match) { max-width: none; }
+  /* 対局と、対局から続けて流れるエンディングは、列の幅の上限（430px）を外して画面いっぱいに使う */
+  #app:has(> .match), #app:has(> .ending) { max-width: none; }
   .match {
     --left-w: 220px;
     --right-w: 300px;
