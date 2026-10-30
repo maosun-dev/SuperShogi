@@ -2286,3 +2286,8 @@ input:focus-visible {
   .ending-cast, .ending-kojo, .ending-ooiri, .ending-title { transition: opacity .2s; }
   .ending-bg { animation: none; }
 }
+
+/* ======== 広い画面（パソコンの横長の画面）の対局：左に帯｜盤｜右に札（設計書 specs/2026-10-31-wide-match-design.md） ========
+   ふだん（スマホ・アプリ）は、札の説明の場所と説明の板の札の絵を出さない */
+.match .card-panel { display: none; }
+.match .detail .dart { display: none; }

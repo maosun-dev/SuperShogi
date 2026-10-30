@@ -19,6 +19,7 @@ import { setHighlights, squareAt } from '../../view/board3d';
 import { releaseLift, setLifted, sync } from '../../view/pieces3d';
 import { getSound } from '../../fx/sound';
 import { createHud } from '../../view/hud';
+import { foeCardFrom } from '../../view/cardPanel';
 import { createPresenter } from '../../fx/player';
 import { setKingFx, setOomie, skipFinale } from '../../fx/finale';
 import { endingAfter, oomieOn, type EndingWhen } from '../ending/rules';
@@ -149,6 +150,9 @@ export function matchScreen(params: unknown): Screen {
             setHighlights(stage, [], lastMove);
             thinking = step.actor === 'sente' && !step.after.result;
             hud.render(step.after, 'sente', { thinking, level, keiko: !!keiko, foe });
+            // 相手が札を使った（罠が発動した）ら、札の説明の場所に出す
+            const foeCard = foeCardFrom(step.events, 'sente');
+            if (foeCard) hud.showFoeCard(foeCard);
           } catch (e) {
             console.error('演出のあとの画面の更新に失敗しました', e);
           }

@@ -5,6 +5,7 @@ import { LEVEL_NAME, type Level } from '../ai/levels';
 import { CARDS } from '../cards';
 import { SHORYU_POWER_MOVE, shoryuWait } from '../cards/magic';
 import { KIND_MARK, cardHtml } from './cardArt';
+import { createCardPanel } from './cardPanel';
 
 type HudEvent = 'hand' | 'card' | 'use' | 'promote' | 'pick' | 'stop' | 'cancel';
 
@@ -21,6 +22,8 @@ export interface Hud {
   /** カードの説明の板を開く。usable が false なら「使う」を押せなくする */
   showDetail(uid: number, usable: boolean): void;
   hideDetail(): void;
+  /** 札の説明の場所（広い画面の右上）に、相手が使った札を出す */
+  showFoeCard(id: CardId): void;
   /** 駒台の箱の画面上の四角（取った駒を飛ばす先）。見えていなければ null */
   komadaiRect(side: 'me' | 'foe'): DOMRect | null;
   root: HTMLElement;
@@ -129,6 +132,8 @@ export function createHud(root: HTMLElement): Hud {
   const detail = el('div', 'detail');
   detail.hidden = true;
   detail.setAttribute('role', 'dialog');
+  // 札の絵（広い画面のときだけ見せる）
+  const dArt = el('div', 'dart');
   const dHead = el('div', 'dhead');
   const dName = el('b', 'dname');
   const dMeta = el('span', 'dmeta');
@@ -140,7 +145,7 @@ export function createHud(root: HTMLElement): Hud {
   const useBtn = button('use', '使う');
   const dCancel = button('cancel', 'やめる');
   dBtns.append(useBtn, dCancel);
-  detail.append(dHead, dText, dPower, dNote, dBtns);
+  detail.append(dArt, dHead, dText, dPower, dNote, dBtns);
   footer.append(detail, me, hand, prompt);
 
   // ---- 相手の残り札の板 ----
@@ -163,7 +168,10 @@ export function createHud(root: HTMLElement): Hud {
   restBox.append(restTitle, restList, trapHead, trapList, restAbout, restClose);
   rest.append(restBox);
 
-  root.append(foe, board, footer, rest);
+  // ---- 札の説明の場所（広い画面の右上。ふだんは CSS で隠す） ----
+  const panel = createCardPanel();
+
+  root.append(foe, board, footer, rest, panel.root);
 
   // ---- 押されたとき ----
   restBtn.addEventListener('click', () => {
@@ -405,7 +413,10 @@ export function createHud(root: HTMLElement): Hud {
       const c = CARDS[id];
       const k = KIND_MARK[c.kind];
       detailUid = uid;
+      // 自分の札を押したら、相手の札の説明はしまう（閉じても戻さない）
+      panel.clear();
       detail.className = `detail ${k.color}`;
+      dArt.innerHTML = cardHtml(id); // 定数だけでできた文字列
       dName.textContent = c.name;
       dMeta.textContent = `${k.label}・コスト${c.cost}`;
       dText.textContent = c.text;
@@ -417,6 +428,9 @@ export function createHud(root: HTMLElement): Hud {
       detail.hidden = false;
       hud.select({ card: uid });
       (usable ? useBtn : dCancel).focus();
+    },
+    showFoeCard(id) {
+      panel.showFoe(id);
     },
     komadaiRect(side) {
       const r = (side === 'me' ? meHands : foeHands).getBoundingClientRect();
