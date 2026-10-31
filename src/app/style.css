@@ -2524,10 +2524,19 @@ input:focus-visible {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
   #app:has(> .title-screen) { max-width: none; }
   .title-screen { --tz: clamp(1, calc(100vh / 760px), 1.4); }
-  .title-screen .logo { zoom: calc(var(--tz) * .85); top: 18px; right: 28px; }
+  .title-screen .logo { zoom: calc(var(--tz) * .85); top: 18px; right: 6vw; }
   .title-screen .fuda-row { zoom: var(--tz); bottom: 20px; gap: 26px; }
-  .title-screen .kakuin { zoom: var(--tz); left: 24px; bottom: 20px; }
-  .title-screen .kakuin.manabu { left: auto; right: 24px; }
+  /* 設・学の角印は、札の左右に寄せて大きく（隅に置くと見つけにくい）。札の半幅は 77px（--tz 倍） */
+  .title-screen .kakuin {
+    --k: calc(60px * var(--tz));
+    width: var(--k);
+    height: var(--k);
+    font-size: calc(var(--k) * .6);
+    left: calc(50% - 77px * var(--tz) - 34px - var(--k));
+    bottom: calc(80px * var(--tz));
+    box-shadow: inset 0 0 0 4px var(--wana), inset 0 0 0 6px var(--gofun), 0 6px 14px rgba(0, 0, 0, .3);
+  }
+  .title-screen .kakuin.manabu { left: calc(50% + 77px * var(--tz) + 34px); right: auto; }
 }
 }
 /* 強さ選び：ふだん（スマホ）は幕のタブで切り替える。広い画面では序幕と大詰を左右に並べて全部見せる */
