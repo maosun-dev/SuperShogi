@@ -2456,11 +2456,11 @@ input:focus-visible {
 /* 広い画面の札選び：札の一覧を左に大きく、持ち込みの札と駒落ち・決めるボタンは右の列へ（スクロールせずに選べるように） */
 @supports selector(:has(*)) {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
-  #app:has(> .deckb) { max-width: 1200px; }
+  #app:has(> .deckb) { max-width: 1120px; }
   .deckb {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 420px;
-    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
   }
   /* 左は札の一覧だけ（縦いっぱい）。残りのコスト・お知らせ・持ち込み・決めるボタンは右の列に集める */
   .deckb > .page-head { grid-column: 1 / -1; }
@@ -2470,11 +2470,33 @@ input:focus-visible {
   .deckb > .deck-foot {
     grid-column: 2;
     grid-row: 4;
-    overflow-y: auto;
+    overflow-y: visible;
     padding: 12px 18px;
     border-top: 0;
     border-left: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent);
   }
+  /* 札を押したときの大きな札と説明：画面に重ねず、右の列の「おまかせ／対局へ」の下に出す（絵を左、説明と入れる・抜くを右） */
+  .deckb > .look:not([hidden]) {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    grid-column: 2;
+    grid-row: 5;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 14px;
+    min-height: 0;
+    padding: 14px 18px 18px;
+    background: color-mix(in srgb, var(--yoru-deep) 70%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent);
+  }
+  .deckb > .look .card.large { --s: 1.3; width: calc(74px * 1.3); height: calc(112px * 1.3); flex: none; }
+  .deckb > .look .about { max-width: none; flex: 1; min-width: 0; }
+  .deckb > .look p { font-size: 13.5px; line-height: 1.7; }
+  .deckb > .look .look-acts { flex-wrap: wrap; }
+  /* 右の列の地は、説明を出していないときも下まで続ける */
+  .deckb::after { content: ""; grid-column: 2; grid-row: 5; background: color-mix(in srgb, var(--yoru-deep) 70%, transparent); border-left: 1px solid color-mix(in srgb, var(--gofun) 20%, transparent); z-index: -1; }
   /* 持ち込みの札は折り返して、大きく並べる */
   .deckb .deck-foot .strip { flex-wrap: wrap; overflow-x: visible; gap: 10px; }
   .deckb .deck-foot .chosen { zoom: 1.6; }
