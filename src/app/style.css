@@ -2544,9 +2544,27 @@ input:focus-visible {
 @supports selector(:has(*)) {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
   #app:has(> .level) { max-width: 1040px; }
+  /* 広い画面の見出し（強さ選び・札選び・札図鑑・札見せ）は、端でなく真ん中に */
+  #app:has(> .level, > .deckb, > .zukan, > .reveal) .page-head h1 { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: 34px; }
   .level > .level-acts, .level > .level-list { display: none; }
-  .level-both { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; padding: 8px 16px 0; }
-  .level-col .level-list { padding: 10px 0 12px; }
+  /* 左右の札を同じ段にそろえる（弱い↔鬼、ふつう↔師範、強い↔傾奇者）：列の箱をほどいて、見出しと札を1つの格子に流す */
+  .level-both {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto repeat(3, auto);
+    grid-auto-flow: column;
+    gap: 10px 18px;
+    padding: 8px 16px 0;
+  }
+  .level-col, .level-col .level-list { display: contents; }
+  .level-col-head { margin-bottom: 2px; }
+  /* 札は低めに（稽古まで1画面に収める） */
+  .level-both .level-fuda { padding: 10px 16px 12px; gap: 6px 12px; }
+  .level-both .level-fuda .lv-name { font-size: 30px; }
+  /* 稽古は下の段の中央に、細めの帯で */
+  .level .level-keiko { max-width: 560px; margin: 0 auto; width: 100%; padding: 12px 16px; }
+  .level .level-keiko .level-fuda { grid-template-columns: auto auto 1fr; grid-template-areas: "name cards tally"; align-items: center; padding: 8px 16px; margin-top: 0; }
+  .level .level-keiko .lv-name { font-size: 28px; }
   /* 幕の見出し：定式幕の縞の帯に、幕の名と一言 */
   .level-col-head {
     display: flex;
@@ -2561,6 +2579,5 @@ input:focus-visible {
   }
   .level-col-head .act-name { font-size: 26px; line-height: 1; filter: drop-shadow(0 0 2px var(--sumi)) drop-shadow(0 0 4px var(--sumi)); }
   .level-col-head .act-sub { font-size: 12px; font-weight: 800; text-shadow: 0 0 3px var(--sumi), 0 0 2px var(--sumi); }
-  .level .level-keiko { max-width: 520px; margin: 0 auto; width: 100%; }
 }
 }
