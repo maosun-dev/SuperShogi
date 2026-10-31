@@ -2586,3 +2586,15 @@ input:focus-visible {
   .level-col-head .act-sub { font-size: 12px; font-weight: 800; text-shadow: 0 0 3px var(--sumi), 0 0 2px var(--sumi); }
 }
 }
+/* 広い画面の札見せ：横幅を広げて札を大きく、「いざ」も大きく（上が相手、下が自分の向かい合う形はそのまま） */
+@supports selector(:has(*)) {
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  #app:has(> .reveal) { max-width: 1100px; }
+  .reveal-cards { gap: 16px; }
+  .reveal-cards .card { --s: 1.4; }
+  .reveal-row h2, .reveal-head h2 { font-size: 17px; }
+  .reveal .iza { font-size: min(22vh, 220px); }
+  @media (max-height: 860px) { .reveal-cards .card { --s: 1.35; } }
+  @media (max-height: 760px) { .reveal-cards .card { --s: 1.15; } }
+}
+}
