@@ -93,9 +93,12 @@ export function endingScreen(params: unknown): Screen {
       kojo.append(staff);
       const ooiri = el('div', 'ending-ooiri');
       ooiri.append(kouzanColumn('ooiri-word', '大入'));
-      // 背景：傾奇者の振袖の柄を半透明にして、ゆっくり流す（2026-10-28 ユーザー「背景が寂しい」）
+      // 背景：傾奇者の振袖の柄を半透明にして、横へ流し続ける（2026-10-28 ユーザー「背景が寂しい」、2026-10-31「ループで動かして」）。
+      // 柄は1枚の絵なので、そのまま並べると継ぎ目が出る。左右反転したものと交互に4枚つなぎ、2枚ぶん流したら頭へ戻す（反転どうしの境目は柄がそろう）
       const bg = el('div', 'ending-bg');
-      bg.innerHTML = oozumeGara('kabuki'); // 定数だけでできた文字列
+      const strip = el('div', 'ending-bg-strip');
+      strip.innerHTML = oozumeGara('kabuki').repeat(4); // 定数だけでできた文字列
+      bg.append(strip);
       // 題字：幕が開いたら、横書きで大きく（回り舞台が回り出す前）
       const title = el('div', 'ending-title');
       title.setAttribute('aria-label', '傾将棋');
