@@ -2551,7 +2551,8 @@ input:focus-visible {
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
   #app:has(> .title-screen) { max-width: none; }
   .title-screen { --tz: clamp(1, calc(100vh / 760px), 1.4); }
-  .title-screen .logo { zoom: calc(var(--tz) * .85); top: 18px; right: 6vw; }
+  /* 題字は画面の端でなく、盤の右肩のすぐ横に（盤は真ん中で、横幅のおよそ ±17% に収まる） */
+  .title-screen .logo { zoom: calc(var(--tz) * .85); top: 4vh; right: auto; left: calc(50% + 17vw); }
   .title-screen .fuda-row { zoom: var(--tz); bottom: 20px; gap: 26px; }
   /* 設・学の角印は、札の左右に寄せて大きく（隅に置くと見つけにくい）。札の半幅は 77px（--tz 倍） */
   .title-screen .kakuin {
