@@ -2485,10 +2485,15 @@ input:focus-visible {
   .deckb .deck-foot .acts { margin-top: 14px; }
   .deckb .deck-foot .acts button { padding-block: 14px; font-size: 17px; }
   .deckb .row { flex-wrap: wrap; gap: 12px; overflow-x: visible; padding: 14px 16px 8px; }
-  .deckb .pick .card { --s: .95; }
-  /* 縦が短い画面では札を少し小さくして、一覧をスクロールせずに見せる */
-  @media (max-height: 760px) { .deckb .pick .card { --s: .8; } .deckb .row { padding-block: 10px 4px; } }
-  @media (max-height: 620px) { .deckb .pick .card { --s: .66; } }
+  /* 札は画面の高さに合わせてできるだけ大きく（3種類×6枚がスクロールせずに収まる大きさ） */
+  .deckb .pick .card { --s: 1.5; }
+  .deckb .row { gap: 14px; }
+  @media (max-height: 1000px) { .deckb .pick .card { --s: 1.4; } }
+  @media (max-height: 860px) { .deckb .pick .card { --s: 1.25; } .deckb .row { padding-block: 12px 4px; } }
+  @media (max-height: 760px) { .deckb .pick .card { --s: 1.08; } .deckb .row { padding-block: 10px 2px; gap: 10px; } }
+  @media (max-height: 640px) { .deckb .pick .card { --s: .85; } }
+  /* 幅の狭いパソコンの画面では、6枚が横に並ぶ大きさまでに抑える */
+  @media (max-width: 1240px) { .deckb .pick .card { --s: .8; } }
 }
 }
 /* 広い画面の札図鑑：列を広げて札を大きく（18枚をスクロールせずに見せる） */
