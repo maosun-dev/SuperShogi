@@ -49,6 +49,8 @@ function komaEl(label: string): HTMLElement {
   const k = document.createElement('span');
   k.className = 'koma';
   k.style.left = '0'; k.style.top = '0';
+  // 駒台の駒札の「なめらかに移る」指定を受け継ぐと、左上（0,0）から糸の先へ飛んでくるように見えるので切る
+  k.style.transition = 'none';
   const f = document.createElement('span');
   f.className = 'face';
   f.textContent = label;
@@ -126,6 +128,8 @@ export const yobimodoshi: CardFx<MagicCue> = {
     await ctx.tween(420, (t) => place(cx0, topY + (yHook - topY) * easeOut(t), 0, false, 0));
     // 2) 引っかけて、ひょいっと釣り上げる
     if (p.src) p.src.style.opacity = '.25';
+    // 出す前に糸の先へ置いておく（左上に一瞬出ないように）
+    koma.style.transform = `translate(${cx0 - KOMA_W / 2}px, ${yHook}px) rotate(${p.flipFrom}deg) scale(1.25)`;
     fly.append(koma);
     getSound().play('tick');
     const yUp = wide ? Math.max(40, Math.min(p.y0, p.y2) - 50) : Math.max(40, box.height * 0.28);
