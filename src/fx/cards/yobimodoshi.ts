@@ -13,7 +13,9 @@ interface Plan {
   src: HTMLElement | null;       // 釣られる駒札（相手の駒台）
   fromBox: HTMLElement;
   x0: number; y0: number;        // 釣られる駒札の左上（root の中）
+  w0: number;                    // 釣られる駒札の幅（広い画面では駒台の駒札が大きいので、針を真ん中に掛けるのに使う）
   x2: number; y2: number;        // 行き先（受け取る側の駒台）
+  w2: number;                    // 行き先の駒札の幅（同じく）
   label: string;
   flipFrom: number; flipTo: number; // 駒札の向き（相手の駒札は先が下）
 }
@@ -31,11 +33,12 @@ function plan(ctx: FxCtx, cue: MagicCue): Plan | null {
   const toks = toBox.querySelectorAll<HTMLElement>('.koma');
   const last = toks[toks.length - 1];
   const tr = localRect(ctx, toBox);
-  const x2 = last ? localRect(ctx, last).x + localRect(ctx, last).w + 6 : tr.x + 2;
+  const lr = last ? localRect(ctx, last) : null;
+  const x2 = lr ? lr.x + lr.w + 6 : tr.x + 2;
   return {
     src, fromBox, label,
-    x0: sr.x, y0: sr.y + (src ? 0 : 4),
-    x2, y2: tr.y + 2,
+    x0: sr.x, y0: sr.y + (src ? 0 : 4), w0: src ? sr.w : KOMA_W,
+    x2, y2: tr.y + 2, w2: lr ? lr.w : KOMA_W,
     flipFrom: e.from === ctx.me ? 0 : 180,
     flipTo: e.to === ctx.me ? 0 : 180,
   };
@@ -67,6 +70,8 @@ function glowEl(r: { x: number; y: number; w: number; h: number }, color: number
   return g;
 }
 
+/** 広い画面の並べ方の条件（style.css の広い画面と同じ） */
+const WIDE_QUERY = '(min-width: 900px) and (min-aspect-ratio: 5/4)';
 const KOMA_W = 29; // 駒札の幅のおよそ（重ね板の駒札の中心を糸の先に合わせるため）
 
 const live = new WeakMap<MagicCue, HTMLElement[]>();
@@ -98,8 +103,12 @@ export const yobimodoshi: CardFx<MagicCue> = {
     const koma = komaEl(p.label);
     fly.append(line, hook);
     keep(cue, line, hook, koma);
-    const cx0 = p.x0 + KOMA_W / 2;
-    const cx2 = p.x2 + KOMA_W / 2;
+    // 広い画面：駒台は右の列に上下に並ぶ。真ん中へ大きく振ると列の外（盤との境目）を通るので、
+    // 相手の駒台の少し上へ釣り上げ、振れを小さくして列の中だけを通す。駒台の駒札は大きいので、針は実際の幅の真ん中へ
+    const wide = matchMedia(WIDE_QUERY).matches;
+    const cx0 = p.x0 + (wide ? p.w0 : KOMA_W) / 2;
+    const cx2 = p.x2 + (wide ? p.w2 : KOMA_W) / 2;
+    const swayMax = wide ? 4 : 16;
     const topY = -20;
     // 糸の先（tip）の位置に、糸と針を合わせる。角度 sway（度）で振れる
     const place = (ax: number, tipY: number, sway: number, carry: boolean, rot: number): void => {
@@ -119,7 +128,7 @@ export const yobimodoshi: CardFx<MagicCue> = {
     if (p.src) p.src.style.opacity = '.25';
     fly.append(koma);
     getSound().play('tick');
-    const yUp = Math.max(40, box.height * 0.28);
+    const yUp = wide ? Math.max(40, Math.min(p.y0, p.y2) - 50) : Math.max(40, box.height * 0.28);
     const inward = cx0 < box.width / 2 ? 1 : -1;
     await ctx.tween(380, (t) => place(cx0, yHook + (yUp - yHook) * easeOut(t), inward * Math.abs(Math.sin(t * Math.PI * 2)) * 6, true, p.flipFrom + Math.sin(t * Math.PI * 3) * 12), (t) => t);
     // 3) 竿が振られて、自分の駒台の上へ（振り子のように揺れながら、向きを変える）
@@ -127,7 +136,7 @@ export const yobimodoshi: CardFx<MagicCue> = {
     await ctx.tween(620, (t) => {
       const ax = cx0 + (cx2 - cx0) * easeInOut(t);
       // 振れは画面の内側へ（端の駒台でも、駒札が画面の外へ出ないように）
-      const sway = (ax < box.width / 2 ? 1 : -1) * Math.sin(Math.PI * t) * 16;
+      const sway = (ax < box.width / 2 ? 1 : -1) * Math.sin(Math.PI * t) * swayMax;
       place(ax, yUp - Math.sin(Math.PI * t) * 30, sway, true, p.flipFrom + (p.flipTo - p.flipFrom) * t);
     });
     // 4) 下ろして、駒台へポン

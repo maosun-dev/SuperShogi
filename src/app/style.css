@@ -2346,7 +2346,9 @@ input:focus-visible {
   .match .card-panel, .match .detail {
     --c: var(--mahou);
     position: static;
-    align-self: stretch;
+    /* 中身の高さだけ（列いっぱいに伸ばさない。下は背景を見せる） */
+    align-self: start;
+    max-height: calc(100% - 24px);
     min-height: 0;
     overflow-y: auto;
     margin: 12px 0;
@@ -2385,13 +2387,8 @@ input:focus-visible {
   }
   .match .card-panel.wana { --c: var(--wana); }
   .match .card-panel.soubi { --c: var(--soubi); }
-  .match .card-panel:not(.mahou, .wana, .soubi) {
-    --c: color-mix(in srgb, var(--gofun) 30%, transparent);
-    display: grid;
-    place-items: center;
-    background: color-mix(in srgb, var(--sumi) 72%, transparent);
-    box-shadow: none;
-  }
+  /* 何も出していないときは枠ごと出さない（背景を見せる） */
+  .match .card-panel:not(.mahou, .wana, .soubi) { display: none; }
   .match .cp-hint { margin: 0; font-size: 13px; color: var(--gofun); opacity: .75; }
   .match .cp-who { grid-area: who; margin: 0 0 10px; font-size: 12px; font-weight: 800; color: var(--wana-deep); }
   .match .cp-art { grid-area: art; }
@@ -2399,8 +2396,8 @@ input:focus-visible {
   .match .cp-text { grid-area: text; }
   /* 札の絵：説明の板と札の説明の場所で同じ大きさ。画面の縦が短いほど小さく */
   .match .detail .dart, .match .cp-art { display: block; margin-bottom: 10px; }
-  .match .detail .dart .card, .match .cp-art .card { --s: 1.4; cursor: default; }
-  @media (max-height: 820px) { .match .detail .dart .card, .match .cp-art .card { --s: 1.1; } }
+  .match .detail .dart .card, .match .cp-art .card { --s: 1; cursor: default; }
+  @media (max-height: 820px) { .match .detail .dart .card, .match .cp-art .card { --s: .9; } }
   @media (max-height: 640px) { .match .detail .dart .card, .match .cp-art .card { --s: .7; } }
   @media (max-height: 560px) { .match .detail .dart .card, .match .cp-art .card { --s: .55; } }
   /* 札には大きさの class「hand」が付くので、昔からある手札の板の指定（.match .hand・考え中の薄さ）を打ち消す */
