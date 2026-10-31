@@ -2297,16 +2297,16 @@ input:focus-visible {
   #app:has(> .match), #app:has(> .ending) { max-width: none; }
   .match {
     --left-w: 300px;
-    --right-w: 220px;
+    --right-w: 300px;
     display: grid;
     grid-template-columns: var(--left-w) minmax(0, 1fr) var(--right-w);
     grid-template-rows: auto minmax(0, 1fr) auto auto;
-    /* 左の列は札（説明と手札）、右の列は駒台（上が相手・下が自分。自分の駒台は将棋盤と同じ右下） */
+    /* 左の列は札の説明だけ（縦いっぱい）。右の列は上が相手、下が自分の持ち物（手札と駒台。将棋盤と同じ右下） */
     grid-template-areas:
       "panel board foe"
       "panel board ."
-      "hand  board ."
-      "hand  board me";
+      "panel board hand"
+      "panel board me";
     gap: 12px 0;
   }
   /* 下の帯の箱をほどいて、中の自分の帯・手札・説明の板をそれぞれの場所へ */
@@ -2340,15 +2340,16 @@ input:focus-visible {
   .match .komadai { height: auto; min-height: 34px; flex-wrap: wrap; overflow: visible; }
   /* 右の列は縦に余裕があるので、持ち駒の札を大きく（たくさん取っても折り返して収まる） */
   .match .komadai .koma { zoom: 1.4; }
+  @media (max-height: 720px) { .match .komadai .koma { zoom: 1.15; } }
 
-  /* 左の列：上が札の説明（紙）、下が手札（木の板） */
+  /* 左の列：札の説明（紙）。縦いっぱい */
   .match .card-panel, .match .detail {
     --c: var(--mahou);
     position: static;
     align-self: stretch;
     min-height: 0;
     overflow-y: auto;
-    margin: 12px 0 0;
+    margin: 12px 0;
     padding: 16px 18px;
     background: var(--gofun);
     color: var(--sumi);
@@ -2398,8 +2399,8 @@ input:focus-visible {
   .match .cp-text { grid-area: text; }
   /* 札の絵：説明の板と札の説明の場所で同じ大きさ。画面の縦が短いほど小さく */
   .match .detail .dart, .match .cp-art { display: block; margin-bottom: 10px; }
-  .match .detail .dart .card, .match .cp-art .card { --s: 1.1; cursor: default; }
-  @media (max-height: 820px) { .match .detail .dart .card, .match .cp-art .card { --s: .9; } }
+  .match .detail .dart .card, .match .cp-art .card { --s: 1.4; cursor: default; }
+  @media (max-height: 820px) { .match .detail .dart .card, .match .cp-art .card { --s: 1.1; } }
   @media (max-height: 640px) { .match .detail .dart .card, .match .cp-art .card { --s: .7; } }
   @media (max-height: 560px) { .match .detail .dart .card, .match .cp-art .card { --s: .55; } }
   /* 札には大きさの class「hand」が付くので、昔からある手札の板の指定（.match .hand・考え中の薄さ）を打ち消す */
@@ -2420,12 +2421,11 @@ input:focus-visible {
     flex-wrap: wrap;
     justify-content: center;
     align-content: flex-start;
-    max-height: 46vh;
+    max-height: 52vh;
     overflow-x: hidden;
     overflow-y: auto;
-    margin: 12px 0;
     padding: 20px 12px 14px;
-    border-radius: 0 14px 14px 0;
+    border-radius: 14px 0 0 14px;
   }
 
   /* 札の名前の帯・決着の筆文字・知らせ・集中線は、盤の列の幅に収める（左右の列にかぶせない） */
@@ -2436,6 +2436,8 @@ input:focus-visible {
   /* 手札が7枚以上なら札を小さくして4枚ずつ並べ、スクロールせずに全部見せる */
   .match .mine-area > .hand:has(> .card:nth-child(7)) { gap: 8px; }
   .match .mine-area > .hand:has(> .card:nth-child(7)) > .card { --s: .8; }
+  /* 9枚以上：さらに小さく（持ち駒が多い短い画面でも右下に収める） */
+  .match .mine-area > .hand:has(> .card:nth-child(9)) > .card { --s: .68; }
 
   /* 短冊は対局画面全体を基準に、盤の列の下の端の真ん中へ */
   .match .prompt {
@@ -2450,7 +2452,7 @@ input:focus-visible {
 /* 大きな画面（フルHD など）では、左右の列をまとめて大きくする（配信で字が読めるように） */
 @supports selector(:has(*)) {
 @media (min-width: 1600px) and (min-height: 900px) and (min-aspect-ratio: 5/4) {
-  .match { --ui-z: 1.35; --left-w: calc(300px * var(--ui-z)); --right-w: calc(220px * var(--ui-z)); }
+  .match { --ui-z: 1.35; --left-w: calc(300px * var(--ui-z)); --right-w: calc(300px * var(--ui-z)); }
   .match .side, .match .mine-area > .hand, .match .card-panel, .match .detail { zoom: var(--ui-z); }
 }
 }
